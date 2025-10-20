@@ -1,0 +1,135 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 15 100% 60%;    /* Bright orange - matches dark mode */
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 350 40% 92%;  /* Light red-tinted background */
+    --secondary-foreground: 350 80% 25%;
+
+    --muted: 25 30% 95%;       /* Light warm background */
+    --muted-foreground: 320 30% 40%;
+
+    --accent: 25 80% 88%;      /* Light golden orange */
+    --accent-foreground: 280 40% 15%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 25 25% 88%;      /* Warm border color */
+    --input: 25 25% 90%;       /* Warm input background */
+    --ring: 25 100% 55%;       /* Golden orange ring - matches dark mode */
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 25 20% 96%;     /* Light warm sidebar */
+    --sidebar-foreground: 350 80% 25%;    /* Deep red text */
+    --sidebar-primary: 15 100% 60%;       /* Orange primary - matches dark mode */
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 25 40% 90%;         /* Light golden accent */
+    --sidebar-accent-foreground: 280 40% 15%;
+    --sidebar-border: 25 30% 85%;         /* Warm border */
+    --sidebar-ring: 25 100% 55%;          /* Golden ring */
+  }
+
+  .dark {
+    /* Sunrise gradient dark mode colors */
+    --background: 280 40% 8%;  /* Deep purple */
+    --foreground: 30 100% 95%; /* Warm white */
+
+    --card: 280 35% 12%;       /* Slightly lighter purple */
+    --card-foreground: 30 100% 95%;
+
+    --popover: 280 35% 12%;
+    --popover-foreground: 30 100% 95%;
+
+    --primary: 15 100% 60%;    /* Bright orange */
+    --primary-foreground: 280 40% 8%;
+
+    --secondary: 350 80% 25%;  /* Deep red */
+    --secondary-foreground: 30 100% 95%;
+
+    --muted: 320 50% 15%;      /* Dark red-purple */
+    --muted-foreground: 30 80% 80%;
+
+    --accent: 25 100% 55%;     /* Golden orange */
+    --accent-foreground: 280 40% 8%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 320 40% 20%;     /* Dark red border */
+    --input: 320 40% 18%;      /* Darker input background */
+    --ring: 25 100% 55%;       /* Golden orange ring */
+
+    --sidebar-background: 285 45% 10%;    /* Deep purple sidebar */
+    --sidebar-foreground: 30 90% 90%;     /* Warm white text */
+    --sidebar-primary: 15 100% 65%;       /* Orange primary */
+    --sidebar-primary-foreground: 280 40% 8%;
+    --sidebar-accent: 320 50% 18%;        /* Dark red accent */
+    --sidebar-accent-foreground: 30 90% 90%;
+    --sidebar-border: 320 40% 20%;        /* Dark red border */
+    --sidebar-ring: 25 100% 55%;          /* Golden ring */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom sunrise gradient backgrounds for dark mode */
+.dark .sunrise-gradient {
+  background: linear-gradient(135deg, 
+    hsl(280, 40%, 8%) 0%,     /* Deep purple */
+    hsl(320, 50%, 15%) 25%,   /* Dark red-purple */
+    hsl(350, 80%, 25%) 50%,   /* Deep red */
+    hsl(15, 90%, 35%) 75%,    /* Orange-red */
+    hsl(25, 100%, 45%) 100%   /* Golden orange */
+  );
+}
+
+.dark .sunrise-gradient-subtle {
+  background: linear-gradient(135deg, 
+    hsl(280, 35%, 12%) 0%,    /* Card background */
+    hsl(320, 45%, 18%) 50%,   /* Muted red */
+    hsl(15, 80%, 30%) 100%    /* Darker orange */
+  );
+}
+
+/* Light mode warm gradients for consistency */
+.light-warm-gradient {
+  background: linear-gradient(135deg, 
+    hsl(0, 0%, 100%) 0%,      /* Pure white */
+    hsl(25, 30%, 95%) 25%,    /* Light warm */
+    hsl(350, 40%, 92%) 50%,   /* Light red-tinted */
+    hsl(25, 50%, 88%) 75%,    /* Light golden */
+    hsl(15, 60%, 85%) 100%    /* Light orange */
+  );
+}
+
+.light-warm-gradient-subtle {
+  background: linear-gradient(135deg, 
+    hsl(0, 0%, 98%) 0%,       /* Near white */
+    hsl(25, 20%, 96%) 50%,    /* Very light warm */
+    hsl(15, 30%, 94%) 100%    /* Light orange tint */
+  );
+}
