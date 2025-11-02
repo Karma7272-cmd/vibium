@@ -1,5 +1,5 @@
 import React from 'react';
-import { Monitor, Plus, Settings, Globe, Smartphone, CheckCircle, Users, Bot, Info } from 'lucide-react';
+import { Monitor, Plus, Settings, Globe, Smartphone, CheckCircle, Users, Bot, Info, FileCode } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -46,6 +46,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
       ]
     },
     { id: 'run-node', label: 'Run a Node', icon: Monitor, isRoute: true },
+    { id: 'code-analysis', label: 'Code Analysis', icon: FileCode, isRoute: true },
     { id: 'about', label: 'About', icon: Info, isRoute: true },
     { id: 'settings', label: 'Settings', icon: Settings, isRoute: true },
   ];
@@ -56,6 +57,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
         navigate('/');
       } else if (item.id === 'run-node') {
         navigate('/run-node');
+      } else if (item.id === 'code-analysis') {
+        navigate('/code-analysis');
       } else if (item.id === 'about') {
         navigate('/about');
       } else if (item.id === 'network') {
@@ -105,6 +108,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
         return location.pathname === '/';
       } else if (item.id === 'run-node') {
         return location.pathname === '/run-node';
+      } else if (item.id === 'code-analysis') {
+        return location.pathname === '/code-analysis';
       } else if (item.id === 'about') {
         return location.pathname === '/about';
       } else if (item.id === 'network') {

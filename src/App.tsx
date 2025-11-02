@@ -20,6 +20,7 @@ import Nodes from "./pages/Nodes";
 import Operators from "./pages/Operators";
 import Checks from "./pages/Checks";
 import Settings from "./pages/Settings";
+import CodeAnalysis from "./pages/CodeAnalysis";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="/agents" element={<Agents />} />
                 <Route path="/checks" element={<Checks />} />
                 <Route path="/run-node" element={<RunNode />} />
+                <Route path="/code-analysis" element={<CodeAnalysis />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/node/:npub" element={<NodeProfile />} />
