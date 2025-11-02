@@ -204,6 +204,49 @@ const CodeAnalysis = () => {
     });
   };
 
+  const handleExportAll = async () => {
+    if (codeFiles.length === 0) return;
+
+    toast({
+      title: "Creating ZIP",
+      description: "Packaging all files...",
+    });
+
+    try {
+      const zip = new JSZip();
+
+      // Add all files to the ZIP
+      codeFiles.forEach(file => {
+        zip.file(file.name, file.content);
+      });
+
+      // Generate the ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+      // Download the ZIP
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'code-export.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Complete",
+        description: `All ${codeFiles.length} files exported as code-export.zip`,
+      });
+    } catch (error) {
+      console.error('Error creating ZIP:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to create ZIP file.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCodeEdit = (newContent: string) => {
     if (selectedFile) {
       setSelectedFile({ ...selectedFile, content: newContent });
@@ -328,8 +371,19 @@ const CodeAnalysis = () => {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 <Card className="lg:col-span-1">
-                  <CardHeader>
-                    <CardTitle className="text-sm">File Explorer ({codeFiles.length})</CardTitle>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm">File Explorer ({codeFiles.length})</CardTitle>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportAll}
+                        className="h-7 text-xs"
+                      >
+                        <Download className="h-3 w-3 mr-1" />
+                        Export All
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-2">
                     <FileTreeView
