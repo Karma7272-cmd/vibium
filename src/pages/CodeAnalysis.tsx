@@ -2,7 +2,7 @@ import { useState } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, FileText } from "lucide-react";
+import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import JSZip from "jszip";
+import { FileTreeView } from "@/components/code-analysis/FileTreeView";
 
 interface CodeFile {
   name: string;
@@ -328,22 +329,17 @@ const CodeAnalysis = () => {
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 <Card className="lg:col-span-1">
                   <CardHeader>
-                    <CardTitle className="text-sm">Files ({codeFiles.length})</CardTitle>
+                    <CardTitle className="text-sm">File Explorer ({codeFiles.length})</CardTitle>
                   </CardHeader>
                   <CardContent className="p-2">
-                    <div className="space-y-1 max-h-[600px] overflow-y-auto">
-                      {codeFiles.map((file) => (
-                        <Button
-                          key={file.name}
-                          variant={selectedFile?.name === file.name ? "secondary" : "ghost"}
-                          className="w-full justify-start text-left text-sm"
-                          onClick={() => setSelectedFile(file)}
-                        >
-                          <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
-                          <span className="truncate">{file.name}</span>
-                        </Button>
-                      ))}
-                    </div>
+                    <FileTreeView
+                      files={codeFiles}
+                      selectedFile={selectedFile?.name || null}
+                      onFileSelect={(fileName) => {
+                        const file = codeFiles.find(f => f.name === fileName);
+                        if (file) setSelectedFile(file);
+                      }}
+                    />
                   </CardContent>
                 </Card>
 
