@@ -46,7 +46,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
       ]
     },
     { id: 'run-node', label: 'Run a Node', icon: Monitor, isRoute: true },
-    { id: 'code-analysis', label: 'Code Analysis', icon: FileCode, isRoute: true },
+    { id: 'code-analysis', label: 'Code AI', icon: FileCode, isRoute: true },
     { id: 'about', label: 'About', icon: Info, isRoute: true },
     { id: 'settings', label: 'Settings', icon: Settings, isRoute: true },
   ];
