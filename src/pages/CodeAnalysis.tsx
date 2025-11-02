@@ -11,6 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import JSZip from "jszip";
 import { FileTreeView } from "@/components/code-analysis/FileTreeView";
+import { CodeChatPanel } from "@/components/code-analysis/CodeChatPanel";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface CodeFile {
   name: string;
@@ -26,6 +29,7 @@ const CodeAnalysis = () => {
   const [selectedFile, setSelectedFile] = useState<CodeFile | null>(null);
   const [analysisResult, setAnalysisResult] = useState("");
   const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const { toast } = useToast();
 
   const handleDrag = (e: React.DragEvent) => {
@@ -372,28 +376,52 @@ const CodeAnalysis = () => {
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 <Card className="lg:col-span-1">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm">File Explorer ({codeFiles.length})</CardTitle>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleExportAll}
-                        className="h-7 text-xs"
-                      >
-                        <Download className="h-3 w-3 mr-1" />
-                        Export All
-                      </Button>
+                    <div className="flex items-center justify-between mb-2">
+                      <CardTitle className="text-sm">
+                        {showChat ? 'AI Chat' : `File Explorer (${codeFiles.length})`}
+                      </CardTitle>
+                      {!showChat && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleExportAll}
+                          className="h-7 text-xs"
+                        >
+                          <Download className="h-3 w-3 mr-1" />
+                          Export All
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="chat-mode"
+                        checked={showChat}
+                        onCheckedChange={setShowChat}
+                      />
+                      <Label htmlFor="chat-mode" className="text-xs cursor-pointer">
+                        AI Chat Mode
+                      </Label>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-2">
-                    <FileTreeView
-                      files={codeFiles}
-                      selectedFile={selectedFile?.name || null}
-                      onFileSelect={(fileName) => {
-                        const file = codeFiles.find(f => f.name === fileName);
-                        if (file) setSelectedFile(file);
-                      }}
-                    />
+                  <CardContent className="p-0 h-[600px]">
+                    {showChat ? (
+                      <CodeChatPanel
+                        selectedFile={selectedFile}
+                        onCodeUpdate={(newContent) => handleCodeEdit(newContent)}
+                        onClose={() => setShowChat(false)}
+                      />
+                    ) : (
+                      <div className="p-2">
+                        <FileTreeView
+                          files={codeFiles}
+                          selectedFile={selectedFile?.name || null}
+                          onFileSelect={(fileName) => {
+                            const file = codeFiles.find(f => f.name === fileName);
+                            if (file) setSelectedFile(file);
+                          }}
+                        />
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
