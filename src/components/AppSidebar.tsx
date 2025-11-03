@@ -20,14 +20,14 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   const location = useLocation();
   const isCollapsed = state === 'collapsed';
   const menuItems = [{
-    id: 'code-analysis',
-    label: 'Code AI',
-    icon: FileCode,
-    isRoute: true
-  }, {
     id: 'new-check',
     label: 'New Check',
     icon: Plus,
+    isRoute: true
+  }, {
+    id: 'code-analysis',
+    label: 'Code AI',
+    icon: FileCode,
     isRoute: true
   }, {
     id: 'network',
