@@ -225,22 +225,22 @@ export const CodeChatPanel = ({ selectedFile, onCodeUpdate, onClose }: CodeChatP
       </ScrollArea>
 
       <div className="p-3 border-t">
-        <div className="flex gap-2">
+        <div className="relative">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={selectedFile ? "Ask about the code..." : "Select a file first..."}
-            className="min-h-[60px] max-h-[120px] resize-none"
+            className="min-h-[60px] max-h-[120px] resize-none pr-14"
             disabled={isLoading || !selectedFile}
           />
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isLoading || !selectedFile}
             size="icon"
-            className="h-[60px] w-[60px] flex-shrink-0"
+            className="absolute bottom-2 right-2 h-10 w-10 rounded-full"
           >
-            <Send className="h-5 w-5" />
+            <Send className="h-4 w-4" />
           </Button>
         </div>
       </div>
