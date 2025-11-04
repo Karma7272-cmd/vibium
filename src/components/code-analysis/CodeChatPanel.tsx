@@ -11,13 +11,20 @@ interface Message {
   content: string;
 }
 
+interface CodeFile {
+  name: string;
+  content: string;
+  language: string;
+}
+
 interface CodeChatPanelProps {
+  allFiles: CodeFile[];
   selectedFile: { name: string; content: string } | null;
-  onCodeUpdate: (newContent: string) => void;
+  onFileUpdate: (fileName: string, newContent: string) => void;
   onClose: () => void;
 }
 
-export const CodeChatPanel = ({ selectedFile, onCodeUpdate, onClose }: CodeChatPanelProps) => {
+export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }: CodeChatPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -47,10 +54,7 @@ export const CodeChatPanel = ({ selectedFile, onCodeUpdate, onClose }: CodeChatP
           },
           body: JSON.stringify({
             messages: [...messages, userMsg],
-            file: selectedFile ? {
-              name: selectedFile.name,
-              content: selectedFile.content
-            } : null
+            files: allFiles
           }),
         }
       );
@@ -109,19 +113,32 @@ export const CodeChatPanel = ({ selectedFile, onCodeUpdate, onClose }: CodeChatP
         }
       }
 
-      // Check if the response contains code that should update the file
-      if (assistantContent.includes("```") && selectedFile) {
-        const codeMatch = assistantContent.match(/```[\w]*\n([\s\S]*?)\n```/);
-        if (codeMatch && codeMatch[1]) {
-          const extractedCode = codeMatch[1];
-          // Auto-update if it looks like a complete file replacement
-          if (extractedCode.length > 50) {
-            onCodeUpdate(extractedCode);
-            toast({
-              title: "Code Updated",
-              description: "The file has been updated with AI suggestions.",
-            });
+      // Check if the response contains code that should update files
+      if (assistantContent.includes("```")) {
+        // Look for file mentions before code blocks
+        const filePattern = /(?:File:\s*|filename:\s*|File name:\s*|---\s*)([^\n]+?)\s*(?:---\s*)?\n```[\w]*\n([\s\S]*?)\n```/gi;
+        let match;
+        let updatedFiles = 0;
+        
+        while ((match = filePattern.exec(assistantContent)) !== null) {
+          const fileName = match[1].trim();
+          const codeContent = match[2];
+          
+          if (codeContent.length > 50) {
+            // Find the matching file
+            const matchingFile = allFiles.find(f => f.name.includes(fileName) || fileName.includes(f.name));
+            if (matchingFile) {
+              onFileUpdate(matchingFile.name, codeContent);
+              updatedFiles++;
+            }
           }
+        }
+        
+        if (updatedFiles > 0) {
+          toast({
+            title: "Code Updated",
+            description: `Updated ${updatedFiles} file${updatedFiles > 1 ? 's' : ''} with AI suggestions.`,
+          });
         }
       }
 
@@ -141,10 +158,10 @@ export const CodeChatPanel = ({ selectedFile, onCodeUpdate, onClose }: CodeChatP
   const handleSend = () => {
     if (!input.trim() || isLoading) return;
     
-    if (!selectedFile) {
+    if (allFiles.length === 0) {
       toast({
-        title: "No file selected",
-        description: "Please select a file to chat about.",
+        title: "No files loaded",
+        description: "Please upload a ZIP file first.",
         variant: "destructive",
       });
       return;
@@ -177,12 +194,16 @@ export const CodeChatPanel = ({ selectedFile, onCodeUpdate, onClose }: CodeChatP
         </Button>
       </div>
 
-      {selectedFile && (
-        <div className="px-3 py-2 text-xs bg-muted/50 border-b">
-          <span className="text-muted-foreground">Chatting about: </span>
-          <span className="font-mono">{selectedFile.name}</span>
-        </div>
-      )}
+      <div className="px-3 py-2 text-xs bg-muted/50 border-b">
+        <span className="text-muted-foreground">Analyzing </span>
+        <span className="font-semibold">{allFiles.length} files</span>
+        {selectedFile && (
+          <>
+            <span className="text-muted-foreground"> • Currently viewing: </span>
+            <span className="font-mono">{selectedFile.name}</span>
+          </>
+        )}
+      </div>
 
       <ScrollArea className="flex-1 p-3" ref={scrollRef}>
         {messages.length === 0 && (
@@ -230,13 +251,13 @@ export const CodeChatPanel = ({ selectedFile, onCodeUpdate, onClose }: CodeChatP
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={selectedFile ? "Ask about the code..." : "Select a file first..."}
+            placeholder={allFiles.length > 0 ? "Ask about any file in the project..." : "Upload files first..."}
             className="min-h-[60px] max-h-[120px] resize-none pr-14"
-            disabled={isLoading || !selectedFile}
+            disabled={isLoading || allFiles.length === 0}
           />
           <Button
             onClick={handleSend}
-            disabled={!input.trim() || isLoading || !selectedFile}
+            disabled={!input.trim() || isLoading || allFiles.length === 0}
             size="icon"
             className="absolute bottom-2 right-2 h-10 w-10 rounded-full"
           >

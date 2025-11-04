@@ -261,6 +261,18 @@ const CodeAnalysis = () => {
     }
   };
 
+  const handleFileUpdate = (fileName: string, newContent: string) => {
+    const updatedFiles = codeFiles.map(f => 
+      f.name === fileName ? { ...f, content: newContent } : f
+    );
+    setCodeFiles(updatedFiles);
+    
+    // Update selected file if it's the one being modified
+    if (selectedFile?.name === fileName) {
+      setSelectedFile({ ...selectedFile, content: newContent });
+    }
+  };
+
   const handleGithubConnect = () => {
     toast({
       title: "GitHub Integration",
@@ -406,8 +418,9 @@ const CodeAnalysis = () => {
                   <CardContent className="p-0 h-[350px]">
                     {showChat ? (
                       <CodeChatPanel
+                        allFiles={codeFiles}
                         selectedFile={selectedFile}
-                        onCodeUpdate={(newContent) => handleCodeEdit(newContent)}
+                        onFileUpdate={handleFileUpdate}
                         onClose={() => setShowChat(false)}
                       />
                     ) : (

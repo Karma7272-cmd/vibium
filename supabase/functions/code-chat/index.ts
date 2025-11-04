@@ -11,25 +11,37 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, file } = await req.json();
+    const { messages, files } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log(`Code chat request for file: ${file?.name || 'none'}`);
+    console.log(`Code chat request with ${files?.length || 0} files`);
 
-    const systemPrompt = `You are an expert code assistant. You help developers analyze, fix, and improve their code.
+    // Build file tree context
+    let filesContext = '';
+    if (files && files.length > 0) {
+      filesContext = `\n\nProject Files (${files.length} total):\n\n`;
+      files.forEach((file: any) => {
+        filesContext += `--- ${file.name} ---\n\`\`\`${file.language || ''}\n${file.content}\n\`\`\`\n\n`;
+      });
+    }
 
-${file ? `Currently working with file: ${file.name}\n\nFile content:\n\`\`\`\n${file.content}\n\`\`\`` : 'No file selected yet.'}
+    const systemPrompt = `You are an expert code assistant analyzing an entire codebase. You help developers analyze, fix, and improve their code across multiple files.
+
+${filesContext || 'No files provided yet.'}
 
 Guidelines:
-- Provide clear, actionable advice
-- When fixing code, return the COMPLETE fixed code in a code block
-- Explain your reasoning briefly
-- Focus on the specific file and user's question
+- You can analyze and modify ANY file in the project
+- When suggesting code changes, specify the file name clearly like: "File: filename.ts"
+- Return COMPLETE fixed code in code blocks with the filename
+- You can suggest changes to multiple files in one response
+- Explain your reasoning and which files you're modifying
+- Consider cross-file dependencies and imports
 - Be concise but thorough`;
+
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
