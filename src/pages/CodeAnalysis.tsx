@@ -403,7 +403,7 @@ const CodeAnalysis = () => {
                       </Label>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-0 h-[600px]">
+                  <CardContent className="p-0 h-[350px]">
                     {showChat ? (
                       <CodeChatPanel
                         selectedFile={selectedFile}
