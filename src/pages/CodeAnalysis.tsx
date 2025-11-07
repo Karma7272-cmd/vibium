@@ -6,7 +6,6 @@ import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap } from 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import JSZip from "jszip";
@@ -14,6 +13,8 @@ import { FileTreeView } from "@/components/code-analysis/FileTreeView";
 import { CodeChatPanel } from "@/components/code-analysis/CodeChatPanel";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import Editor from "@monaco-editor/react";
+import { useTheme } from "@/components/ThemeProvider";
 
 interface CodeFile {
   name: string;
@@ -31,6 +32,7 @@ const CodeAnalysis = () => {
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const { toast } = useToast();
+  const { theme } = useTheme();
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -482,12 +484,22 @@ const CodeAnalysis = () => {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <Textarea
+                    <CardContent className="p-0">
+                      <Editor
+                        height="500px"
+                        language={selectedFile?.language || 'plaintext'}
                         value={selectedFile?.content || ''}
-                        onChange={(e) => handleCodeEdit(e.target.value)}
-                        className="font-mono text-sm min-h-[400px] max-h-[600px]"
-                        placeholder="Select a file to view and edit..."
+                        onChange={(value) => handleCodeEdit(value || '')}
+                        theme={theme === 'dark' ? 'vs-dark' : 'light'}
+                        options={{
+                          minimap: { enabled: true },
+                          fontSize: 13,
+                          lineNumbers: 'on',
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                          tabSize: 2,
+                          wordWrap: 'on',
+                        }}
                       />
                     </CardContent>
                   </Card>
