@@ -1,8 +1,10 @@
 import React from 'react';
-import { Monitor, Plus, Settings, Globe, Smartphone, CheckCircle, Users, Bot, Info, FileCode } from 'lucide-react';
+import { Monitor, Plus, Settings, Globe, Smartphone, CheckCircle, Users, Bot, Info, FileCode, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { ThemeToggle } from './ThemeToggle';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from './ui/button';
 interface AppSidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
@@ -18,6 +20,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const isCollapsed = state === 'collapsed';
   const menuItems = [{
     id: 'new-check',
@@ -223,15 +226,27 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
       </SidebarContent>
       
       <SidebarFooter className="border-t mt-auto">
-        {!isCollapsed && <div className="p-2 sm:p-4">
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Network Status</span>
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+        {!isCollapsed && <div className="p-2 sm:p-4 space-y-3">
+            {user ? (
+              <>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Logged in as</span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                  <Button variant="ghost" size="sm" onClick={signOut} className="w-full mt-2">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4">
+                <Button variant="default" size="sm" onClick={() => navigate('/auth')} className="w-full">
+                  Sign In
+                </Button>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">847 nodes online</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">23 jobs running</p>
-            </div>
+            )}
           </div>}
       </SidebarFooter>
     </Sidebar>;

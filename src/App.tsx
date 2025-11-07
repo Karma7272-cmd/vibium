@@ -22,6 +22,7 @@ import Checks from "./pages/Checks";
 import Settings from "./pages/Settings";
 import CodeAnalysis from "./pages/CodeAnalysis";
 import NotFound from "./pages/NotFound";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<NewCheck />} />
+                <Route path="/auth" element={<Auth />} />
                 <Route path="/pending-request" element={<PendingRequest />} />
                 <Route path="/network" element={<Index />} />
                 <Route path="/operators" element={<Operators />} />
