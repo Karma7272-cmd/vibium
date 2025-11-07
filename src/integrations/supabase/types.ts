@@ -14,7 +14,167 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      checks: {
+        Row: {
+          created_at: string | null
+          duration: number | null
+          error_message: string | null
+          id: string
+          node_id: string | null
+          operator_id: string | null
+          response_time: number | null
+          screenshot_url: string | null
+          status: string
+          status_code: number | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration?: number | null
+          error_message?: string | null
+          id?: string
+          node_id?: string | null
+          operator_id?: string | null
+          response_time?: number | null
+          screenshot_url?: string | null
+          status: string
+          status_code?: number | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          duration?: number | null
+          error_message?: string | null
+          id?: string
+          node_id?: string | null
+          operator_id?: string | null
+          response_time?: number | null
+          screenshot_url?: string | null
+          status?: string
+          status_code?: number | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checks_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checks_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nodes: {
+        Row: {
+          created_at: string | null
+          id: string
+          location: string | null
+          name: string
+          operator_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          operator_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          operator_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nodes_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operators: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          id: string
+          is_verified: boolean | null
+          location: string | null
+          name: string | null
+          npub: string
+          updated_at: string | null
+          user_id: string | null
+          website: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          location?: string | null
+          name?: string | null
+          npub: string
+          updated_at?: string | null
+          user_id?: string | null
+          website?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          location?: string | null
+          name?: string | null
+          npub?: string
+          updated_at?: string | null
+          user_id?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          id: string
+          npub: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          id: string
+          npub?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          npub?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
