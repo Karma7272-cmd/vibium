@@ -15,11 +15,15 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "@/components/ThemeProvider";
+import { GitHubRepoSelector } from "@/components/code-analysis/GitHubRepoSelector";
+import { commitAndPush } from "@/services/githubService";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CodeFile {
   name: string;
   content: string;
   language: string;
+  path?: string;
 }
 
 const CodeAnalysis = () => {
@@ -31,8 +35,13 @@ const CodeAnalysis = () => {
   const [analysisResult, setAnalysisResult] = useState("");
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [repoInfo, setRepoInfo] = useState<{ owner: string; repo: string; branch: string } | null>(null);
+  const [isPushing, setIsPushing] = useState(false);
+  const [modifiedFiles, setModifiedFiles] = useState<string[]>([]);
   const { toast } = useToast();
   const { theme } = useTheme();
+  const { session } = useAuth();
+  const isGitHubAuthenticated = session?.user?.app_metadata?.provider === 'github';
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -260,6 +269,11 @@ const CodeAnalysis = () => {
         f.name === selectedFile.name ? { ...f, content: newContent } : f
       );
       setCodeFiles(updatedFiles);
+      
+      // Track modified files
+      if (!modifiedFiles.includes(selectedFile.name)) {
+        setModifiedFiles([...modifiedFiles, selectedFile.name]);
+      }
     }
   };
 
@@ -269,17 +283,162 @@ const CodeAnalysis = () => {
     );
     setCodeFiles(updatedFiles);
     
+    // Track modified files
+    if (!modifiedFiles.includes(fileName)) {
+      setModifiedFiles([...modifiedFiles, fileName]);
+    }
+    
     // Update selected file if it's the one being modified
     if (selectedFile?.name === fileName) {
       setSelectedFile({ ...selectedFile, content: newContent });
     }
   };
 
-  const handleGithubConnect = () => {
+  const handleRepoImported = (
+    files: Array<{ name: string; path: string; content: string; language?: string }>,
+    info: { owner: string; repo: string; branch: string }
+  ) => {
+    const formattedFiles = files.map(f => ({
+      name: f.path,
+      content: f.content,
+      language: f.language || 'plaintext'
+    }));
+    setCodeFiles(formattedFiles);
+    setSelectedFile(formattedFiles[0] || null);
+    setRepoInfo(info);
+    setModifiedFiles([]);
     toast({
-      title: "GitHub Integration",
-      description: "GitHub connection feature coming soon!",
+      title: "Repository imported",
+      description: `${files.length} files loaded. You can now edit and push changes.`,
     });
+  };
+
+  const handlePushToGitHub = async () => {
+    if (!repoInfo) {
+      toast({
+        title: "Error",
+        description: "No repository loaded",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (modifiedFiles.length === 0) {
+      toast({
+        title: "No changes",
+        description: "No files have been modified",
+      });
+      return;
+    }
+
+    try {
+      setIsPushing(true);
+      
+      const filesToCommit = modifiedFiles.map(fileName => {
+        const file = codeFiles.find(f => f.name === fileName);
+        return {
+          path: file!.name,
+          content: file!.content,
+        };
+      });
+
+      await commitAndPush(
+        repoInfo.owner,
+        repoInfo.repo,
+        repoInfo.branch,
+        filesToCommit,
+        `Update ${modifiedFiles.length} file(s) via Code Analysis`
+      );
+
+      setModifiedFiles([]);
+      
+      toast({
+        title: "Success",
+        description: `Pushed ${filesToCommit.length} file(s) to GitHub`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsPushing(false);
+    }
+  };
+
+  const downloadModifiedFiles = async () => {
+    if (modifiedFiles.length === 0) return;
+
+    toast({
+      title: "Creating ZIP",
+      description: "Packaging modified files...",
+    });
+
+    try {
+      const zip = new JSZip();
+
+      // Add only modified files to the ZIP
+      modifiedFiles.forEach(fileName => {
+        const file = codeFiles.find(f => f.name === fileName);
+        if (file) {
+          zip.file(file.name, file.content);
+        }
+      });
+
+      // Generate the ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+      // Download the ZIP
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'modified-files.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Complete",
+        description: `${modifiedFiles.length} modified files exported`,
+      });
+    } catch (error) {
+      console.error('Error creating ZIP:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to create ZIP file.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleClearAll = () => {
+    setCodeFiles([]);
+    setSelectedFile(null);
+    setModifiedFiles([]);
+    setRepoInfo(null);
+    toast({
+      title: "Cleared",
+      description: "All files cleared",
+    });
+  };
+
+  const handleGithubConnect = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `${window.location.origin}/code-analysis`,
+        scopes: 'repo'
+      }
+    });
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -357,31 +516,35 @@ const CodeAnalysis = () => {
                     </TabsContent>
 
                     <TabsContent value="github" className="space-y-4">
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="flex flex-col items-center gap-6 text-center">
-                            <div className="rounded-full bg-primary/10 p-4">
-                              <Github className="h-8 w-8 text-primary" />
+                      {isGitHubAuthenticated ? (
+                        <GitHubRepoSelector onRepoImported={handleRepoImported} />
+                      ) : (
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="flex flex-col items-center gap-6 text-center">
+                              <div className="rounded-full bg-primary/10 p-4">
+                                <Github className="h-8 w-8 text-primary" />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold mb-2">
+                                  Connect GitHub Repository
+                                </h3>
+                                <p className="text-sm text-muted-foreground mb-6">
+                                  Authorize access to analyze your GitHub repositories
+                                </p>
+                              </div>
+                              <Button
+                                onClick={handleGithubConnect}
+                                size="lg"
+                                className="gap-2"
+                              >
+                                <Github className="h-5 w-5" />
+                                Sign in with GitHub
+                              </Button>
                             </div>
-                            <div>
-                              <h3 className="text-lg font-semibold mb-2">
-                                Connect GitHub Repository
-                              </h3>
-                              <p className="text-sm text-muted-foreground mb-6">
-                                Authorize access to analyze your GitHub repositories
-                              </p>
-                            </div>
-                            <Button
-                              onClick={handleGithubConnect}
-                              size="lg"
-                              className="gap-2"
-                            >
-                              <Github className="h-5 w-5" />
-                              Connect GitHub
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
+                          </CardContent>
+                        </Card>
+                      )}
                     </TabsContent>
                   </Tabs>
                 </CardContent>
@@ -446,6 +609,36 @@ const CodeAnalysis = () => {
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-lg">{selectedFile?.name}</CardTitle>
                         <div className="flex gap-2">
+                          {repoInfo && modifiedFiles.length > 0 && (
+                            <Button
+                              onClick={handlePushToGitHub}
+                              disabled={isPushing}
+                              size="sm"
+                              variant="default"
+                            >
+                              {isPushing ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Pushing
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Push ({modifiedFiles.length})
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          {modifiedFiles.length > 0 && (
+                            <Button
+                              onClick={downloadModifiedFiles}
+                              size="sm"
+                              variant="outline"
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Modified ({modifiedFiles.length})
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -480,6 +673,13 @@ const CodeAnalysis = () => {
                           >
                             <Download className="h-4 w-4 mr-2" />
                             Export
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleClearAll}
+                          >
+                            Clear
                           </Button>
                         </div>
                       </div>
