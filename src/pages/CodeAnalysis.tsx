@@ -13,8 +13,6 @@ import { supabase } from "@/integrations/supabase/client";
 import JSZip from "jszip";
 import { FileTreeView } from "@/components/code-analysis/FileTreeView";
 import { CodeChatPanel } from "@/components/code-analysis/CodeChatPanel";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "@/components/ThemeProvider";
 import { GitHubRepoSelector } from "@/components/code-analysis/GitHubRepoSelector";
@@ -574,16 +572,6 @@ const CodeAnalysis = () => {
                         </Button>
                       )}
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="chat-mode"
-                        checked={showChat}
-                        onCheckedChange={setShowChat}
-                      />
-                      <Label htmlFor="chat-mode" className="text-xs cursor-pointer">
-                        AI Chat Mode
-                      </Label>
-                    </div>
                   </CardHeader>
                   <CardContent className="p-0 h-[300px] md:h-[400px]">
                     {showChat ? (
@@ -591,7 +579,6 @@ const CodeAnalysis = () => {
                         allFiles={codeFiles}
                         selectedFile={selectedFile}
                         onFileUpdate={handleFileUpdate}
-                        onClose={() => setShowChat(false)}
                       />
                     ) : (
                       <div className="p-2">
@@ -606,6 +593,30 @@ const CodeAnalysis = () => {
                       </div>
                     )}
                   </CardContent>
+                  <div className="p-3 border-t bg-background/50 flex justify-center">
+                    <div className="inline-flex items-center bg-muted rounded-full p-1">
+                      <button
+                        onClick={() => setShowChat(true)}
+                        className={`px-6 py-1.5 text-sm font-medium rounded-full transition-all ${
+                          showChat 
+                            ? 'bg-background text-foreground shadow-sm' 
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Chat
+                      </button>
+                      <button
+                        onClick={() => setShowChat(false)}
+                        className={`px-6 py-1.5 text-sm font-medium rounded-full transition-all ${
+                          !showChat 
+                            ? 'bg-background text-foreground shadow-sm' 
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Preview
+                      </button>
+                    </div>
+                  </div>
                 </Card>
 
                 <Card>
