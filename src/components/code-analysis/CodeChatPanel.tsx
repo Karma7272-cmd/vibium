@@ -5,7 +5,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -31,7 +30,6 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }:
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -181,10 +179,10 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }:
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-2 sm:p-3 border-b">
+      <div className="flex items-center justify-between p-3 border-b">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-xs sm:text-sm font-semibold">AI Assistant</span>
+          <span className="text-sm font-semibold">AI Code Assistant</span>
         </div>
         <Button
           variant="ghost"
@@ -196,45 +194,41 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }:
         </Button>
       </div>
 
-      <div className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs bg-muted/50 border-b">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1">
-          <div>
-            <span className="text-muted-foreground">Analyzing </span>
-            <span className="font-semibold">{allFiles.length} files</span>
-          </div>
-          {selectedFile && (
-            <div className="truncate">
-              <span className="text-muted-foreground hidden sm:inline"> • Currently: </span>
-              <span className="font-mono text-[10px] sm:text-xs">{selectedFile.name}</span>
-            </div>
-          )}
-        </div>
+      <div className="px-3 py-2 text-xs bg-muted/50 border-b">
+        <span className="text-muted-foreground">Analyzing </span>
+        <span className="font-semibold">{allFiles.length} files</span>
+        {selectedFile && (
+          <>
+            <span className="text-muted-foreground"> • Currently viewing: </span>
+            <span className="font-mono">{selectedFile.name}</span>
+          </>
+        )}
       </div>
 
-      <ScrollArea className="flex-1 p-2 sm:p-3" ref={scrollRef}>
+      <ScrollArea className="flex-1 p-3" ref={scrollRef}>
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
             <Sparkles className="h-8 w-8 text-muted-foreground mb-2" />
-            <p className="text-xs sm:text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Ask me to analyze, fix, or improve your code
             </p>
           </div>
         )}
         
-        <div className="space-y-3 sm:space-y-4">
+        <div className="space-y-4">
           {messages.map((msg, i) => (
             <div
               key={i}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <Card
-                className={`max-w-[90%] sm:max-w-[85%] p-2 sm:p-3 ${
+                className={`max-w-[85%] p-3 ${
                   msg.role === 'user'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted'
                 }`}
               >
-                <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">
+                <p className="text-sm whitespace-pre-wrap break-words">
                   {msg.content}
                 </p>
               </Card>
@@ -243,31 +237,31 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }:
         </div>
 
         {isLoading && messages[messages.length - 1]?.role === 'user' && (
-          <div className="flex justify-start mt-3 sm:mt-4">
-            <Card className="bg-muted p-2 sm:p-3">
+          <div className="flex justify-start mt-4">
+            <Card className="bg-muted p-3">
               <Loader2 className="h-4 w-4 animate-spin" />
             </Card>
           </div>
         )}
       </ScrollArea>
 
-      <div className="p-2 sm:p-3 border-t">
+      <div className="p-3 border-t">
         <div className="relative">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={allFiles.length > 0 ? "Ask about your code..." : "Upload files first..."}
-            className={`${isMobile ? 'min-h-[50px] text-xs' : 'min-h-[60px] text-sm'} max-h-[120px] resize-none pr-12`}
+            placeholder={allFiles.length > 0 ? "Ask about any file in the project..." : "Upload files first..."}
+            className="min-h-[60px] max-h-[120px] resize-none pr-14"
             disabled={isLoading || allFiles.length === 0}
           />
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isLoading || allFiles.length === 0}
             size="icon"
-            className={`absolute bottom-1 right-1 ${isMobile ? 'h-8 w-8' : 'h-10 w-10'} rounded-full`}
+            className="absolute bottom-2 right-2 h-10 w-10 rounded-full"
           >
-            <Send className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+            <Send className="h-4 w-4" />
           </Button>
         </div>
       </div>

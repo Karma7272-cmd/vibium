@@ -2,9 +2,7 @@ import { useState } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, MoreVertical } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,7 +42,6 @@ const CodeAnalysis = () => {
   const { theme } = useTheme();
   const { session } = useAuth();
   const isGitHubAuthenticated = session?.user?.app_metadata?.provider === 'github';
-  const isMobile = useIsMobile();
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -452,8 +449,7 @@ const CodeAnalysis = () => {
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
-            <h1 className="text-lg font-semibold hidden sm:block">Code Analysis & AI Editor</h1>
-            <h1 className="text-base font-semibold sm:hidden">Code AI</h1>
+            <h1 className="text-lg font-semibold">Code Analysis & AI Editor</h1>
           </div>
         </header>
 
@@ -554,10 +550,10 @@ const CodeAnalysis = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="flex flex-col gap-4">
-                <Card>
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                <Card className="lg:col-span-1">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                    <div className="flex items-center justify-between mb-2">
                       <CardTitle className="text-sm">
                         {showChat ? 'AI Chat' : `File Explorer (${codeFiles.length})`}
                       </CardTitle>
@@ -569,8 +565,7 @@ const CodeAnalysis = () => {
                           className="h-7 text-xs"
                         >
                           <Download className="h-3 w-3 mr-1" />
-                          <span className="hidden sm:inline">Export All</span>
-                          <span className="sm:hidden">Export</span>
+                          Export All
                         </Button>
                       )}
                     </div>
@@ -585,7 +580,7 @@ const CodeAnalysis = () => {
                       </Label>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-0 h-[300px] md:h-[400px]">
+                  <CardContent className="p-0 h-[350px]">
                     {showChat ? (
                       <CodeChatPanel
                         allFiles={codeFiles}
@@ -608,187 +603,135 @@ const CodeAnalysis = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <CardTitle className="text-base sm:text-lg truncate">{selectedFile?.name}</CardTitle>
-                      <div className="flex gap-2 flex-wrap">
-                        {isMobile ? (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              {repoInfo && modifiedFiles.length > 0 && (
-                                <DropdownMenuItem onClick={handlePushToGitHub} disabled={isPushing}>
-                                  {isPushing ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Pushing...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="h-4 w-4 mr-2" />
-                                      Push ({modifiedFiles.length})
-                                    </>
-                                  )}
-                                </DropdownMenuItem>
-                              )}
-                              {modifiedFiles.length > 0 && (
-                                <DropdownMenuItem onClick={downloadModifiedFiles}>
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Modified ({modifiedFiles.length})
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={() => handleAiAction('analyze')} disabled={isAiProcessing}>
-                                <Search className="h-4 w-4 mr-2" />
-                                Analyze
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleAiAction('fix')} disabled={isAiProcessing}>
-                                <Wand2 className="h-4 w-4 mr-2" />
-                                Fix Bugs
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleAiAction('optimize')} disabled={isAiProcessing}>
-                                <Zap className="h-4 w-4 mr-2" />
-                                Optimize
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={handleExport}>
-                                <Download className="h-4 w-4 mr-2" />
-                                Export
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={handleClearAll} className="text-destructive">
-                                Clear
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        ) : (
-                          <>
-                            {repoInfo && modifiedFiles.length > 0 && (
-                              <Button
-                                onClick={handlePushToGitHub}
-                                disabled={isPushing}
-                                size="sm"
-                                variant="default"
-                              >
-                                {isPushing ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Pushing
-                                  </>
-                                ) : (
-                                  <>
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Push ({modifiedFiles.length})
-                                  </>
-                                )}
-                              </Button>
-                            )}
-                            {modifiedFiles.length > 0 && (
-                              <Button
-                                onClick={downloadModifiedFiles}
-                                size="sm"
-                                variant="outline"
-                              >
-                                <Download className="h-4 w-4 mr-2" />
-                                Modified ({modifiedFiles.length})
-                              </Button>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAiAction('analyze')}
-                              disabled={isAiProcessing}
-                            >
-                              <Search className="h-4 w-4 mr-2" />
-                              Analyze
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAiAction('fix')}
-                              disabled={isAiProcessing}
-                            >
-                              <Wand2 className="h-4 w-4 mr-2" />
-                              Fix Bugs
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAiAction('optimize')}
-                              disabled={isAiProcessing}
-                            >
-                              <Zap className="h-4 w-4 mr-2" />
-                              Optimize
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleExport}
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Export
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={handleClearAll}
-                            >
-                              Clear
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Editor
-                      height={isMobile ? "400px" : "500px"}
-                      language={selectedFile?.language || 'plaintext'}
-                      value={selectedFile?.content || ''}
-                      onChange={(value) => handleCodeEdit(value || '')}
-                      theme={theme === 'dark' ? 'vs-dark' : 'light'}
-                      options={{
-                        minimap: { enabled: !isMobile },
-                        fontSize: isMobile ? 12 : 13,
-                        lineNumbers: 'on',
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                        tabSize: 2,
-                        wordWrap: 'on',
-                      }}
-                    />
-                  </CardContent>
-                </Card>
-
-                {analysisResult && (
+                <div className="lg:col-span-3 space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">AI Analysis Result</CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{selectedFile?.name}</CardTitle>
+                        <div className="flex gap-2">
+                          {repoInfo && modifiedFiles.length > 0 && (
+                            <Button
+                              onClick={handlePushToGitHub}
+                              disabled={isPushing}
+                              size="sm"
+                              variant="default"
+                            >
+                              {isPushing ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Pushing
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Push ({modifiedFiles.length})
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          {modifiedFiles.length > 0 && (
+                            <Button
+                              onClick={downloadModifiedFiles}
+                              size="sm"
+                              variant="outline"
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Modified ({modifiedFiles.length})
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAiAction('analyze')}
+                            disabled={isAiProcessing}
+                          >
+                            <Search className="h-4 w-4 mr-2" />
+                            Analyze
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAiAction('fix')}
+                            disabled={isAiProcessing}
+                          >
+                            <Wand2 className="h-4 w-4 mr-2" />
+                            Fix Bugs
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAiAction('optimize')}
+                            disabled={isAiProcessing}
+                          >
+                            <Zap className="h-4 w-4 mr-2" />
+                            Optimize
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExport}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleClearAll}
+                          >
+                            Clear
+                          </Button>
+                        </div>
+                      </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <pre className="whitespace-pre-wrap bg-muted p-4 rounded-lg">
-                          {analysisResult}
-                        </pre>
-                      </div>
+                    <CardContent className="p-0">
+                      <Editor
+                        height="500px"
+                        language={selectedFile?.language || 'plaintext'}
+                        value={selectedFile?.content || ''}
+                        onChange={(value) => handleCodeEdit(value || '')}
+                        theme={theme === 'dark' ? 'vs-dark' : 'light'}
+                        options={{
+                          minimap: { enabled: true },
+                          fontSize: 13,
+                          lineNumbers: 'on',
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                          tabSize: 2,
+                          wordWrap: 'on',
+                        }}
+                      />
                     </CardContent>
                   </Card>
-                )}
 
-                {isAiProcessing && (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-center gap-3">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                        <p className="text-sm text-muted-foreground">
-                          AI is processing your request...
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                  {analysisResult && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">AI Analysis Result</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <pre className="whitespace-pre-wrap bg-muted p-4 rounded-lg">
+                            {analysisResult}
+                          </pre>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {isAiProcessing && (
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-center gap-3">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          <p className="text-sm text-muted-foreground">
+                            AI is processing your request...
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
             )}
           </div>
