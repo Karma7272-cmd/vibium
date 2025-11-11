@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles } from "lucide-react";
+import { Send, Loader2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,9 +22,10 @@ interface CodeChatPanelProps {
   allFiles: CodeFile[];
   selectedFile: { name: string; content: string } | null;
   onFileUpdate: (fileName: string, newContent: string) => void;
+  onClose: () => void;
 }
 
-export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate }: CodeChatPanelProps) => {
+export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }: CodeChatPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -60,28 +61,8 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate }: CodeChat
         }
       );
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          toast({
-            title: "Rate limit exceeded",
-            description: "Too many requests. Please try again in a moment.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (response.status === 402) {
-          toast({
-            title: "Payment required",
-            description: "Please add credits to your Lovable AI workspace.",
-            variant: "destructive",
-          });
-          return;
-        }
+      if (!response.ok || !response.body) {
         throw new Error('Failed to start stream');
-      }
-
-      if (!response.body) {
-        throw new Error('No response body');
       }
 
       const reader = response.body.getReader();
@@ -200,11 +181,19 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate }: CodeChat
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-2 sm:p-3 border-b bg-muted/30">
+      <div className="flex items-center justify-between p-2 sm:p-3 border-b">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-xs sm:text-sm font-semibold">AI Assistant</span>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClose}
+          className="h-7 w-7 p-0"
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </div>
 
       <div className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs bg-muted/50 border-b">
