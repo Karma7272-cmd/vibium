@@ -60,8 +60,28 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate }: CodeChat
         }
       );
 
-      if (!response.ok || !response.body) {
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast({
+            title: "Rate limit exceeded",
+            description: "Too many requests. Please try again in a moment.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (response.status === 402) {
+          toast({
+            title: "Payment required",
+            description: "Please add credits to your Lovable AI workspace.",
+            variant: "destructive",
+          });
+          return;
+        }
         throw new Error('Failed to start stream');
+      }
+
+      if (!response.body) {
+        throw new Error('No response body');
       }
 
       const reader = response.body.getReader();

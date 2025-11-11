@@ -2,7 +2,7 @@ import { useState } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, MoreVertical } from "lucide-react";
+import { Upload, Github, FileCode, Loader2, Download, MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -32,9 +32,8 @@ const CodeAnalysis = () => {
   const [dragActive, setDragActive] = useState(false);
   const [codeFiles, setCodeFiles] = useState<CodeFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<CodeFile | null>(null);
-  const [analysisResult, setAnalysisResult] = useState("");
-  const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showFilePreview, setShowFilePreview] = useState(true); // For mobile: toggle between explorer and preview
   const [repoInfo, setRepoInfo] = useState<{ owner: string; repo: string; branch: string } | null>(null);
   const [isPushing, setIsPushing] = useState(false);
   const [modifiedFiles, setModifiedFiles] = useState<string[]>([]);
@@ -152,53 +151,6 @@ const CodeAnalysis = () => {
       'sql': 'sql', 'sh': 'bash', 'bash': 'bash'
     };
     return languageMap[ext || ''] || 'plaintext';
-  };
-
-  const handleAiAction = async (action: 'analyze' | 'fix' | 'explain' | 'optimize') => {
-    if (!selectedFile) return;
-
-    setIsAiProcessing(true);
-    setAnalysisResult("");
-
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-code', {
-        body: {
-          code: selectedFile.content,
-          action,
-          fileName: selectedFile.name,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.error) {
-        toast({
-          title: "Error",
-          description: data.error,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (action === 'fix' || action === 'optimize') {
-        setSelectedFile({ ...selectedFile, content: data.result });
-        toast({
-          title: "Success",
-          description: `Code ${action === 'fix' ? 'fixed' : 'optimized'} successfully!`,
-        });
-      } else {
-        setAnalysisResult(data.result);
-      }
-    } catch (error: any) {
-      console.error('AI action error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to process request.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAiProcessing(false);
-    }
   };
 
   const handleExport = () => {
@@ -552,12 +504,13 @@ const CodeAnalysis = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="flex flex-col gap-4">
-                <Card>
+              <div className="flex flex-col lg:flex-row gap-4">
+                {/* Left Panel - Chat or File Explorer */}
+                <Card className="lg:w-80 flex flex-col">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                       <CardTitle className="text-sm">
-                        {showChat ? 'AI Chat' : `File Explorer (${codeFiles.length})`}
+                        {showChat ? 'AI Chat' : 'Files'}
                       </CardTitle>
                       {!showChat && (
                         <Button
@@ -573,31 +526,39 @@ const CodeAnalysis = () => {
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent className="p-0 h-[300px] md:h-[400px]">
-                    {showChat ? (
-                      <CodeChatPanel
-                        allFiles={codeFiles}
-                        selectedFile={selectedFile}
-                        onFileUpdate={handleFileUpdate}
-                      />
-                    ) : (
-                      <div className="p-2">
-                        <FileTreeView
-                          files={codeFiles}
-                          selectedFile={selectedFile?.name || null}
-                          onFileSelect={(fileName) => {
-                            const file = codeFiles.find(f => f.name === fileName);
-                            if (file) setSelectedFile(file);
-                          }}
+                  <CardContent className="p-0 flex-1 min-h-[300px] md:min-h-[400px] lg:h-[500px]">
+                    <div className={`h-full transition-opacity duration-300 ${showChat ? 'opacity-100' : 'opacity-0 hidden'}`}>
+                      {showChat && (
+                        <CodeChatPanel
+                          allFiles={codeFiles}
+                          selectedFile={selectedFile}
+                          onFileUpdate={handleFileUpdate}
                         />
-                      </div>
-                    )}
+                      )}
+                    </div>
+                    <div className={`h-full transition-opacity duration-300 ${!showChat ? 'opacity-100' : 'opacity-0 hidden'}`}>
+                      {!showChat && (
+                        <div className="p-2 h-full overflow-auto">
+                          <FileTreeView
+                            files={codeFiles}
+                            selectedFile={selectedFile?.name || null}
+                            onFileSelect={(fileName) => {
+                              const file = codeFiles.find(f => f.name === fileName);
+                              if (file) {
+                                setSelectedFile(file);
+                                if (isMobile) setShowFilePreview(true);
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                   <div className="p-3 border-t bg-background/50 flex justify-center">
                     <div className="inline-flex items-center bg-muted rounded-full p-1">
                       <button
                         onClick={() => setShowChat(true)}
-                        className={`px-6 py-1.5 text-sm font-medium rounded-full transition-all ${
+                        className={`px-4 sm:px-6 py-1.5 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 ${
                           showChat 
                             ? 'bg-background text-foreground shadow-sm' 
                             : 'text-muted-foreground hover:text-foreground'
@@ -607,7 +568,7 @@ const CodeAnalysis = () => {
                       </button>
                       <button
                         onClick={() => setShowChat(false)}
-                        className={`px-6 py-1.5 text-sm font-medium rounded-full transition-all ${
+                        className={`px-4 sm:px-6 py-1.5 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 ${
                           !showChat 
                             ? 'bg-background text-foreground shadow-sm' 
                             : 'text-muted-foreground hover:text-foreground'
@@ -619,185 +580,165 @@ const CodeAnalysis = () => {
                   </div>
                 </Card>
 
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <CardTitle className="text-base sm:text-lg truncate">{selectedFile?.name}</CardTitle>
-                      <div className="flex gap-2 flex-wrap">
-                        {isMobile ? (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              {repoInfo && modifiedFiles.length > 0 && (
-                                <DropdownMenuItem onClick={handlePushToGitHub} disabled={isPushing}>
-                                  {isPushing ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Pushing...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="h-4 w-4 mr-2" />
-                                      Push ({modifiedFiles.length})
-                                    </>
-                                  )}
-                                </DropdownMenuItem>
-                              )}
-                              {modifiedFiles.length > 0 && (
-                                <DropdownMenuItem onClick={downloadModifiedFiles}>
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Modified ({modifiedFiles.length})
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={() => handleAiAction('analyze')} disabled={isAiProcessing}>
-                                <Search className="h-4 w-4 mr-2" />
-                                Analyze
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleAiAction('fix')} disabled={isAiProcessing}>
-                                <Wand2 className="h-4 w-4 mr-2" />
-                                Fix Bugs
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleAiAction('optimize')} disabled={isAiProcessing}>
-                                <Zap className="h-4 w-4 mr-2" />
-                                Optimize
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={handleExport}>
-                                <Download className="h-4 w-4 mr-2" />
-                                Export
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={handleClearAll} className="text-destructive">
-                                Clear
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        ) : (
-                          <>
-                            {repoInfo && modifiedFiles.length > 0 && (
-                              <Button
-                                onClick={handlePushToGitHub}
-                                disabled={isPushing}
-                                size="sm"
-                                variant="default"
-                              >
-                                {isPushing ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Pushing
-                                  </>
-                                ) : (
-                                  <>
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Push ({modifiedFiles.length})
-                                  </>
-                                )}
-                              </Button>
+                {/* Right Panel - File Preview (only in Preview mode) */}
+                {!showChat && (
+                  <Card className="flex-1 hidden lg:flex lg:flex-col">
+                    <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                      <CardTitle className="text-base truncate">{selectedFile?.name || 'No file selected'}</CardTitle>
+                      <div className="flex gap-2">
+                        {repoInfo && modifiedFiles.length > 0 && (
+                          <Button
+                            onClick={handlePushToGitHub}
+                            disabled={isPushing}
+                            size="sm"
+                            variant="default"
+                          >
+                            {isPushing ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Push
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Push ({modifiedFiles.length})
+                              </>
                             )}
-                            {modifiedFiles.length > 0 && (
-                              <Button
-                                onClick={downloadModifiedFiles}
-                                size="sm"
-                                variant="outline"
-                              >
-                                <Download className="h-4 w-4 mr-2" />
-                                Modified ({modifiedFiles.length})
-                              </Button>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAiAction('analyze')}
-                              disabled={isAiProcessing}
-                            >
-                              <Search className="h-4 w-4 mr-2" />
-                              Analyze
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAiAction('fix')}
-                              disabled={isAiProcessing}
-                            >
-                              <Wand2 className="h-4 w-4 mr-2" />
-                              Fix Bugs
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAiAction('optimize')}
-                              disabled={isAiProcessing}
-                            >
-                              <Zap className="h-4 w-4 mr-2" />
-                              Optimize
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleExport}
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Export
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={handleClearAll}
-                            >
-                              Clear
-                            </Button>
-                          </>
+                          </Button>
                         )}
+                        {modifiedFiles.length > 0 && (
+                          <Button
+                            onClick={downloadModifiedFiles}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Modified ({modifiedFiles.length})
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleExport}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Export
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleClearAll}
+                        >
+                          Clear
+                        </Button>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Editor
-                      height={isMobile ? "400px" : "500px"}
-                      language={selectedFile?.language || 'plaintext'}
-                      value={selectedFile?.content || ''}
-                      onChange={(value) => handleCodeEdit(value || '')}
-                      theme={theme === 'dark' ? 'vs-dark' : 'light'}
-                      options={{
-                        minimap: { enabled: !isMobile },
-                        fontSize: isMobile ? 12 : 13,
-                        lineNumbers: 'on',
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                        tabSize: 2,
-                        wordWrap: 'on',
-                      }}
-                    />
-                  </CardContent>
-                </Card>
-
-                {analysisResult && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">AI Analysis Result</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <pre className="whitespace-pre-wrap bg-muted p-4 rounded-lg">
-                          {analysisResult}
-                        </pre>
-                      </div>
+                    <CardContent className="p-0 flex-1">
+                      <Editor
+                        height="500px"
+                        language={selectedFile?.language || 'plaintext'}
+                        value={selectedFile?.content || ''}
+                        onChange={(value) => handleCodeEdit(value || '')}
+                        theme={theme === 'dark' ? 'vs-dark' : 'light'}
+                        options={{
+                          minimap: { enabled: true },
+                          fontSize: 13,
+                          lineNumbers: 'on',
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                          tabSize: 2,
+                          wordWrap: 'on',
+                        }}
+                      />
                     </CardContent>
                   </Card>
                 )}
 
-                {isAiProcessing && (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-center gap-3">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                        <p className="text-sm text-muted-foreground">
-                          AI is processing your request...
-                        </p>
-                      </div>
+                {/* Mobile File Preview */}
+                {!showChat && isMobile && showFilePreview && (
+                  <Card className="lg:hidden">
+                    <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                      <CardTitle className="text-base truncate flex-1 mr-2">{selectedFile?.name || 'No file selected'}</CardTitle>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          {repoInfo && modifiedFiles.length > 0 && (
+                            <DropdownMenuItem onClick={handlePushToGitHub} disabled={isPushing}>
+                              {isPushing ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Pushing...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Push ({modifiedFiles.length})
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                          )}
+                          {modifiedFiles.length > 0 && (
+                            <DropdownMenuItem onClick={downloadModifiedFiles}>
+                              <Download className="h-4 w-4 mr-2" />
+                              Modified ({modifiedFiles.length})
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={handleExport}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Export
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleClearAll} className="text-destructive">
+                            Clear
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <Editor
+                        height="400px"
+                        language={selectedFile?.language || 'plaintext'}
+                        value={selectedFile?.content || ''}
+                        onChange={(value) => handleCodeEdit(value || '')}
+                        theme={theme === 'dark' ? 'vs-dark' : 'light'}
+                        options={{
+                          minimap: { enabled: false },
+                          fontSize: 12,
+                          lineNumbers: 'on',
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                          tabSize: 2,
+                          wordWrap: 'on',
+                        }}
+                      />
                     </CardContent>
+                    <div className="p-3 border-t bg-background/50 flex justify-center">
+                      <div className="inline-flex items-center bg-muted rounded-full p-1">
+                        <button
+                          onClick={() => setShowFilePreview(false)}
+                          className={`px-4 py-1.5 text-xs font-medium rounded-full transition-all duration-200 ${
+                            !showFilePreview 
+                              ? 'bg-background text-foreground shadow-sm' 
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Explorer
+                        </button>
+                        <button
+                          onClick={() => setShowFilePreview(true)}
+                          className={`px-4 py-1.5 text-xs font-medium rounded-full transition-all duration-200 ${
+                            showFilePreview 
+                              ? 'bg-background text-foreground shadow-sm' 
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Preview
+                        </button>
+                      </div>
+                    </div>
                   </Card>
                 )}
               </div>
