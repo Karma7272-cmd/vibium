@@ -2,7 +2,7 @@ import { useState } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, Grid2X2 } from "lucide-react";
+import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, Grid2X2, MessageSquare } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -570,7 +570,17 @@ const CodeAnalysis = () => {
                             <Grid2X2 className="h-4 w-4" />
                           </Button>
                         )}
-                        {!showChat && (
+                        {isMobile && !showChat && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setShowChat(true)}
+                            className="h-8 w-8"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {!showChat && !isMobile && (
                           <Button
                             variant="outline"
                             size="sm"
