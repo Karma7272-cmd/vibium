@@ -2,7 +2,8 @@ import { useState } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap } from "lucide-react";
+import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, Grid2X2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,6 +43,7 @@ const CodeAnalysis = () => {
   const { theme } = useTheme();
   const { session } = useAuth();
   const isGitHubAuthenticated = session?.user?.app_metadata?.provider === 'github';
+  const isMobile = useIsMobile();
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -557,28 +559,42 @@ const CodeAnalysis = () => {
                       <CardTitle className="text-sm">
                         {showChat ? 'AI Chat' : `File Explorer (${codeFiles.length})`}
                       </CardTitle>
-                      {!showChat && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleExportAll}
-                          className="h-7 text-xs"
-                        >
-                          <Download className="h-3 w-3 mr-1" />
-                          Export All
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {isMobile && showChat && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setShowChat(false)}
+                            className="h-8 w-8"
+                          >
+                            <Grid2X2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {!showChat && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExportAll}
+                            className="h-7 text-xs"
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Export All
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="chat-mode"
-                        checked={showChat}
-                        onCheckedChange={setShowChat}
-                      />
-                      <Label htmlFor="chat-mode" className="text-xs cursor-pointer">
-                        AI Chat Mode
-                      </Label>
-                    </div>
+                    {!isMobile && (
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="chat-mode"
+                          checked={showChat}
+                          onCheckedChange={setShowChat}
+                        />
+                        <Label htmlFor="chat-mode" className="text-xs cursor-pointer">
+                          AI Chat Mode
+                        </Label>
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent className="p-0 h-[350px]">
                     {showChat ? (
