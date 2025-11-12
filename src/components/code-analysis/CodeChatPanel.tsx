@@ -21,7 +21,7 @@ interface CodeChatPanelProps {
   allFiles: CodeFile[];
   selectedFile: { name: string; content: string } | null;
   onFileUpdate: (fileName: string, newContent: string) => void;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }: CodeChatPanelProps) => {
@@ -184,14 +184,16 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }:
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold">AI Code Assistant</span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className="h-7 w-7 p-0"
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        {onClose && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-7 w-7 p-0"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       <div className="px-3 py-2 text-xs bg-muted/50 border-b">

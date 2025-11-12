@@ -606,27 +606,28 @@ const CodeAnalysis = () => {
                       </div>
                     )}
                   </CardHeader>
-                  <CardContent className="p-0 h-[350px]">
-                    {showChat ? (
-                      <CodeChatPanel
-                        allFiles={codeFiles}
-                        selectedFile={selectedFile}
-                        onFileUpdate={handleFileUpdate}
-                        onClose={() => setShowChat(false)}
-                      />
-                    ) : (
-                      <div className="p-2">
-                        <FileTreeView
-                          files={codeFiles}
-                          selectedFile={selectedFile?.name || null}
-                          onFileSelect={(fileName) => {
-                            const file = codeFiles.find(f => f.name === fileName);
-                            if (file) setSelectedFile(file);
-                          }}
-                        />
-                      </div>
-                    )}
-                  </CardContent>
+                   <CardContent className="p-0 h-[350px]">
+                     {showChat ? (
+                       <div className={isMobile ? "animate-slide-in-right" : ""}>
+                         <CodeChatPanel
+                           allFiles={codeFiles}
+                           selectedFile={selectedFile}
+                           onFileUpdate={handleFileUpdate}
+                         />
+                       </div>
+                     ) : (
+                       <div className={isMobile ? "animate-slide-in-right p-2" : "p-2"}>
+                         <FileTreeView
+                           files={codeFiles}
+                           selectedFile={selectedFile?.name || null}
+                           onFileSelect={(fileName) => {
+                             const file = codeFiles.find(f => f.name === fileName);
+                             if (file) setSelectedFile(file);
+                           }}
+                         />
+                       </div>
+                     )}
+                   </CardContent>
                 </Card>
 
                 <div className="lg:col-span-3 space-y-4">
