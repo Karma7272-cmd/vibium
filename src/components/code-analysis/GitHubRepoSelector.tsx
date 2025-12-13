@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { GitHubRepo, listUserRepos, getRepoContents, getFileContent } from "@/services/githubService";
+import { GitHubRepo, listUserRepos, getRepoContents, getFileContent, setGitHubToken } from "@/services/githubService";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, GitBranch, Lock, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -16,10 +17,38 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState<number | null>(null);
   const { toast } = useToast();
+  const { getToken } = useAuth();
+
+  const setupGitHubToken = useCallback(async () => {
+    try {
+      const token = await getToken({ template: 'github_oauth' });
+      if (token) {
+        setGitHubToken(token);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error getting GitHub token:', error);
+      return false;
+    }
+  }, [getToken]);
 
   useEffect(() => {
-    loadRepos();
-  }, []);
+    const init = async () => {
+      const hasToken = await setupGitHubToken();
+      if (hasToken) {
+        loadRepos();
+      } else {
+        setLoading(false);
+        toast({
+          title: "GitHub not connected",
+          description: "Please sign in with GitHub to access your repositories.",
+          variant: "destructive",
+        });
+      }
+    };
+    init();
+  }, [setupGitHubToken]);
 
   const loadRepos = async () => {
     try {
@@ -73,6 +102,10 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
   const importRepo = async (repo: GitHubRepo) => {
     try {
       setImporting(repo.id);
+      
+      // Ensure we have a fresh token
+      await setupGitHubToken();
+      
       const [owner, repoName] = repo.full_name.split('/');
       
       toast({

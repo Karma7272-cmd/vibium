@@ -1,4 +1,9 @@
-import { supabase } from "@/integrations/supabase/client";
+// GitHub token will be set by the component that uses this service
+let currentGitHubToken: string | null = null;
+
+export function setGitHubToken(token: string | null) {
+  currentGitHubToken = token;
+}
 
 export interface GitHubRepo {
   id: number;
@@ -24,13 +29,12 @@ export interface GitHubFile {
   encoding?: string;
 }
 
-async function getGitHubToken(): Promise<string | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.provider_token || null;
+function getGitHubToken(): string | null {
+  return currentGitHubToken;
 }
 
 export async function listUserRepos(): Promise<GitHubRepo[]> {
-  const token = await getGitHubToken();
+  const token = getGitHubToken();
   if (!token) throw new Error("Not authenticated with GitHub");
 
   const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100', {
@@ -48,7 +52,7 @@ export async function listUserRepos(): Promise<GitHubRepo[]> {
 }
 
 export async function getRepoContents(owner: string, repo: string, path: string = ''): Promise<GitHubFile[]> {
-  const token = await getGitHubToken();
+  const token = getGitHubToken();
   if (!token) throw new Error("Not authenticated with GitHub");
 
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
@@ -66,7 +70,7 @@ export async function getRepoContents(owner: string, repo: string, path: string 
 }
 
 export async function getFileContent(owner: string, repo: string, path: string): Promise<string> {
-  const token = await getGitHubToken();
+  const token = getGitHubToken();
   if (!token) throw new Error("Not authenticated with GitHub");
 
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
@@ -94,7 +98,7 @@ export async function commitAndPush(
   files: Array<{ path: string; content: string }>,
   message: string
 ): Promise<void> {
-  const token = await getGitHubToken();
+  const token = getGitHubToken();
   if (!token) throw new Error("Not authenticated with GitHub");
 
   // Get the latest commit SHA
