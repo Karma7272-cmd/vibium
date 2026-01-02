@@ -27,50 +27,56 @@ import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
-const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || "";
 
-if (!CLERK_PUBLISHABLE_KEY) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY environment variable");
-}
-
-const App = () => (
-  <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-    <ClerkAuthProvider>
-      <ThemeProvider defaultTheme="system">
-        <SettingsProvider>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <SidebarProvider>
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<NewCheck />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/pending-request" element={<PendingRequest />} />
-                    <Route path="/network" element={<Index />} />
-                    <Route path="/operators" element={<Operators />} />
-                    <Route path="/nodes" element={<Nodes />} />
-                    <Route path="/agents" element={<Agents />} />
-                    <Route path="/checks" element={<Checks />} />
-                    <Route path="/run-node" element={<RunNode />} />
-                    <Route path="/code-analysis" element={<CodeAnalysis />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/node/:npub" element={<NodeProfile />} />
-                    <Route path="/operator/:npub" element={<OperatorProfile />} />
-                    <Route path="/check/:checkId" element={<CheckProfile />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </SidebarProvider>
-            </TooltipProvider>
-          </QueryClientProvider>
-        </SettingsProvider>
-      </ThemeProvider>
-    </ClerkAuthProvider>
-  </ClerkProvider>
+const AppContent = () => (
+  <ThemeProvider defaultTheme="system">
+    <SettingsProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <SidebarProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<NewCheck />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/pending-request" element={<PendingRequest />} />
+                <Route path="/network" element={<Index />} />
+                <Route path="/operators" element={<Operators />} />
+                <Route path="/nodes" element={<Nodes />} />
+                <Route path="/agents" element={<Agents />} />
+                <Route path="/checks" element={<Checks />} />
+                <Route path="/run-node" element={<RunNode />} />
+                <Route path="/code-analysis" element={<CodeAnalysis />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/node/:npub" element={<NodeProfile />} />
+                <Route path="/operator/:npub" element={<OperatorProfile />} />
+                <Route path="/check/:checkId" element={<CheckProfile />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </SidebarProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </SettingsProvider>
+  </ThemeProvider>
 );
+
+const App = () => {
+  if (!CLERK_PUBLISHABLE_KEY) {
+    return <AppContent />;
+  }
+  
+  return (
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+      <ClerkAuthProvider>
+        <AppContent />
+      </ClerkAuthProvider>
+    </ClerkProvider>
+  );
+};
 
 export default App;
