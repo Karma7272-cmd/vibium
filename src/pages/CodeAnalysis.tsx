@@ -20,7 +20,7 @@ import { GitHubRepoSelector } from "@/components/code-analysis/GitHubRepoSelecto
 import { commitAndPush, setGitHubToken } from "@/services/githubService";
 import { useAuth } from "@/contexts/AuthContext";
 
-const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID || "";
+
 
 interface CodeFile {
   name: string;
