@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,37 +16,28 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState<number | null>(null);
   const { toast } = useToast();
-  const { getToken } = useAuth();
 
-  const setupGitHubToken = useCallback(async () => {
-    try {
-      const token = await getToken({ template: 'github_oauth' });
-      if (token) {
-        setGitHubToken(token);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error getting GitHub token:', error);
-      return false;
+  const setupGitHubToken = useCallback(() => {
+    const token = localStorage.getItem('github_access_token');
+    if (token) {
+      setGitHubToken(token);
+      return true;
     }
-  }, [getToken]);
+    return false;
+  }, []);
 
   useEffect(() => {
-    const init = async () => {
-      const hasToken = await setupGitHubToken();
-      if (hasToken) {
-        loadRepos();
-      } else {
-        setLoading(false);
-        toast({
-          title: "GitHub not connected",
-          description: "Please sign in with GitHub to access your repositories.",
-          variant: "destructive",
-        });
-      }
-    };
-    init();
+    const hasToken = setupGitHubToken();
+    if (hasToken) {
+      loadRepos();
+    } else {
+      setLoading(false);
+      toast({
+        title: "GitHub not connected",
+        description: "Please sign in with GitHub to access your repositories.",
+        variant: "destructive",
+      });
+    }
   }, [setupGitHubToken]);
 
   const loadRepos = async () => {
@@ -69,32 +59,12 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
   const getLanguageFromPath = (path: string): string => {
     const ext = path.split('.').pop()?.toLowerCase();
     const languageMap: Record<string, string> = {
-      'js': 'javascript',
-      'jsx': 'javascript',
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'py': 'python',
-      'java': 'java',
-      'cpp': 'cpp',
-      'c': 'c',
-      'cs': 'csharp',
-      'go': 'go',
-      'rs': 'rust',
-      'php': 'php',
-      'rb': 'ruby',
-      'swift': 'swift',
-      'kt': 'kotlin',
-      'html': 'html',
-      'css': 'css',
-      'scss': 'scss',
-      'json': 'json',
-      'xml': 'xml',
-      'yaml': 'yaml',
-      'yml': 'yaml',
-      'md': 'markdown',
-      'sql': 'sql',
-      'sh': 'shell',
-      'bash': 'shell',
+      'js': 'javascript', 'jsx': 'javascript', 'ts': 'typescript', 'tsx': 'typescript',
+      'py': 'python', 'java': 'java', 'cpp': 'cpp', 'c': 'c', 'cs': 'csharp',
+      'go': 'go', 'rs': 'rust', 'php': 'php', 'rb': 'ruby', 'swift': 'swift',
+      'kt': 'kotlin', 'html': 'html', 'css': 'css', 'scss': 'scss',
+      'json': 'json', 'xml': 'xml', 'yaml': 'yaml', 'yml': 'yaml',
+      'md': 'markdown', 'sql': 'sql', 'sh': 'shell', 'bash': 'shell',
     };
     return languageMap[ext || ''] || 'plaintext';
   };
@@ -102,35 +72,21 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
   const importRepo = async (repo: GitHubRepo) => {
     try {
       setImporting(repo.id);
-      
-      // Ensure we have a fresh token
-      await setupGitHubToken();
-      
+      setupGitHubToken();
       const [owner, repoName] = repo.full_name.split('/');
-      
-      toast({
-        title: "Importing repository",
-        description: "Fetching files from GitHub...",
-      });
+
+      toast({ title: "Importing repository", description: "Fetching files from GitHub..." });
 
       const files: Array<{ name: string; path: string; content: string; language?: string }> = [];
-      
+
       const processDirectory = async (path: string = '') => {
         const contents = await getRepoContents(owner, repoName, path);
-        
         for (const item of contents) {
           if (item.type === 'file') {
-            // Skip binary files and large files
             if (item.size > 1000000) continue;
-            
             try {
               const content = await getFileContent(owner, repoName, item.path);
-              files.push({
-                name: item.name,
-                path: item.path,
-                content,
-                language: getLanguageFromPath(item.path),
-              });
+              files.push({ name: item.name, path: item.path, content, language: getLanguageFromPath(item.path) });
             } catch (error) {
               console.error(`Failed to fetch ${item.path}:`, error);
             }
@@ -141,19 +97,10 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
       };
 
       await processDirectory();
-
       onRepoImported(files, { owner, repo: repoName, branch: repo.default_branch });
-
-      toast({
-        title: "Success",
-        description: `Imported ${files.length} files from ${repo.name}`,
-      });
+      toast({ title: "Success", description: `Imported ${files.length} files from ${repo.name}` });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setImporting(null);
     }
@@ -204,16 +151,9 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
                       {repo.default_branch}
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => importRepo(repo)}
-                    disabled={importing !== null}
-                  >
+                  <Button size="sm" onClick={() => importRepo(repo)} disabled={importing !== null}>
                     {importing === repo.id ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Importing
-                      </>
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importing</>
                     ) : (
                       "Import"
                     )}

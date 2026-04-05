@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -17,8 +17,10 @@ import { Label } from "@/components/ui/label";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "@/components/ThemeProvider";
 import { GitHubRepoSelector } from "@/components/code-analysis/GitHubRepoSelector";
-import { commitAndPush } from "@/services/githubService";
+import { commitAndPush, setGitHubToken } from "@/services/githubService";
 import { useAuth } from "@/contexts/AuthContext";
+
+
 
 interface CodeFile {
   name: string;
@@ -39,11 +41,59 @@ const CodeAnalysis = () => {
   const [repoInfo, setRepoInfo] = useState<{ owner: string; repo: string; branch: string } | null>(null);
   const [isPushing, setIsPushing] = useState(false);
   const [modifiedFiles, setModifiedFiles] = useState<string[]>([]);
+  const [githubToken, setGithubTokenState] = useState<string | null>(localStorage.getItem('github_access_token'));
+  const [githubUser, setGithubUser] = useState<{ login: string; avatar_url: string; name: string } | null>(null);
   const { toast } = useToast();
   const { theme } = useTheme();
   const { session } = useAuth();
-  const isGitHubAuthenticated = session?.user?.app_metadata?.provider === 'github';
+  const isGitHubAuthenticated = !!githubToken;
   const isMobile = useIsMobile();
+
+  // Handle GitHub OAuth callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+
+    if (code && state === 'github_oauth') {
+      // Clear the URL params
+      window.history.replaceState({}, '', window.location.pathname);
+      exchangeGitHubCode(code);
+    }
+  }, []);
+
+  // Set token on mount if exists
+  useEffect(() => {
+    if (githubToken) {
+      setGitHubToken(githubToken);
+      // Fetch GitHub user info
+      fetch('https://api.github.com/user', {
+        headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github.v3+json' }
+      }).then(r => r.json()).then(data => {
+        if (data.login) setGithubUser({ login: data.login, avatar_url: data.avatar_url, name: data.name });
+      }).catch(() => {});
+    }
+  }, [githubToken]);
+
+  const exchangeGitHubCode = async (code: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('github-oauth', {
+        body: { code, redirect_uri: `${window.location.origin}/code-analysis` },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      localStorage.setItem('github_access_token', data.access_token);
+      setGithubTokenState(data.access_token);
+      setGitHubToken(data.access_token);
+      setGithubUser(data.github_user);
+
+      toast({ title: "GitHub connected", description: `Connected as ${data.github_user.login}` });
+    } catch (err: any) {
+      toast({ title: "GitHub connection failed", description: err.message, variant: "destructive" });
+    }
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -427,20 +477,27 @@ const CodeAnalysis = () => {
   };
 
   const handleGithubConnect = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: `${window.location.origin}/code-analysis`,
-        scopes: 'repo'
+    try {
+      const { data, error } = await supabase.functions.invoke('github-client-id');
+      if (error || !data?.client_id) {
+        toast({ title: "Error", description: "GitHub OAuth not configured", variant: "destructive" });
+        return;
       }
-    });
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      const redirectUri = `${window.location.origin}/code-analysis`;
+      const scope = 'repo read:user';
+      const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${data.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=github_oauth`;
+      window.location.href = githubAuthUrl;
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
+  };
+
+  const handleGithubDisconnect = () => {
+    localStorage.removeItem('github_access_token');
+    setGithubTokenState(null);
+    setGitHubToken(null);
+    setGithubUser(null);
+    toast({ title: "Disconnected", description: "GitHub account disconnected" });
   };
 
   return (
@@ -519,7 +576,23 @@ const CodeAnalysis = () => {
 
                     <TabsContent value="github" className="space-y-4">
                       {isGitHubAuthenticated ? (
-                        <GitHubRepoSelector onRepoImported={handleRepoImported} />
+                        <div className="space-y-4">
+                          {githubUser && (
+                            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
+                              <div className="flex items-center gap-3">
+                                <img src={githubUser.avatar_url} alt={githubUser.login} className="h-8 w-8 rounded-full" />
+                                <div>
+                                  <p className="text-sm font-medium">{githubUser.name || githubUser.login}</p>
+                                  <p className="text-xs text-muted-foreground">@{githubUser.login}</p>
+                                </div>
+                              </div>
+                              <Button variant="outline" size="sm" onClick={handleGithubDisconnect}>
+                                Disconnect
+                              </Button>
+                            </div>
+                          )}
+                          <GitHubRepoSelector onRepoImported={handleRepoImported} />
+                        </div>
                       ) : (
                         <Card>
                           <CardContent className="pt-6">
@@ -541,7 +614,7 @@ const CodeAnalysis = () => {
                                 className="gap-2"
                               >
                                 <Github className="h-5 w-5" />
-                                Sign in with GitHub
+                                Connect GitHub
                               </Button>
                             </div>
                           </CardContent>
