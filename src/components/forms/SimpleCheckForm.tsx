@@ -35,7 +35,7 @@ const SimpleCheckForm: React.FC = () => {
     e.preventDefault();
     
     // Use fixed demo prompt if no text entered
-    const finalPrompt = prompt || "healthcare.gov on an ipad from dc";
+    const finalPrompt = prompt || "Ask to write";
     
     const checkData = {
       prompt: finalPrompt,
@@ -61,7 +61,7 @@ const SimpleCheckForm: React.FC = () => {
 
   const currentPlaceholder = prompt || isTextareaFocused 
     ? "Test anything" 
-    : "healthcare.gov on an ipad from dc";
+    : "Ask to write";
 
   return (
     <div className={`space-y-4 ${isMobile ? "max-h-[60vh]" : ""}`}>
