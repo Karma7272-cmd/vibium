@@ -567,7 +567,23 @@ const CodeAnalysis = () => {
 
                     <TabsContent value="github" className="space-y-4">
                       {isGitHubAuthenticated ? (
-                        <GitHubRepoSelector onRepoImported={handleRepoImported} />
+                        <div className="space-y-4">
+                          {githubUser && (
+                            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
+                              <div className="flex items-center gap-3">
+                                <img src={githubUser.avatar_url} alt={githubUser.login} className="h-8 w-8 rounded-full" />
+                                <div>
+                                  <p className="text-sm font-medium">{githubUser.name || githubUser.login}</p>
+                                  <p className="text-xs text-muted-foreground">@{githubUser.login}</p>
+                                </div>
+                              </div>
+                              <Button variant="outline" size="sm" onClick={handleGithubDisconnect}>
+                                Disconnect
+                              </Button>
+                            </div>
+                          )}
+                          <GitHubRepoSelector onRepoImported={handleRepoImported} />
+                        </div>
                       ) : (
                         <Card>
                           <CardContent className="pt-6">
@@ -589,7 +605,7 @@ const CodeAnalysis = () => {
                                 className="gap-2"
                               >
                                 <Github className="h-5 w-5" />
-                                Sign in with GitHub
+                                Connect GitHub
                               </Button>
                             </div>
                           </CardContent>
