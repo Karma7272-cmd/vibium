@@ -476,21 +476,19 @@ const CodeAnalysis = () => {
     });
   };
 
-  const handleGithubConnect = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: `${window.location.origin}/code-analysis`,
-        scopes: 'repo'
-      }
-    });
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+  const handleGithubConnect = () => {
+    const redirectUri = `${window.location.origin}/code-analysis`;
+    const scope = 'repo read:user';
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=github_oauth`;
+    window.location.href = githubAuthUrl;
+  };
+
+  const handleGithubDisconnect = () => {
+    localStorage.removeItem('github_access_token');
+    setGithubTokenState(null);
+    setGitHubToken(null);
+    setGithubUser(null);
+    toast({ title: "Disconnected", description: "GitHub account disconnected" });
   };
 
   return (
