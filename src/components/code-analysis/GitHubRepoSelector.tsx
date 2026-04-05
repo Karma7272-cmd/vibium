@@ -16,16 +16,15 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState<number | null>(null);
   const { toast } = useToast();
-  const { session } = useAuth();
 
   const setupGitHubToken = useCallback(() => {
-    const providerToken = session?.provider_token;
-    if (providerToken) {
-      setGitHubToken(providerToken);
+    const token = localStorage.getItem('github_access_token');
+    if (token) {
+      setGitHubToken(token);
       return true;
     }
     return false;
-  }, [session]);
+  }, []);
 
   useEffect(() => {
     const hasToken = setupGitHubToken();
