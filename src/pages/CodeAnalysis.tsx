@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -17,8 +17,10 @@ import { Label } from "@/components/ui/label";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "@/components/ThemeProvider";
 import { GitHubRepoSelector } from "@/components/code-analysis/GitHubRepoSelector";
-import { commitAndPush } from "@/services/githubService";
+import { commitAndPush, setGitHubToken } from "@/services/githubService";
 import { useAuth } from "@/contexts/AuthContext";
+
+const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID || "";
 
 interface CodeFile {
   name: string;
@@ -39,11 +41,59 @@ const CodeAnalysis = () => {
   const [repoInfo, setRepoInfo] = useState<{ owner: string; repo: string; branch: string } | null>(null);
   const [isPushing, setIsPushing] = useState(false);
   const [modifiedFiles, setModifiedFiles] = useState<string[]>([]);
+  const [githubToken, setGithubTokenState] = useState<string | null>(localStorage.getItem('github_access_token'));
+  const [githubUser, setGithubUser] = useState<{ login: string; avatar_url: string; name: string } | null>(null);
   const { toast } = useToast();
   const { theme } = useTheme();
   const { session } = useAuth();
-  const isGitHubAuthenticated = session?.user?.app_metadata?.provider === 'github';
+  const isGitHubAuthenticated = !!githubToken;
   const isMobile = useIsMobile();
+
+  // Handle GitHub OAuth callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+
+    if (code && state === 'github_oauth') {
+      // Clear the URL params
+      window.history.replaceState({}, '', window.location.pathname);
+      exchangeGitHubCode(code);
+    }
+  }, []);
+
+  // Set token on mount if exists
+  useEffect(() => {
+    if (githubToken) {
+      setGitHubToken(githubToken);
+      // Fetch GitHub user info
+      fetch('https://api.github.com/user', {
+        headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github.v3+json' }
+      }).then(r => r.json()).then(data => {
+        if (data.login) setGithubUser({ login: data.login, avatar_url: data.avatar_url, name: data.name });
+      }).catch(() => {});
+    }
+  }, [githubToken]);
+
+  const exchangeGitHubCode = async (code: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('github-oauth', {
+        body: { code, redirect_uri: `${window.location.origin}/code-analysis` },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      localStorage.setItem('github_access_token', data.access_token);
+      setGithubTokenState(data.access_token);
+      setGitHubToken(data.access_token);
+      setGithubUser(data.github_user);
+
+      toast({ title: "GitHub connected", description: `Connected as ${data.github_user.login}` });
+    } catch (err: any) {
+      toast({ title: "GitHub connection failed", description: err.message, variant: "destructive" });
+    }
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
