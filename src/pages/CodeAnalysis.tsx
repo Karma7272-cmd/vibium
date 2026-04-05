@@ -476,11 +476,20 @@ const CodeAnalysis = () => {
     });
   };
 
-  const handleGithubConnect = () => {
-    const redirectUri = `${window.location.origin}/code-analysis`;
-    const scope = 'repo read:user';
-    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=github_oauth`;
-    window.location.href = githubAuthUrl;
+  const handleGithubConnect = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('github-client-id');
+      if (error || !data?.client_id) {
+        toast({ title: "Error", description: "GitHub OAuth not configured", variant: "destructive" });
+        return;
+      }
+      const redirectUri = `${window.location.origin}/code-analysis`;
+      const scope = 'repo read:user';
+      const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${data.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=github_oauth`;
+      window.location.href = githubAuthUrl;
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
   };
 
   const handleGithubDisconnect = () => {
