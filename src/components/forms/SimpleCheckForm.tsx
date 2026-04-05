@@ -61,7 +61,7 @@ const SimpleCheckForm: React.FC = () => {
 
   const currentPlaceholder = prompt || isTextareaFocused 
     ? "Test anything" 
-    : "healthcare.gov on an ipad from dc";
+    : "Ask to write";
 
   return (
     <div className={`space-y-4 ${isMobile ? "max-h-[60vh]" : ""}`}>
