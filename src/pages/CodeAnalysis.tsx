@@ -355,7 +355,8 @@ const CodeAnalysis = () => {
 
   const handleRepoImported = (
     files: Array<{ name: string; path: string; content: string; language?: string }>,
-    info: { owner: string; repo: string; branch: string }
+    info: { owner: string; repo: string; branch: string },
+    permissions: { push: boolean; pull: boolean; admin: boolean }
   ) => {
     const formattedFiles = files.map(f => ({
       name: f.path,
@@ -365,10 +366,11 @@ const CodeAnalysis = () => {
     setCodeFiles(formattedFiles);
     setSelectedFile(formattedFiles[0] || null);
     setRepoInfo(info);
+    setRepoPermissions(permissions);
     setModifiedFiles([]);
     toast({
       title: "Repository imported",
-      description: `${files.length} files loaded. You can now edit and push changes.`,
+      description: `${files.length} files loaded. ${permissions.push ? 'You have push access.' : 'Read-only (use Pull Request).'}`,
     });
   };
 
