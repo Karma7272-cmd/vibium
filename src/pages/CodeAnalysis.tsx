@@ -761,7 +761,7 @@ const CodeAnalysis = () => {
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-lg">{selectedFile?.name}</CardTitle>
                         <div className="flex gap-2">
-                          {repoInfo && modifiedFiles.length > 0 && (
+                          {repoInfo && modifiedFiles.length > 0 && repoPermissions?.push && (
                             <Button
                               onClick={handlePushToGitHub}
                               disabled={isPushing}
@@ -779,6 +779,20 @@ const CodeAnalysis = () => {
                                   Push ({modifiedFiles.length})
                                 </>
                               )}
+                            </Button>
+                          )}
+                          {repoInfo && modifiedFiles.length > 0 && (
+                            <Button
+                              onClick={() => {
+                                setPrTitle(`Update ${modifiedFiles.length} file(s) via Code Analysis`);
+                                setShowPRDialog(true);
+                              }}
+                              disabled={isPushing}
+                              size="sm"
+                              variant="outline"
+                            >
+                              <GitBranch className="h-4 w-4 mr-2" />
+                              Pull Request
                             </Button>
                           )}
                           {modifiedFiles.length > 0 && (
