@@ -42,10 +42,14 @@ const CodeAnalysis = () => {
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [repoInfo, setRepoInfo] = useState<{ owner: string; repo: string; branch: string } | null>(null);
+  const [repoPermissions, setRepoPermissions] = useState<{ push: boolean; pull: boolean; admin: boolean } | null>(null);
   const [isPushing, setIsPushing] = useState(false);
   const [modifiedFiles, setModifiedFiles] = useState<string[]>([]);
   const [githubToken, setGithubTokenState] = useState<string | null>(localStorage.getItem('github_access_token'));
   const [githubUser, setGithubUser] = useState<{ login: string; avatar_url: string; name: string } | null>(null);
+  const [showPRDialog, setShowPRDialog] = useState(false);
+  const [prTitle, setPrTitle] = useState("");
+  const [prBody, setPrBody] = useState("");
   const { toast } = useToast();
   const { theme } = useTheme();
   const { session } = useAuth();
