@@ -492,7 +492,7 @@ const CodeAnalysis = () => {
             {/* File tabs */}
             {openTabs.length > 0 && (
               <div className="flex items-center border-b border-border bg-muted/20 overflow-x-auto">
-                <ScrollArea className="w-full" orientation="horizontal">
+                <ScrollArea className="w-full">
                   <div className="flex">
                     {openTabs.map(tab => {
                       const isActive = selectedFile?.name === tab.name;
