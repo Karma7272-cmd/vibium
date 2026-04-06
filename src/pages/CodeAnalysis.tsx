@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, Grid2X2, MessageSquare } from "lucide-react";
+import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, Grid2X2, MessageSquare, GitBranch } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
