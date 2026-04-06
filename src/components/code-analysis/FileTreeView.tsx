@@ -126,8 +126,8 @@ export const FileTreeView = ({ files, selectedFile, onFileSelect }: FileTreeView
   const fileTree = buildFileTree(files);
 
   return (
-    <ScrollArea className="h-[600px]">
-      <div className="py-2">
+    <ScrollArea className="h-full">
+      <div className="py-2 pr-2">
         {fileTree.map(node => renderNode(node))}
       </div>
     </ScrollArea>

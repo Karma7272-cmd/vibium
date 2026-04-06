@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, Grid2X2, MessageSquare } from "lucide-react";
+import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, Grid2X2, MessageSquare, GitBranch } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,8 +17,11 @@ import { Label } from "@/components/ui/label";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "@/components/ThemeProvider";
 import { GitHubRepoSelector } from "@/components/code-analysis/GitHubRepoSelector";
-import { commitAndPush, setGitHubToken } from "@/services/githubService";
+import { commitAndPush, setGitHubToken, createPullRequest, createBranch } from "@/services/githubService";
 import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea as TextareaUI } from "@/components/ui/textarea";
 
 
 
@@ -39,10 +42,14 @@ const CodeAnalysis = () => {
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [repoInfo, setRepoInfo] = useState<{ owner: string; repo: string; branch: string } | null>(null);
+  const [repoPermissions, setRepoPermissions] = useState<{ push: boolean; pull: boolean; admin: boolean } | null>(null);
   const [isPushing, setIsPushing] = useState(false);
   const [modifiedFiles, setModifiedFiles] = useState<string[]>([]);
   const [githubToken, setGithubTokenState] = useState<string | null>(localStorage.getItem('github_access_token'));
   const [githubUser, setGithubUser] = useState<{ login: string; avatar_url: string; name: string } | null>(null);
+  const [showPRDialog, setShowPRDialog] = useState(false);
+  const [prTitle, setPrTitle] = useState("");
+  const [prBody, setPrBody] = useState("");
   const { toast } = useToast();
   const { theme } = useTheme();
   const { session } = useAuth();
@@ -348,7 +355,8 @@ const CodeAnalysis = () => {
 
   const handleRepoImported = (
     files: Array<{ name: string; path: string; content: string; language?: string }>,
-    info: { owner: string; repo: string; branch: string }
+    info: { owner: string; repo: string; branch: string },
+    permissions: { push: boolean; pull: boolean; admin: boolean }
   ) => {
     const formattedFiles = files.map(f => ({
       name: f.path,
@@ -358,10 +366,11 @@ const CodeAnalysis = () => {
     setCodeFiles(formattedFiles);
     setSelectedFile(formattedFiles[0] || null);
     setRepoInfo(info);
+    setRepoPermissions(permissions);
     setModifiedFiles([]);
     toast({
       title: "Repository imported",
-      description: `${files.length} files loaded. You can now edit and push changes.`,
+      description: `${files.length} files loaded. ${permissions.push ? 'You have push access.' : 'Read-only (use Pull Request).'}`,
     });
   };
 
@@ -414,6 +423,49 @@ const CodeAnalysis = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsPushing(false);
+    }
+  };
+
+  const handleCreatePR = async () => {
+    if (!repoInfo || !prTitle.trim()) return;
+
+    try {
+      setIsPushing(true);
+      const branchName = `code-analysis-${Date.now()}`;
+      
+      // Create a new branch
+      await createBranch(repoInfo.owner, repoInfo.repo, branchName, repoInfo.branch);
+
+      // Push changes to new branch
+      const filesToCommit = modifiedFiles.map(fileName => {
+        const file = codeFiles.find(f => f.name === fileName);
+        return { path: file!.name, content: file!.content };
+      });
+
+      await commitAndPush(repoInfo.owner, repoInfo.repo, branchName, filesToCommit, prTitle);
+
+      // Create the PR
+      const pr = await createPullRequest(
+        repoInfo.owner, repoInfo.repo,
+        prTitle, prBody || `Updated ${modifiedFiles.length} file(s) via Code Analysis`,
+        branchName, repoInfo.branch
+      );
+
+      setModifiedFiles([]);
+      setShowPRDialog(false);
+      setPrTitle("");
+      setPrBody("");
+
+      toast({
+        title: "Pull Request Created",
+        description: `PR #${pr.number} created successfully`,
+      });
+
+      window.open(pr.html_url, '_blank');
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsPushing(false);
     }
@@ -679,9 +731,9 @@ const CodeAnalysis = () => {
                       </div>
                     )}
                   </CardHeader>
-                   <CardContent className="p-0 h-[350px]">
+                   <CardContent className="p-0 h-[calc(100vh-280px)] min-h-[350px] overflow-hidden">
                      {showChat ? (
-                       <div className={isMobile ? "animate-slide-in-right" : ""}>
+                       <div className={`h-full ${isMobile ? "animate-slide-in-right" : ""}`}>
                          <CodeChatPanel
                            allFiles={codeFiles}
                            selectedFile={selectedFile}
@@ -689,7 +741,7 @@ const CodeAnalysis = () => {
                          />
                        </div>
                      ) : (
-                       <div className={isMobile ? "animate-slide-in-right p-2" : "p-2"}>
+                       <div className={`h-full overflow-hidden ${isMobile ? "animate-slide-in-right" : ""}`}>
                          <FileTreeView
                            files={codeFiles}
                            selectedFile={selectedFile?.name || null}
@@ -709,7 +761,7 @@ const CodeAnalysis = () => {
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-lg">{selectedFile?.name}</CardTitle>
                         <div className="flex gap-2">
-                          {repoInfo && modifiedFiles.length > 0 && (
+                          {repoInfo && modifiedFiles.length > 0 && repoPermissions?.push && (
                             <Button
                               onClick={handlePushToGitHub}
                               disabled={isPushing}
@@ -727,6 +779,20 @@ const CodeAnalysis = () => {
                                   Push ({modifiedFiles.length})
                                 </>
                               )}
+                            </Button>
+                          )}
+                          {repoInfo && modifiedFiles.length > 0 && (
+                            <Button
+                              onClick={() => {
+                                setPrTitle(`Update ${modifiedFiles.length} file(s) via Code Analysis`);
+                                setShowPRDialog(true);
+                              }}
+                              disabled={isPushing}
+                              size="sm"
+                              variant="outline"
+                            >
+                              <GitBranch className="h-4 w-4 mr-2" />
+                              Pull Request
                             </Button>
                           )}
                           {modifiedFiles.length > 0 && (
@@ -837,6 +903,33 @@ const CodeAnalysis = () => {
           </div>
         </div>
       </SidebarInset>
+
+      <Dialog open={showPRDialog} onOpenChange={setShowPRDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Pull Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Title</label>
+              <Input value={prTitle} onChange={(e) => setPrTitle(e.target.value)} placeholder="PR title" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <TextareaUI value={prBody} onChange={(e) => setPrBody(e.target.value)} placeholder="Describe your changes..." rows={4} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {modifiedFiles.length} file(s) will be committed to a new branch and a PR opened against <code>{repoInfo?.branch}</code>.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPRDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreatePR} disabled={isPushing || !prTitle.trim()}>
+              {isPushing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</> : 'Create PR'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

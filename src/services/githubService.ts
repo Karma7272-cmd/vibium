@@ -91,6 +91,74 @@ export async function getFileContent(owner: string, repo: string, path: string):
   return data.content || '';
 }
 
+// Use the Git Trees API to fetch the entire repo tree in a single call
+export async function getRepoTree(owner: string, repo: string, branch: string): Promise<Array<{ path: string; type: string; sha: string; size?: number }>> {
+  const token = getGitHubToken();
+  if (!token) throw new Error("Not authenticated with GitHub");
+
+  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.tree || [];
+}
+
+// Fetch file content by blob SHA (faster than contents API)
+export async function getBlobContent(owner: string, repo: string, sha: string): Promise<string> {
+  const token = getGitHubToken();
+  if (!token) throw new Error("Not authenticated with GitHub");
+
+  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/blobs/${sha}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  if (data.content && data.encoding === 'base64') {
+    return atob(data.content);
+  }
+  return data.content || '';
+}
+
+// Parallel batch fetcher with concurrency limit
+export async function fetchFilesInParallel<T>(
+  items: T[],
+  fetcher: (item: T) => Promise<any>,
+  concurrency: number = 10
+): Promise<any[]> {
+  const results: any[] = [];
+  let index = 0;
+
+  const worker = async () => {
+    while (index < items.length) {
+      const i = index++;
+      try {
+        results[i] = await fetcher(items[i]);
+      } catch {
+        results[i] = null;
+      }
+    }
+  };
+
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
 export async function commitAndPush(
   owner: string,
   repo: string,
@@ -101,121 +169,137 @@ export async function commitAndPush(
   const token = getGitHubToken();
   if (!token) throw new Error("Not authenticated with GitHub");
 
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+  };
+
   // Get the latest commit SHA
-  const branchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-    },
-  });
-
-  if (!branchResponse.ok) {
-    throw new Error(`Failed to get branch: ${branchResponse.statusText}`);
-  }
-
+  const branchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, { headers });
+  if (!branchResponse.ok) throw new Error(`Failed to get branch: ${branchResponse.statusText}`);
   const branchData = await branchResponse.json();
   const latestCommitSha = branchData.object.sha;
 
   // Get the tree of the latest commit
-  const commitResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits/${latestCommitSha}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-    },
-  });
-
-  if (!commitResponse.ok) {
-    throw new Error(`Failed to get commit: ${commitResponse.statusText}`);
-  }
-
+  const commitResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits/${latestCommitSha}`, { headers });
+  if (!commitResponse.ok) throw new Error(`Failed to get commit: ${commitResponse.statusText}`);
   const commitData = await commitResponse.json();
   const baseTreeSha = commitData.tree.sha;
 
-  // Create blobs for each file
+  // Create blobs in parallel
   const tree = await Promise.all(
     files.map(async (file) => {
       const blobResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/blobs`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: file.content,
-          encoding: 'utf-8',
-        }),
+        headers,
+        body: JSON.stringify({ content: file.content, encoding: 'utf-8' }),
       });
-
-      if (!blobResponse.ok) {
-        throw new Error(`Failed to create blob: ${blobResponse.statusText}`);
-      }
-
+      if (!blobResponse.ok) throw new Error(`Failed to create blob: ${blobResponse.statusText}`);
       const blobData = await blobResponse.json();
-      return {
-        path: file.path,
-        mode: '100644',
-        type: 'blob',
-        sha: blobData.sha,
-      };
+      return { path: file.path, mode: '100644' as const, type: 'blob' as const, sha: blobData.sha };
     })
   );
 
   // Create a new tree
   const treeResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      base_tree: baseTreeSha,
-      tree,
-    }),
+    method: 'POST', headers,
+    body: JSON.stringify({ base_tree: baseTreeSha, tree }),
   });
-
-  if (!treeResponse.ok) {
-    throw new Error(`Failed to create tree: ${treeResponse.statusText}`);
-  }
-
+  if (!treeResponse.ok) throw new Error(`Failed to create tree: ${treeResponse.statusText}`);
   const treeData = await treeResponse.json();
 
   // Create a new commit
   const newCommitResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ message, tree: treeData.sha, parents: [latestCommitSha] }),
+  });
+  if (!newCommitResponse.ok) throw new Error(`Failed to create commit: ${newCommitResponse.statusText}`);
+  const newCommitData = await newCommitResponse.json();
+
+  // Update the branch reference
+  const updateRefResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
+    method: 'PATCH', headers,
+    body: JSON.stringify({ sha: newCommitData.sha }),
+  });
+  if (!updateRefResponse.ok) throw new Error(`Failed to update branch: ${updateRefResponse.statusText}`);
+}
+
+// Create a pull request
+export async function createPullRequest(
+  owner: string,
+  repo: string,
+  title: string,
+  body: string,
+  head: string,
+  base: string
+): Promise<{ html_url: string; number: number }> {
+  const token = getGitHubToken();
+  if (!token) throw new Error("Not authenticated with GitHub");
+
+  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      message,
-      tree: treeData.sha,
-      parents: [latestCommitSha],
-    }),
+    body: JSON.stringify({ title, body, head, base }),
   });
 
-  if (!newCommitResponse.ok) {
-    throw new Error(`Failed to create commit: ${newCommitResponse.statusText}`);
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to create PR: ${response.statusText}`);
   }
 
-  const newCommitData = await newCommitResponse.json();
+  return response.json();
+}
 
-  // Update the branch reference
-  const updateRefResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
-    method: 'PATCH',
+// Create a new branch from existing branch
+export async function createBranch(owner: string, repo: string, newBranch: string, fromBranch: string): Promise<void> {
+  const token = getGitHubToken();
+  if (!token) throw new Error("Not authenticated with GitHub");
+
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+  };
+
+  // Get SHA of source branch
+  const refResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${fromBranch}`, { headers });
+  if (!refResponse.ok) throw new Error(`Failed to get branch: ${refResponse.statusText}`);
+  const refData = await refResponse.json();
+
+  // Create new branch
+  const createResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ ref: `refs/heads/${newBranch}`, sha: refData.object.sha }),
+  });
+  if (!createResponse.ok) {
+    const errData = await createResponse.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to create branch: ${createResponse.statusText}`);
+  }
+}
+
+// Check repo permissions for current user
+export async function getRepoPermissions(owner: string, repo: string): Promise<{ push: boolean; pull: boolean; admin: boolean }> {
+  const token = getGitHubToken();
+  if (!token) throw new Error("Not authenticated with GitHub");
+
+  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      sha: newCommitData.sha,
-    }),
   });
 
-  if (!updateRefResponse.ok) {
-    throw new Error(`Failed to update branch: ${updateRefResponse.statusText}`);
-  }
+  if (!response.ok) throw new Error(`GitHub API error: ${response.statusText}`);
+  const data = await response.json();
+
+  return {
+    push: data.permissions?.push ?? false,
+    pull: data.permissions?.pull ?? true,
+    admin: data.permissions?.admin ?? false,
+  };
 }
