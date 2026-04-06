@@ -903,6 +903,33 @@ const CodeAnalysis = () => {
           </div>
         </div>
       </SidebarInset>
+
+      <Dialog open={showPRDialog} onOpenChange={setShowPRDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Pull Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Title</label>
+              <Input value={prTitle} onChange={(e) => setPrTitle(e.target.value)} placeholder="PR title" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <TextareaUI value={prBody} onChange={(e) => setPrBody(e.target.value)} placeholder="Describe your changes..." rows={4} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {modifiedFiles.length} file(s) will be committed to a new branch and a PR opened against <code>{repoInfo?.branch}</code>.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPRDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreatePR} disabled={isPushing || !prTitle.trim()}>
+              {isPushing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</> : 'Create PR'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
