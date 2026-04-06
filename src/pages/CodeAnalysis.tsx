@@ -679,9 +679,9 @@ const CodeAnalysis = () => {
                       </div>
                     )}
                   </CardHeader>
-                   <CardContent className="p-0 h-[350px]">
+                   <CardContent className="p-0 h-[calc(100vh-280px)] min-h-[350px] overflow-hidden">
                      {showChat ? (
-                       <div className={isMobile ? "animate-slide-in-right" : ""}>
+                       <div className={`h-full ${isMobile ? "animate-slide-in-right" : ""}`}>
                          <CodeChatPanel
                            allFiles={codeFiles}
                            selectedFile={selectedFile}
@@ -689,7 +689,7 @@ const CodeAnalysis = () => {
                          />
                        </div>
                      ) : (
-                       <div className={isMobile ? "animate-slide-in-right p-2" : "p-2"}>
+                       <div className={`h-full overflow-hidden ${isMobile ? "animate-slide-in-right" : ""}`}>
                          <FileTreeView
                            files={codeFiles}
                            selectedFile={selectedFile?.name || null}

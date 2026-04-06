@@ -2,19 +2,30 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { GitHubRepo, listUserRepos, getRepoContents, getFileContent, setGitHubToken } from "@/services/githubService";
+import { GitHubRepo, listUserRepos, getRepoTree, getBlobContent, setGitHubToken, fetchFilesInParallel, getRepoPermissions } from "@/services/githubService";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, GitBranch, Lock, Globe } from "lucide-react";
+import { Loader2, GitBranch, Lock, Globe, Shield, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 interface GitHubRepoSelectorProps {
-  onRepoImported: (files: Array<{ name: string; path: string; content: string; language?: string }>, repoInfo: { owner: string; repo: string; branch: string }) => void;
+  onRepoImported: (files: Array<{ name: string; path: string; content: string; language?: string }>, repoInfo: { owner: string; repo: string; branch: string }, permissions: { push: boolean; pull: boolean; admin: boolean }) => void;
 }
+
+const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '__pycache__', '.venv', 'vendor', 'target', '.gradle']);
+const CODE_EXTENSIONS = new Set([
+  'js', 'jsx', 'ts', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'go', 'rs', 'php', 'rb',
+  'swift', 'kt', 'html', 'css', 'scss', 'json', 'xml', 'yaml', 'yml', 'md', 'sql',
+  'sh', 'bash', 'toml', 'env', 'gitignore', 'dockerignore', 'dockerfile',
+  'makefile', 'gradle', 'lock', 'cfg', 'ini', 'txt', 'svg',
+]);
 
 export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState<number | null>(null);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importStatus, setImportStatus] = useState("");
   const { toast } = useToast();
 
   const setupGitHubToken = useCallback(() => {
@@ -46,11 +57,7 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
       const userRepos = await listUserRepos();
       setRepos(userRepos);
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -69,40 +76,75 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
     return languageMap[ext || ''] || 'plaintext';
   };
 
+  const shouldIncludeFile = (path: string, size?: number): boolean => {
+    if (size && size > 500000) return false; // Skip files > 500KB
+    const parts = path.split('/');
+    for (const part of parts.slice(0, -1)) {
+      if (SKIP_DIRS.has(part) || part.startsWith('.')) return false;
+    }
+    const ext = path.split('.').pop()?.toLowerCase() || '';
+    const fileName = parts[parts.length - 1]?.toLowerCase() || '';
+    // Include known config files without extensions
+    if (['makefile', 'dockerfile', 'procfile', 'gemfile', 'rakefile'].includes(fileName)) return true;
+    return CODE_EXTENSIONS.has(ext);
+  };
+
   const importRepo = async (repo: GitHubRepo) => {
     try {
       setImporting(repo.id);
+      setImportProgress(0);
+      setImportStatus("Fetching repository tree...");
       setupGitHubToken();
       const [owner, repoName] = repo.full_name.split('/');
 
-      toast({ title: "Importing repository", description: "Fetching files from GitHub..." });
+      // Fetch permissions and tree in parallel
+      const [permissions, tree] = await Promise.all([
+        getRepoPermissions(owner, repoName),
+        getRepoTree(owner, repoName, repo.default_branch),
+      ]);
+
+      // Filter to code files only
+      const codeFiles = tree.filter(item =>
+        item.type === 'blob' && shouldIncludeFile(item.path, item.size)
+      );
+
+      setImportStatus(`Fetching ${codeFiles.length} files...`);
 
       const files: Array<{ name: string; path: string; content: string; language?: string }> = [];
+      let fetched = 0;
 
-      const processDirectory = async (path: string = '') => {
-        const contents = await getRepoContents(owner, repoName, path);
-        for (const item of contents) {
-          if (item.type === 'file') {
-            if (item.size > 1000000) continue;
-            try {
-              const content = await getFileContent(owner, repoName, item.path);
-              files.push({ name: item.name, path: item.path, content, language: getLanguageFromPath(item.path) });
-            } catch (error) {
-              console.error(`Failed to fetch ${item.path}:`, error);
-            }
-          } else if (item.type === 'dir' && !item.name.startsWith('.') && item.name !== 'node_modules') {
-            await processDirectory(item.path);
+      // Fetch all file contents in parallel with concurrency limit
+      const results = await fetchFilesInParallel(
+        codeFiles,
+        async (item) => {
+          try {
+            const content = await getBlobContent(owner, repoName, item.sha);
+            fetched++;
+            setImportProgress(Math.round((fetched / codeFiles.length) * 100));
+            setImportStatus(`Fetched ${fetched}/${codeFiles.length} files`);
+            return { name: item.path.split('/').pop()!, path: item.path, content, language: getLanguageFromPath(item.path) };
+          } catch {
+            fetched++;
+            setImportProgress(Math.round((fetched / codeFiles.length) * 100));
+            return null;
           }
-        }
-      };
+        },
+        15 // concurrent requests
+      );
 
-      await processDirectory();
-      onRepoImported(files, { owner, repo: repoName, branch: repo.default_branch });
-      toast({ title: "Success", description: `Imported ${files.length} files from ${repo.name}` });
+      results.forEach((r: any) => { if (r) files.push(r); });
+
+      onRepoImported(files, { owner, repo: repoName, branch: repo.default_branch }, permissions);
+      toast({
+        title: "Success",
+        description: `Imported ${files.length} files from ${repo.name}${permissions.push ? ' (push access)' : ' (read-only)'}`,
+      });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setImporting(null);
+      setImportProgress(0);
+      setImportStatus("");
     }
   };
 
@@ -151,14 +193,22 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
                       {repo.default_branch}
                     </div>
                   </div>
-                  <Button size="sm" onClick={() => importRepo(repo)} disabled={importing !== null}>
-                    {importing === repo.id ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importing</>
-                    ) : (
-                      "Import"
-                    )}
-                  </Button>
+                  <div className="flex flex-col items-end gap-2">
+                    <Button size="sm" onClick={() => importRepo(repo)} disabled={importing !== null}>
+                      {importing === repo.id ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importing</>
+                      ) : (
+                        "Import"
+                      )}
+                    </Button>
+                  </div>
                 </div>
+                {importing === repo.id && (
+                  <div className="mt-3 space-y-1">
+                    <Progress value={importProgress} className="h-2" />
+                    <p className="text-xs text-muted-foreground">{importStatus}</p>
+                  </div>
+                )}
               </Card>
             ))}
           </div>
