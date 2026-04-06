@@ -428,6 +428,49 @@ const CodeAnalysis = () => {
     }
   };
 
+  const handleCreatePR = async () => {
+    if (!repoInfo || !prTitle.trim()) return;
+
+    try {
+      setIsPushing(true);
+      const branchName = `code-analysis-${Date.now()}`;
+      
+      // Create a new branch
+      await createBranch(repoInfo.owner, repoInfo.repo, branchName, repoInfo.branch);
+
+      // Push changes to new branch
+      const filesToCommit = modifiedFiles.map(fileName => {
+        const file = codeFiles.find(f => f.name === fileName);
+        return { path: file!.name, content: file!.content };
+      });
+
+      await commitAndPush(repoInfo.owner, repoInfo.repo, branchName, filesToCommit, prTitle);
+
+      // Create the PR
+      const pr = await createPullRequest(
+        repoInfo.owner, repoInfo.repo,
+        prTitle, prBody || `Updated ${modifiedFiles.length} file(s) via Code Analysis`,
+        branchName, repoInfo.branch
+      );
+
+      setModifiedFiles([]);
+      setShowPRDialog(false);
+      setPrTitle("");
+      setPrBody("");
+
+      toast({
+        title: "Pull Request Created",
+        description: `PR #${pr.number} created successfully`,
+      });
+
+      window.open(pr.html_url, '_blank');
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsPushing(false);
+    }
+  };
+
   const downloadModifiedFiles = async () => {
     if (modifiedFiles.length === 0) return;
 
