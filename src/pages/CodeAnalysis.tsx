@@ -17,8 +17,11 @@ import { Label } from "@/components/ui/label";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "@/components/ThemeProvider";
 import { GitHubRepoSelector } from "@/components/code-analysis/GitHubRepoSelector";
-import { commitAndPush, setGitHubToken } from "@/services/githubService";
+import { commitAndPush, setGitHubToken, createPullRequest, createBranch } from "@/services/githubService";
 import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea as TextareaUI } from "@/components/ui/textarea";
 
 
 
