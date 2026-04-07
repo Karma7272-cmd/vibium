@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GitHubRepo, listUserRepos, getRepoTree, getBlobContent, setGitHubToken, fetchFilesInParallel, getRepoPermissions } from "@/services/githubService";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, GitBranch, Lock, Globe, Shield, ShieldCheck } from "lucide-react";
+import { Loader2, GitBranch, Lock, Globe, Shield, ShieldCheck, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 
 interface GitHubRepoSelectorProps {
   onRepoImported: (files: Array<{ name: string; path: string; content: string; language?: string }>, repoInfo: { owner: string; repo: string; branch: string }, permissions: { push: boolean; pull: boolean; admin: boolean }) => void;
@@ -22,6 +23,7 @@ const CODE_EXTENSIONS = new Set([
 
 export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState<number | null>(null);
   const [importProgress, setImportProgress] = useState(0);
@@ -148,6 +150,11 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
     }
   };
 
+  const filteredRepos = repos.filter(repo =>
+    repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (repo.description && repo.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   if (loading) {
     return (
       <Card>
@@ -163,11 +170,22 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
       <CardHeader>
         <CardTitle>Your GitHub Repositories</CardTitle>
         <CardDescription>Select a repository to import and edit</CardDescription>
+        <div className="relative mt-2">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search repositories..."
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <ScrollArea className="max-h-[500px] pr-4">
           <div className="space-y-2">
-            {repos.map((repo) => (
+            {filteredRepos.length > 0 ? (
+              filteredRepos.map((repo) => (
               <Card key={repo.id} className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -210,7 +228,12 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
                   </div>
                 )}
               </Card>
-            ))}
+            ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchTerm ? "No repositories found matching your search." : "No repositories found."}
+            </div>
+          )}
           </div>
         </ScrollArea>
       </CardContent>
