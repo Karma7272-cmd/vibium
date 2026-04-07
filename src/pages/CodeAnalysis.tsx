@@ -470,12 +470,22 @@ const CodeAnalysis = () => {
 
         {/* Main IDE area */}
         <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 48px)' }}>
+          {/* Hidden file input for attach */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip,.js,.jsx,.ts,.tsx,.py,.java,.cpp,.c,.cs,.go,.rs,.php,.rb,.swift,.kt,.html,.css,.json,.xml,.sql,.sh,.bash,.png,.jpg,.jpeg,.gif,.svg"
+            onChange={handleAttachFileChange}
+            className="hidden"
+          />
+
           {/* AI Chat panel - always visible on left */}
           <div className="w-72 flex-shrink-0 border-r border-border bg-background flex flex-col">
             <CodeChatPanel
               allFiles={codeFiles}
               selectedFile={selectedFile}
               onFileUpdate={handleFileUpdate}
+              onAttachFiles={handleAttachFiles}
             />
           </div>
 
