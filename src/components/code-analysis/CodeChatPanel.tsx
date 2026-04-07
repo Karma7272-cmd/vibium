@@ -24,7 +24,7 @@ interface CodeChatPanelProps {
   onAttachFiles?: () => void;
 }
 
-export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }: CodeChatPanelProps) => {
+export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, onAttachFiles }: CodeChatPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
