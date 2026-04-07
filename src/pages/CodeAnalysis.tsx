@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, MessageSquare, GitBranch, X } from "lucide-react";
+import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, GitBranch, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,7 +41,7 @@ const CodeAnalysis = () => {
   const [openTabs, setOpenTabs] = useState<CodeFile[]>([]);
   const [analysisResult, setAnalysisResult] = useState("");
   const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const [showChat, setShowChat] = useState(false);
+  
   const [repoInfo, setRepoInfo] = useState<{ owner: string; repo: string; branch: string } | null>(null);
   const [repoPermissions, setRepoPermissions] = useState<{ push: boolean; pull: boolean; admin: boolean } | null>(null);
   const [isPushing, setIsPushing] = useState(false);
@@ -461,9 +461,6 @@ const CodeAnalysis = () => {
                 <GitBranch className="h-3 w-3 mr-1" />Pull Request
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={() => setShowChat(!showChat)} className="h-8 text-xs">
-              <MessageSquare className="h-3 w-3 mr-1" />AI Chat
-            </Button>
             <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 text-xs text-destructive hover:text-destructive">
               Close Project
             </Button>
@@ -472,19 +469,28 @@ const CodeAnalysis = () => {
 
         {/* Main IDE area */}
         <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 48px)' }}>
+          {/* AI Chat panel - always visible on left */}
+          <div className="w-72 flex-shrink-0 border-r border-border bg-background flex flex-col">
+            <CodeChatPanel
+              allFiles={codeFiles}
+              selectedFile={selectedFile}
+              onFileUpdate={handleFileUpdate}
+            />
+          </div>
+
           {/* File tree sidebar */}
-          <div className="w-64 flex-shrink-0 border-r border-border bg-muted/30 flex flex-col">
+          <div className="w-56 flex-shrink-0 border-r border-border bg-muted/30 flex flex-col">
             <div className="flex items-center justify-between px-3 py-2 border-b border-border">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Files</span>
               <span className="text-xs text-muted-foreground">{codeFiles.length}</span>
             </div>
-            <div className="flex-1 overflow-hidden">
+            <ScrollArea className="flex-1">
               <FileTreeView
                 files={codeFiles}
                 selectedFile={selectedFile?.name || null}
                 onFileSelect={openFileInTab}
               />
-            </div>
+            </ScrollArea>
           </div>
 
           {/* Editor area */}
@@ -545,23 +551,11 @@ const CodeAnalysis = () => {
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  <p className="text-sm">Select a file from the tree to start editing</p>
+                  <p className="text-sm">Select a file to start editing</p>
                 </div>
               )}
             </div>
           </div>
-
-          {/* AI Chat panel (slide-in) */}
-          {showChat && (
-            <div className="w-80 flex-shrink-0 border-l border-border bg-background">
-              <CodeChatPanel
-                allFiles={codeFiles}
-                selectedFile={selectedFile}
-                onFileUpdate={handleFileUpdate}
-                onClose={() => setShowChat(false)}
-              />
-            </div>
-          )}
         </div>
       </SidebarInset>
 

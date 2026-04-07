@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, X } from "lucide-react";
+import { Send, Loader2, Sparkles, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
@@ -115,7 +115,6 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }:
 
       // Check if the response contains code that should update files
       if (assistantContent.includes("```")) {
-        // Look for file mentions before code blocks
         const filePattern = /(?:File:\s*|filename:\s*|File name:\s*|---\s*)([^\n]+?)\s*(?:---\s*)?\n```[\w]*\n([\s\S]*?)\n```/gi;
         let match;
         let updatedFiles = 0;
@@ -125,7 +124,6 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }:
           const codeContent = match[2];
           
           if (codeContent.length > 50) {
-            // Find the matching file
             const matchingFile = allFiles.find(f => f.name.includes(fileName) || fileName.includes(f.name));
             if (matchingFile) {
               onFileUpdate(matchingFile.name, codeContent);
@@ -149,7 +147,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }:
         description: error.message || "Failed to send message.",
         variant: "destructive",
       });
-      setMessages(prev => prev.slice(0, -1)); // Remove user message on error
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }
@@ -157,16 +155,6 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }:
 
   const handleSend = () => {
     if (!input.trim() || isLoading) return;
-    
-    if (allFiles.length === 0) {
-      toast({
-        title: "No files loaded",
-        description: "Please upload a ZIP file first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     streamChat(input);
   };
 
@@ -177,93 +165,97 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }:
     }
   };
 
+  const handleNewChat = () => {
+    setMessages([]);
+    setInput("");
+  };
+
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-3 border-b">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">AI Code Assistant</span>
+          <span className="text-xs font-semibold">AI Chat</span>
         </div>
-        {onClose && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-7 w-7 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-
-      <div className="px-3 py-2 text-xs bg-muted/50 border-b">
-        <span className="text-muted-foreground">Analyzing </span>
-        <span className="font-semibold">{allFiles.length} files</span>
         {selectedFile && (
-          <>
-            <span className="text-muted-foreground"> • Currently viewing: </span>
-            <span className="font-mono">{selectedFile.name}</span>
-          </>
+          <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]">
+            {selectedFile.name.split('/').pop()}
+          </span>
         )}
       </div>
 
-      <ScrollArea className="flex-1 p-3" ref={scrollRef}>
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center p-4">
-            <Sparkles className="h-8 w-8 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Ask me to analyze, fix, or improve your code
-            </p>
-          </div>
-        )}
-        
-        <div className="space-y-4">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <Card
-                className={`max-w-[85%] p-3 ${
-                  msg.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
-                }`}
+      {/* Messages */}
+      <ScrollArea className="flex-1" ref={scrollRef}>
+        <div className="p-3">
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Sparkles className="h-8 w-8 text-muted-foreground/40 mb-3" />
+              <p className="text-xs text-muted-foreground">
+                Ask about your code
+              </p>
+            </div>
+          )}
+          
+          <div className="space-y-3">
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <p className="text-sm whitespace-pre-wrap break-words">
-                  {msg.content}
-                </p>
+                <Card
+                  className={`max-w-[90%] p-2.5 shadow-none ${
+                    msg.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
+                  }`}
+                >
+                  <p className="text-xs whitespace-pre-wrap break-words leading-relaxed">
+                    {msg.content}
+                  </p>
+                </Card>
+              </div>
+            ))}
+          </div>
+
+          {isLoading && messages[messages.length - 1]?.role === 'user' && (
+            <div className="flex justify-start mt-3">
+              <Card className="bg-muted p-2.5 shadow-none">
+                <Loader2 className="h-3 w-3 animate-spin" />
               </Card>
             </div>
-          ))}
+          )}
         </div>
-
-        {isLoading && messages[messages.length - 1]?.role === 'user' && (
-          <div className="flex justify-start mt-4">
-            <Card className="bg-muted p-3">
-              <Loader2 className="h-4 w-4 animate-spin" />
-            </Card>
-          </div>
-        )}
       </ScrollArea>
 
-      <div className="p-3 border-t">
-        <div className="relative">
+      {/* Footer: + button left, textarea, send button right */}
+      <div className="border-t border-border p-2">
+        <div className="flex items-end gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNewChat}
+            className="h-8 w-8 flex-shrink-0 rounded-full"
+            title="New chat"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={allFiles.length > 0 ? "Ask about any file in the project..." : "Upload files first..."}
-            className="min-h-[60px] max-h-[120px] resize-none pr-14"
-            disabled={isLoading || allFiles.length === 0}
+            placeholder="Ask about your code..."
+            className="min-h-[36px] max-h-[100px] resize-none text-xs flex-1 py-2"
+            disabled={isLoading}
+            rows={1}
           />
           <Button
             onClick={handleSend}
-            disabled={!input.trim() || isLoading || allFiles.length === 0}
+            disabled={!input.trim() || isLoading}
             size="icon"
-            className="absolute bottom-2 right-2 h-10 w-10 rounded-full"
+            className="h-8 w-8 flex-shrink-0 rounded-full"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
