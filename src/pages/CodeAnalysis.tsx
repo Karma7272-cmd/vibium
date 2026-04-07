@@ -461,9 +461,6 @@ const CodeAnalysis = () => {
                 <GitBranch className="h-3 w-3 mr-1" />Pull Request
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={() => setShowChat(!showChat)} className="h-8 text-xs">
-              <MessageSquare className="h-3 w-3 mr-1" />AI Chat
-            </Button>
             <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 text-xs text-destructive hover:text-destructive">
               Close Project
             </Button>
