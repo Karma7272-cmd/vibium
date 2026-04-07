@@ -56,6 +56,29 @@ const CodeAnalysis = () => {
   const { session } = useAuth();
   const isGitHubAuthenticated = !!githubToken;
   const isMobile = useIsMobile();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAttachFiles = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAttachFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.name.endsWith('.zip')) {
+      await processZipFile(file);
+    } else if (isCodeFile(file.name)) {
+      const content = await file.text();
+      const newFile: CodeFile = { name: file.name, content, language: getLanguageFromFilename(file.name) };
+      setCodeFiles(prev => [...prev, newFile]);
+      setSelectedFile(newFile);
+      setOpenTabs(prev => [...prev, newFile]);
+      toast({ title: "File added", description: `${file.name} loaded.` });
+    } else {
+      toast({ title: "Unsupported file", description: "Upload a ZIP or code file.", variant: "destructive" });
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   // Handle GitHub OAuth callback
   useEffect(() => {
