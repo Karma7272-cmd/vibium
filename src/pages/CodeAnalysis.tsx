@@ -333,6 +333,30 @@ const CodeAnalysis = () => {
 
   const getShortName = (fullPath: string) => fullPath.split('/').pop() || fullPath;
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAttachFiles = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAttachFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.name.endsWith('.zip')) {
+      await processZipFile(file);
+    } else if (isCodeFile(file.name)) {
+      const content = await file.text();
+      const newFile: CodeFile = { name: file.name, content, language: getLanguageFromFilename(file.name) };
+      setCodeFiles(prev => [...prev, newFile]);
+      setSelectedFile(newFile);
+      setOpenTabs(prev => [...prev, newFile]);
+      toast({ title: "File added", description: `${file.name} loaded.` });
+    } else {
+      toast({ title: "Unsupported file", description: "Upload a ZIP or code file.", variant: "destructive" });
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   // Upload / connect screen
   if (!codeFiles.length) {
     return (
@@ -351,61 +375,38 @@ const CodeAnalysis = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <FileCode className="h-5 w-5" />
-                    Upload Your Code
+                    <Github className="h-5 w-5" />
+                    Connect Your Repository
                   </CardTitle>
-                  <CardDescription>Upload a ZIP file or connect your GitHub repository</CardDescription>
+                  <CardDescription>Connect your GitHub repository to start analyzing code</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Tabs defaultValue="github" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="upload">Upload ZIP</TabsTrigger>
-                      <TabsTrigger value="github">GitHub</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="upload" className="space-y-4">
-                      <div
-                        className={`relative border-2 border-dashed rounded-lg p-12 text-center transition-colors ${dragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25"}`}
-                        onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
-                      >
-                        <input type="file" accept=".zip" onChange={handleFileInput} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={analyzing} />
-                        <div className="flex flex-col items-center gap-4">
-                          {analyzing ? (
-                            <><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="text-lg font-medium">Processing files...</p></>
-                          ) : (
-                            <><Upload className="h-12 w-12 text-muted-foreground" /><div><p className="text-lg font-medium">Drag & drop your ZIP file here</p><p className="text-sm text-muted-foreground mt-1">or click to browse</p></div></>
-                          )}
-                        </div>
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="github" className="space-y-4">
-                      {isGitHubAuthenticated ? (
-                        <div className="space-y-4">
-                          {githubUser && (
-                            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
-                              <div className="flex items-center gap-3">
-                                <img src={githubUser.avatar_url} alt={githubUser.login} className="h-8 w-8 rounded-full" />
-                                <div>
-                                  <p className="text-sm font-medium">{githubUser.name || githubUser.login}</p>
-                                  <p className="text-xs text-muted-foreground">@{githubUser.login}</p>
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" onClick={handleGithubDisconnect}>Disconnect</Button>
+                  {isGitHubAuthenticated ? (
+                    <div className="space-y-4">
+                      {githubUser && (
+                        <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <img src={githubUser.avatar_url} alt={githubUser.login} className="h-8 w-8 rounded-full" />
+                            <div>
+                              <p className="text-sm font-medium">{githubUser.name || githubUser.login}</p>
+                              <p className="text-xs text-muted-foreground">@{githubUser.login}</p>
                             </div>
-                          )}
-                          <GitHubRepoSelector onRepoImported={handleRepoImported} />
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-6 text-center py-8">
-                          <div className="rounded-full bg-primary/10 p-4"><Github className="h-8 w-8 text-primary" /></div>
-                          <div>
-                            <h3 className="text-lg font-semibold mb-2">Connect GitHub Repository</h3>
-                            <p className="text-sm text-muted-foreground mb-6">Authorize access to analyze your GitHub repositories</p>
                           </div>
-                          <Button onClick={handleGithubConnect} size="lg" className="gap-2"><Github className="h-5 w-5" />Connect GitHub</Button>
+                          <Button variant="outline" size="sm" onClick={handleGithubDisconnect}>Disconnect</Button>
                         </div>
                       )}
-                    </TabsContent>
-                  </Tabs>
+                      <GitHubRepoSelector onRepoImported={handleRepoImported} />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-6 text-center py-8">
+                      <div className="rounded-full bg-primary/10 p-4"><Github className="h-8 w-8 text-primary" /></div>
+                      <div>
+                        <h3 className="text-lg font-semibold mb-2">Connect GitHub Repository</h3>
+                        <p className="text-sm text-muted-foreground mb-6">Authorize access to analyze your GitHub repositories</p>
+                      </div>
+                      <Button onClick={handleGithubConnect} size="lg" className="gap-2"><Github className="h-5 w-5" />Connect GitHub</Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
