@@ -41,7 +41,7 @@ const CodeAnalysis = () => {
   const [openTabs, setOpenTabs] = useState<CodeFile[]>([]);
   const [analysisResult, setAnalysisResult] = useState("");
   const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const [showChat, setShowChat] = useState(false);
+  
   const [repoInfo, setRepoInfo] = useState<{ owner: string; repo: string; branch: string } | null>(null);
   const [repoPermissions, setRepoPermissions] = useState<{ push: boolean; pull: boolean; admin: boolean } | null>(null);
   const [isPushing, setIsPushing] = useState(false);
