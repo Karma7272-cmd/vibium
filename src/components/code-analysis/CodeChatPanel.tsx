@@ -21,6 +21,7 @@ interface CodeChatPanelProps {
   selectedFile: { name: string; content: string } | null;
   onFileUpdate: (fileName: string, newContent: string) => void;
   onClose?: () => void;
+  onAttachFiles?: () => void;
 }
 
 export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose }: CodeChatPanelProps) => {
