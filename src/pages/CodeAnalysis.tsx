@@ -472,19 +472,28 @@ const CodeAnalysis = () => {
 
         {/* Main IDE area */}
         <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 48px)' }}>
+          {/* AI Chat panel - always visible on left */}
+          <div className="w-72 flex-shrink-0 border-r border-border bg-background flex flex-col">
+            <CodeChatPanel
+              allFiles={codeFiles}
+              selectedFile={selectedFile}
+              onFileUpdate={handleFileUpdate}
+            />
+          </div>
+
           {/* File tree sidebar */}
-          <div className="w-64 flex-shrink-0 border-r border-border bg-muted/30 flex flex-col">
+          <div className="w-56 flex-shrink-0 border-r border-border bg-muted/30 flex flex-col">
             <div className="flex items-center justify-between px-3 py-2 border-b border-border">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Files</span>
               <span className="text-xs text-muted-foreground">{codeFiles.length}</span>
             </div>
-            <div className="flex-1 overflow-hidden">
+            <ScrollArea className="flex-1">
               <FileTreeView
                 files={codeFiles}
                 selectedFile={selectedFile?.name || null}
                 onFileSelect={openFileInTab}
               />
-            </div>
+            </ScrollArea>
           </div>
 
           {/* Editor area */}
@@ -545,23 +554,11 @@ const CodeAnalysis = () => {
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  <p className="text-sm">Select a file from the tree to start editing</p>
+                  <p className="text-sm">Select a file to start editing</p>
                 </div>
               )}
             </div>
           </div>
-
-          {/* AI Chat panel (slide-in) */}
-          {showChat && (
-            <div className="w-80 flex-shrink-0 border-l border-border bg-background">
-              <CodeChatPanel
-                allFiles={codeFiles}
-                selectedFile={selectedFile}
-                onFileUpdate={handleFileUpdate}
-                onClose={() => setShowChat(false)}
-              />
-            </div>
-          )}
         </div>
       </SidebarInset>
 
