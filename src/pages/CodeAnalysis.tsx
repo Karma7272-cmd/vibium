@@ -362,7 +362,7 @@ const CodeAnalysis = () => {
     return (
       <>
         <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-        <SidebarInset>
+        <SidebarInset className="main-scroll-fix">
           <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background">
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />
@@ -420,7 +420,7 @@ const CodeAnalysis = () => {
   return (
     <>
       <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-      <SidebarInset>
+      <SidebarInset className="main-scroll-fix">
         {/* Top header bar with repo info + push/PR buttons */}
         <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-4">
           <div className="flex items-center gap-2">
