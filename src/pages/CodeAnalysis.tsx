@@ -495,13 +495,13 @@ const CodeAnalysis = () => {
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Files</span>
               <span className="text-xs text-muted-foreground">{codeFiles.length}</span>
             </div>
-            <ScrollArea className="flex-1">
+            <div className="flex-1 overflow-hidden">
               <FileTreeView
                 files={codeFiles}
                 selectedFile={selectedFile?.name || null}
                 onFileSelect={openFileInTab}
               />
-            </ScrollArea>
+            </div>
           </div>
 
           {/* Editor area */}
