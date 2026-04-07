@@ -228,35 +228,37 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
         </div>
       </ScrollArea>
 
-      {/* Footer: + button left, textarea, send button right */}
-      <div className="border-t border-border p-2">
-        <div className="flex items-end gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNewChat}
-            className="h-8 w-8 flex-shrink-0 rounded-full"
-            title="New chat"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Textarea
+      {/* Footer: attach left, textarea, send right */}
+      <div className="p-2">
+        <div className="relative rounded-lg border border-border bg-background overflow-hidden">
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about your code..."
-            className="min-h-[36px] max-h-[100px] resize-none text-xs flex-1 py-2"
+            placeholder="Ask to write"
+            className="w-full min-h-[80px] max-h-[140px] resize-none text-sm bg-transparent px-3 pt-3 pb-10 outline-none placeholder:text-muted-foreground/50"
             disabled={isLoading}
-            rows={1}
+            rows={3}
           />
-          <Button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            size="icon"
-            className="h-8 w-8 flex-shrink-0 rounded-full"
-          >
-            <Send className="h-3.5 w-3.5" />
-          </Button>
+          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onAttachFiles}
+              className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+              title="Attach file (ZIP, image, file)"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              size="icon"
+              className="h-7 w-7 rounded-full bg-foreground text-background hover:bg-foreground/80"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
