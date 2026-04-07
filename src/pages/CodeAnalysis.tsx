@@ -363,7 +363,7 @@ const CodeAnalysis = () => {
     return (
       <>
         <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-        <SidebarInset className="flex flex-col min-h-screen">
+        <SidebarInset className="flex flex-col h-svh overflow-y-auto">
           <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background sticky top-0 z-10">
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />
