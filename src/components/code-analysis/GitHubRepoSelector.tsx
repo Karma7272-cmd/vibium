@@ -165,7 +165,7 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
         <CardDescription>Select a repository to import and edit</CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[400px] pr-4">
+        <ScrollArea className="max-h-[500px] pr-4">
           <div className="space-y-2">
             {repos.map((repo) => (
               <Card key={repo.id} className="p-4">

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import Footer from "@/components/Footer";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -362,16 +363,17 @@ const CodeAnalysis = () => {
     return (
       <>
         <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-        <SidebarInset className="main-scroll-fix">
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background">
+        <SidebarInset className="flex flex-col min-h-screen">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background sticky top-0 z-10">
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="mr-2 h-4" />
               <h1 className="text-sm font-semibold">Code Analysis</h1>
             </div>
           </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-4">
-            <div className="mx-auto w-full max-w-3xl space-y-6">
+          <div className="flex-1 flex flex-col">
+            <div className="flex-1 p-4 pt-4">
+              <div className="mx-auto w-full max-w-3xl space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -410,6 +412,8 @@ const CodeAnalysis = () => {
                 </CardContent>
               </Card>
             </div>
+            </div>
+            <Footer className="mt-auto" />
           </div>
         </SidebarInset>
       </>
