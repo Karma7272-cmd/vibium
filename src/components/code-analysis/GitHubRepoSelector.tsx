@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { GitHubRepo, listUserRepos, getRepoTree, getBlobContent, setGitHubToken, fetchFilesInParallel, getRepoPermissions } from "@/services/githubService";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, GitBranch, Lock, Globe, Shield, ShieldCheck, Search } from "lucide-react";
@@ -182,7 +181,7 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="max-h-[500px] pr-4">
+        <div className="h-[500px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
           <div className="space-y-2">
             {filteredRepos.length > 0 ? (
               filteredRepos.map((repo) => (
@@ -235,7 +234,7 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
             </div>
           )}
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );
