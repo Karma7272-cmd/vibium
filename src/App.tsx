@@ -47,7 +47,10 @@ const App = () => (
                   <Route path="/nodes" element={<Nodes />} />
                   <Route path="/agents" element={<Agents />} />
                   <Route path="/checks" element={<Checks />} />
-                  <Route path="/run-node" element={<RunNode />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/history" element={<History />} />
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/tasks" element={<Tasks />} />
                   <Route path="/code-analysis" element={<CodeAnalysis />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/settings" element={<Settings />} />
