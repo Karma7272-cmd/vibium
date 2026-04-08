@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, GitBranch, X, FolderTree, MessageSquare, Code2 } from "lucide-react";
+import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, GitBranch, X, FolderTree, MessageSquare, Code2, Plus, FolderPlus, FilePlus } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea as TextareaUI } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface CodeFile {
   name: string;
@@ -38,6 +39,11 @@ const CodeAnalysis = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [codeFiles, setCodeFiles] = useState<CodeFile[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [showNewItemDialog, setShowNewItemDialog] = useState(false);
+  const [newItemType, setNewItemType] = useState<"file" | "folder">("file");
+  const [newItemName, setNewItemName] = useState("");
   const [selectedFile, setSelectedFile] = useState<CodeFile | null>(null);
   const [openTabs, setOpenTabs] = useState<CodeFile[]>([]);
   const [analysisResult, setAnalysisResult] = useState("");
@@ -59,6 +65,41 @@ const CodeAnalysis = () => {
   const isGitHubAuthenticated = !!githubToken;
   const isMobile = useIsMobile();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCreateNewItem = () => {
+    if (!newItemName.trim()) return;
+
+    const name = newItemName.trim();
+    if (newItemType === "file") {
+      const newFile: CodeFile = {
+        name,
+        content: "",
+        language: getLanguageFromFilename(name)
+      };
+      setCodeFiles(prev => [...prev, newFile]);
+      setSelectedFile(newFile);
+      if (!openTabs.find(t => t.name === name)) {
+        setOpenTabs(prev => [...prev, newFile]);
+      }
+      setModifiedFiles(prev => [...prev, name]);
+      toast({ title: "File created", description: `${name} has been created.` });
+    } else {
+      // For folders, we just ensure they show up in the tree
+      // In this simple implementation, folders are derived from file paths
+      // So we might want to create a placeholder file like .keep
+      const placeholderName = `${name}/.keep`;
+      const newFile: CodeFile = {
+        name: placeholderName,
+        content: "",
+        language: "plaintext"
+      };
+      setCodeFiles(prev => [...prev, newFile]);
+      toast({ title: "Folder created", description: `${name} has been created.` });
+    }
+
+    setNewItemName("");
+    setShowNewItemDialog(false);
+  };
 
   const handleAttachFiles = () => {
     fileInputRef.current?.click();
@@ -504,12 +545,63 @@ const CodeAnalysis = () => {
 
           {/* File tree sidebar */}
           <div className={`${isMobile ? (mobilePanel === 'files' ? 'flex w-full' : 'hidden') : 'w-56 flex'} flex-shrink-0 border-r border-border bg-muted/30 flex-col`}>
-            <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Files</span>
-              <span className="text-xs text-muted-foreground">{codeFiles.length}</span>
+            <div className="flex flex-col border-b border-border">
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Files</span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowSearch(!showSearch)}
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem onClick={() => { setNewItemType("file"); setShowNewItemDialog(true); }}>
+                        <FilePlus className="h-4 w-4 mr-2" />
+                        <span>New File</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setNewItemType("folder"); setShowNewItemDialog(true); }}>
+                        <FolderPlus className="h-4 w-4 mr-2" />
+                        <span>New Folder</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+              {showSearch && (
+                <div className="px-3 pb-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
+                    <Input
+                      placeholder="Search files..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-8 pl-7 text-xs"
+                      autoFocus
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-2 top-2.5"
+                      >
+                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex-1 overflow-hidden">
               <FileTreeView
+                searchTerm={searchQuery}
                 files={codeFiles}
                 selectedFile={selectedFile?.name || null}
                 onFileSelect={(fileName) => {
@@ -634,6 +726,31 @@ const CodeAnalysis = () => {
             <Button onClick={handleCreatePR} disabled={isPushing || !prTitle.trim()}>
               {isPushing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</> : 'Create PR'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showNewItemDialog} onOpenChange={setShowNewItemDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New {newItemType === "file" ? "File" : "Folder"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                placeholder={newItemType === "file" ? "example.ts" : "new-folder"}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateNewItem();
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewItemDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreateNewItem} disabled={!newItemName.trim()}>Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
