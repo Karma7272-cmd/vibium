@@ -108,6 +108,14 @@ export const FileTreeView = ({ files, selectedFile, onFileSelect }: FileTreeView
       );
     }
 
+  if (files.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-40 text-muted-foreground p-4 text-center">
+        <p className="text-xs">No files found</p>
+      </div>
+    );
+  }
+
     return (
       <Button
         key={node.path}

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, GitBranch, X } from "lucide-react";
+import { Plus, Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, GitBranch, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Textarea as TextareaUI } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 
 interface CodeFile {
@@ -30,9 +31,11 @@ interface CodeFile {
   content: string;
   language: string;
   path?: string;
-}
-
 const CodeAnalysis = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemType, setNewItemType] = useState<"file" | "folder">("file");
   const [activeSection, setActiveSection] = useState("code-analysis");
   const [analyzing, setAnalyzing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -380,6 +383,35 @@ const CodeAnalysis = () => {
                   </CardTitle>
                   <CardDescription>Connect your GitHub repository to start analyzing code</CardDescription>
                 </CardHeader>
+  const handleCreateNewItem = () => {
+    if (!newItemName.trim()) return;
+
+    if (newItemType === "file") {
+      const newFile: CodeFile = {
+        name: newItemName,
+        content: "",
+        language: getLanguageFromFilename(newItemName)
+      };
+      setCodeFiles(prev => [...prev, newFile]);
+      setSelectedFile(newFile);
+      setOpenTabs(prev => [...prev, newFile]);
+      toast({ title: "File created", description: `${newItemName} created successfully.` });
+    } else {
+      // For folders, we just need a dummy file to represent the folder in our current structure
+      // since we build the tree from file paths.
+      const dummyFile: CodeFile = {
+        name: `${newItemName}/.gitkeep`,
+        content: "",
+        language: "plaintext"
+      };
+      setCodeFiles(prev => [...prev, dummyFile]);
+      toast({ title: "Folder created", description: `${newItemName} created successfully.` });
+    }
+
+    setShowCreateDialog(false);
+    setNewItemName("");
+  };
+
                 <CardContent>
                   {isGitHubAuthenticated ? (
                     <div className="space-y-4">
@@ -491,13 +523,37 @@ const CodeAnalysis = () => {
 
           {/* File tree sidebar */}
           <div className="w-56 flex-shrink-0 border-r border-border bg-muted/30 flex flex-col">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Files</span>
-              <span className="text-xs text-muted-foreground">{codeFiles.length}</span>
+            <div className="flex flex-col border-b border-border">
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Files</span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => { setNewItemType("file"); setShowCreateDialog(true); }}
+                    title="New File"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground">{codeFiles.length}</span>
+                </div>
+              </div>
+              <div className="px-3 pb-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                  <Input
+                    placeholder="Search files..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-7 pl-7 text-xs bg-muted/50 border-none focus-visible:ring-1"
+                  />
+                </div>
+              </div>
             </div>
             <div className="flex-1 overflow-hidden">
               <FileTreeView
-                files={codeFiles}
+                files={codeFiles.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()))}
                 selectedFile={selectedFile?.name || null}
                 onFileSelect={openFileInTab}
               />
@@ -583,6 +639,47 @@ const CodeAnalysis = () => {
             <Button onClick={handleCreatePR} disabled={isPushing || !prTitle.trim()}>
               {isPushing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</> : 'Create PR'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create New Item</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <RadioGroup value={newItemType} onValueChange={(value: "file" | "folder") => setNewItemType(value)} className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="file" id="file" />
+                  <Label htmlFor="file" className="cursor-pointer">File</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="folder" id="folder" />
+                  <Label htmlFor="folder" className="cursor-pointer">Folder</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                placeholder={newItemType === "file" ? "example.ts" : "src/components"}
+                className="col-span-3"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleCreateNewItem(); }}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                {newItemType === "file" ? "Enter the full path or just the filename." : "Enter the folder path."}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreateNewItem} disabled={!newItemName.trim()}>Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
