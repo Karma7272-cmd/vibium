@@ -13,6 +13,7 @@ import PendingRequest from "./pages/PendingRequest";
 import NodeProfile from "./pages/NodeProfile";
 import OperatorProfile from "./pages/OperatorProfile";
 import CheckProfile from "./pages/CheckProfile";
+import Agents from "./pages/Agents";
 import Analytics from "./pages/Analytics";
 import History from "./pages/History";
 import Projects from "./pages/Projects";
