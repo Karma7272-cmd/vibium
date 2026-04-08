@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { ChevronRight, ChevronDown, Folder, File } from "lucide-react";
+import { ChevronRight, ChevronDown, Folder, File, Plus, FilePlus, FolderPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FileNode {
@@ -15,10 +16,11 @@ interface FileTreeViewProps {
   files: Array<{ name: string; content: string; language: string }>;
   selectedFile: string | null;
   onFileSelect: (fileName: string) => void;
+  onAddItem?: (parentPath: string, type: "file" | "folder") => void;
   searchTerm?: string;
 }
 
-export const FileTreeView = ({ files, selectedFile, onFileSelect, searchTerm = "" }: FileTreeViewProps) => {
+export const FileTreeView = ({ files, selectedFile, onFileSelect, searchTerm = "", onAddItem }: FileTreeViewProps) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -118,7 +120,7 @@ export const FileTreeView = ({ files, selectedFile, onFileSelect, searchTerm = "
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-left h-8 px-2 hover:bg-accent"
+            className="w-full justify-start text-left h-8 px-2 hover:bg-accent group"
             style={{ paddingLeft: `${paddingLeft}px` }}
             onClick={() => toggleFolder(node.path)}
           >
@@ -128,7 +130,31 @@ export const FileTreeView = ({ files, selectedFile, onFileSelect, searchTerm = "
               <ChevronRight className="h-4 w-4 mr-1 flex-shrink-0" />
             )}
             <Folder className="h-4 w-4 mr-2 flex-shrink-0 text-blue-500" />
-            <span className="truncate text-sm">{node.name}</span>
+            <span className="truncate text-sm flex-1">{node.name}</span>
+            {onAddItem && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onAddItem(node.path, "file"); }}>
+                    <FilePlus className="h-4 w-4 mr-2" />
+                    <span>New File</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onAddItem(node.path, "folder"); }}>
+                    <FolderPlus className="h-4 w-4 mr-2" />
+                    <span>New Folder</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </Button>
           {isExpanded && node.children && (
             <div>
@@ -144,7 +170,7 @@ export const FileTreeView = ({ files, selectedFile, onFileSelect, searchTerm = "
         key={node.path}
         variant={isSelected ? "secondary" : "ghost"}
         size="sm"
-        className="w-full justify-start text-left h-8 px-2 hover:bg-accent"
+        className="w-full justify-start text-left h-8 px-2 hover:bg-accent group"
         style={{ paddingLeft: `${paddingLeft}px` }}
         onClick={() => onFileSelect(node.path)}
       >

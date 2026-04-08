@@ -44,6 +44,7 @@ const CodeAnalysis = () => {
   const [showNewItemDialog, setShowNewItemDialog] = useState(false);
   const [newItemType, setNewItemType] = useState<"file" | "folder">("file");
   const [newItemName, setNewItemName] = useState("");
+  const [parentPath, setParentPath] = useState("");
   const [selectedFile, setSelectedFile] = useState<CodeFile | null>(null);
   const [openTabs, setOpenTabs] = useState<CodeFile[]>([]);
   const [analysisResult, setAnalysisResult] = useState("");
@@ -69,7 +70,7 @@ const CodeAnalysis = () => {
   const handleCreateNewItem = () => {
     if (!newItemName.trim()) return;
 
-    const name = newItemName.trim();
+    const name = parentPath ? `${parentPath}/${newItemName.trim()}` : newItemName.trim();
     if (newItemType === "file") {
       const newFile: CodeFile = {
         name,
@@ -564,11 +565,11 @@ const CodeAnalysis = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem onClick={() => { setNewItemType("file"); setShowNewItemDialog(true); }}>
+                      <DropdownMenuItem onClick={() => { setParentPath(""); setNewItemType("file"); setShowNewItemDialog(true); }}>
                         <FilePlus className="h-4 w-4 mr-2" />
                         <span>New File</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setNewItemType("folder"); setShowNewItemDialog(true); }}>
+                      <DropdownMenuItem onClick={() => { setParentPath(""); setNewItemType("folder"); setShowNewItemDialog(true); }}>
                         <FolderPlus className="h-4 w-4 mr-2" />
                         <span>New Folder</span>
                       </DropdownMenuItem>
@@ -607,6 +608,11 @@ const CodeAnalysis = () => {
                 onFileSelect={(fileName) => {
                   openFileInTab(fileName);
                   if (isMobile) setMobilePanel('code');
+                }}
+              onAddItem={(path, type) => {
+                  setParentPath(path);
+                  setNewItemType(type);
+                  setShowNewItemDialog(true);
                 }}
               />
             </div>
