@@ -1,5 +1,5 @@
 import React from 'react';
-import { Monitor, Plus, Settings, Globe, Smartphone, CheckCircle, Users, Bot, Info, FileCode, LogOut } from 'lucide-react';
+import { BarChart3, Plus, Settings, Globe, Smartphone, CheckCircle, Users, Bot, Info, FileCode, LogOut, Clock, FolderOpen, ListTodo } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { ThemeToggle } from './ThemeToggle';
@@ -60,9 +60,24 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
       isRoute: true
     }]
   }, {
-    id: 'run-node',
-    label: 'Run a Node',
-    icon: Monitor,
+    id: 'analytics',
+    label: 'Analytics',
+    icon: BarChart3,
+    isRoute: true
+  }, {
+    id: 'history',
+    label: 'History',
+    icon: Clock,
+    isRoute: true
+  }, {
+    id: 'projects',
+    label: 'Projects',
+    icon: FolderOpen,
+    isRoute: true
+  }, {
+    id: 'tasks',
+    label: 'Tasks',
+    icon: ListTodo,
     isRoute: true
   }, {
     id: 'about',
@@ -79,8 +94,14 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     if (item.isRoute) {
       if (item.id === 'new-check') {
         navigate('/');
-      } else if (item.id === 'run-node') {
-        navigate('/run-node');
+      } else if (item.id === 'analytics') {
+        navigate('/analytics');
+      } else if (item.id === 'history') {
+        navigate('/history');
+      } else if (item.id === 'projects') {
+        navigate('/projects');
+      } else if (item.id === 'tasks') {
+        navigate('/tasks');
       } else if (item.id === 'code-analysis') {
         navigate('/code-analysis');
       } else if (item.id === 'about') {
@@ -132,8 +153,14 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     if (item.isRoute) {
       if (item.id === 'new-check') {
         return location.pathname === '/';
-      } else if (item.id === 'run-node') {
-        return location.pathname === '/run-node';
+      } else if (item.id === 'analytics') {
+        return location.pathname === '/analytics';
+      } else if (item.id === 'history') {
+        return location.pathname === '/history';
+      } else if (item.id === 'projects') {
+        return location.pathname === '/projects';
+      } else if (item.id === 'tasks') {
+        return location.pathname === '/tasks';
       } else if (item.id === 'code-analysis') {
         return location.pathname === '/code-analysis';
       } else if (item.id === 'about') {
