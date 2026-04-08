@@ -94,8 +94,14 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     if (item.isRoute) {
       if (item.id === 'new-check') {
         navigate('/');
-      } else if (item.id === 'run-node') {
-        navigate('/run-node');
+      } else if (item.id === 'analytics') {
+        navigate('/analytics');
+      } else if (item.id === 'history') {
+        navigate('/history');
+      } else if (item.id === 'projects') {
+        navigate('/projects');
+      } else if (item.id === 'tasks') {
+        navigate('/tasks');
       } else if (item.id === 'code-analysis') {
         navigate('/code-analysis');
       } else if (item.id === 'about') {
