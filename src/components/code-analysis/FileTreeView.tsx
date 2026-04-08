@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronRight, ChevronDown, Folder, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,10 +15,41 @@ interface FileTreeViewProps {
   files: Array<{ name: string; content: string; language: string }>;
   selectedFile: string | null;
   onFileSelect: (fileName: string) => void;
+  searchTerm?: string;
 }
 
-export const FileTreeView = ({ files, selectedFile, onFileSelect }: FileTreeViewProps) => {
+export const FileTreeView = ({ files, selectedFile, onFileSelect, searchTerm = "" }: FileTreeViewProps) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (searchTerm) {
+      const foldersToExpand = new Set<string>();
+      files.forEach(file => {
+        if (file.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+          const parts = file.name.split("/");
+          let currentPath = "";
+          for (let i = 0; i < parts.length - 1; i++) {
+            currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
+            foldersToExpand.add(currentPath);
+          }
+        }
+      });
+      setExpandedFolders(prev => {
+        const next = new Set(prev);
+        foldersToExpand.forEach(path => next.add(path));
+        return next;
+      });
+    }
+  }, [searchTerm, files]);
+
+  const filterFiles = (files: Array<{ name: string; content: string; language: string }>) => {
+    if (!searchTerm) return files;
+    return files.filter(file =>
+      file.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  const filteredFiles = filterFiles(files);
 
   const buildFileTree = (files: Array<{ name: string; content: string; language: string }>): FileNode[] => {
     const root: FileNode[] = [];
@@ -123,7 +154,7 @@ export const FileTreeView = ({ files, selectedFile, onFileSelect }: FileTreeView
     );
   };
 
-  const fileTree = buildFileTree(files);
+  const fileTree = buildFileTree(filteredFiles);
 
   return (
     <ScrollArea className="h-full">
