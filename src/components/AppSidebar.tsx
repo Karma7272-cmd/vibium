@@ -1,5 +1,5 @@
 import React from 'react';
-import { Monitor, Plus, Settings, Globe, Smartphone, CheckCircle, Users, Bot, Info, FileCode, LogOut } from 'lucide-react';
+import { BarChart3, Plus, Settings, Globe, Smartphone, CheckCircle, Users, Bot, Info, FileCode, LogOut, Clock, FolderOpen, ListTodo } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { ThemeToggle } from './ThemeToggle';
