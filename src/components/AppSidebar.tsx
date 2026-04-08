@@ -153,8 +153,14 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     if (item.isRoute) {
       if (item.id === 'new-check') {
         return location.pathname === '/';
-      } else if (item.id === 'run-node') {
-        return location.pathname === '/run-node';
+      } else if (item.id === 'analytics') {
+        return location.pathname === '/analytics';
+      } else if (item.id === 'history') {
+        return location.pathname === '/history';
+      } else if (item.id === 'projects') {
+        return location.pathname === '/projects';
+      } else if (item.id === 'tasks') {
+        return location.pathname === '/tasks';
       } else if (item.id === 'code-analysis') {
         return location.pathname === '/code-analysis';
       } else if (item.id === 'about') {
