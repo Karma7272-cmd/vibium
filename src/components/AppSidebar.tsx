@@ -60,9 +60,24 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
       isRoute: true
     }]
   }, {
-    id: 'run-node',
-    label: 'Run a Node',
-    icon: Monitor,
+    id: 'analytics',
+    label: 'Analytics',
+    icon: BarChart3,
+    isRoute: true
+  }, {
+    id: 'history',
+    label: 'History',
+    icon: Clock,
+    isRoute: true
+  }, {
+    id: 'projects',
+    label: 'Projects',
+    icon: FolderOpen,
+    isRoute: true
+  }, {
+    id: 'tasks',
+    label: 'Tasks',
+    icon: ListTodo,
     isRoute: true
   }, {
     id: 'about',
