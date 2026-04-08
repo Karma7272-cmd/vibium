@@ -426,24 +426,26 @@ const CodeAnalysis = () => {
     <>
       <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
       <SidebarInset className="main-scroll-fix">
-        {/* Top header bar with repo info + push/PR buttons */}
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-4">
-          <div className="flex items-center gap-2">
+        {/* Top header bar */}
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-3 md:px-4">
+          <div className="flex items-center gap-2 min-w-0">
             <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Separator orientation="vertical" className="mr-1 md:mr-2 h-4" />
             {repoInfo ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">{repoInfo.owner}/{repoInfo.repo}</span>
-                <Badge variant="outline" className="text-xs">
-                  <GitBranch className="h-3 w-3 mr-1" />
+              <div className="flex items-center gap-1.5 md:gap-2 min-w-0">
+                <span className="text-xs md:text-sm font-semibold truncate max-w-[120px] md:max-w-none">
+                  {isMobile ? repoInfo.repo : `${repoInfo.owner}/${repoInfo.repo}`}
+                </span>
+                <Badge variant="outline" className="text-[10px] md:text-xs shrink-0">
+                  <GitBranch className="h-3 w-3 mr-0.5 md:mr-1" />
                   {repoInfo.branch}
                 </Badge>
-                {repoPermissions && (
+                {!isMobile && repoPermissions && (
                   <Badge variant={repoPermissions.push ? "default" : "secondary"} className="text-xs">
                     {repoPermissions.push ? "Push" : "Read-only"}
                   </Badge>
                 )}
-                {modifiedFiles.length > 0 && (
+                {!isMobile && modifiedFiles.length > 0 && (
                   <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
                     {modifiedFiles.length} modified
                   </Badge>
@@ -453,28 +455,34 @@ const CodeAnalysis = () => {
               <span className="text-sm font-semibold">Code Editor</span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             {repoInfo && modifiedFiles.length > 0 && repoPermissions?.push && (
-              <Button onClick={handlePushToGitHub} disabled={isPushing} size="sm" variant="default" className="h-8 text-xs">
-                {isPushing ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Pushing</> : <><Upload className="h-3 w-3 mr-1" />Push ({modifiedFiles.length})</>}
+              <Button onClick={handlePushToGitHub} disabled={isPushing} size="sm" variant="default" className="h-8 text-xs px-2 md:px-3">
+                {isPushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (
+                  <>
+                    <Upload className="h-3.5 w-3.5" />
+                    {!isMobile && <span className="ml-1">Push ({modifiedFiles.length})</span>}
+                  </>
+                )}
               </Button>
             )}
             {repoInfo && modifiedFiles.length > 0 && (
               <Button
                 onClick={() => { setPrTitle(`Update ${modifiedFiles.length} file(s)`); setShowPRDialog(true); }}
-                disabled={isPushing} size="sm" variant="outline" className="h-8 text-xs"
+                disabled={isPushing} size="sm" variant="outline" className="h-8 text-xs px-2 md:px-3"
               >
-                <GitBranch className="h-3 w-3 mr-1" />Pull Request
+                <GitBranch className="h-3.5 w-3.5" />
+                {!isMobile && <span className="ml-1">Pull Request</span>}
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 text-xs text-destructive hover:text-destructive">
-              Close Project
+            <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 text-xs text-destructive hover:text-destructive px-2 md:px-3">
+              {isMobile ? <X className="h-3.5 w-3.5" /> : 'Close Project'}
             </Button>
           </div>
         </header>
 
         {/* Main IDE area */}
-        <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 48px)' }}>
+        <div className="flex flex-1 overflow-hidden relative" style={{ height: isMobile ? 'calc(100vh - 48px - 48px)' : 'calc(100vh - 48px)' }}>
           {/* Hidden file input for attach */}
           <input
             ref={fileInputRef}
@@ -484,8 +492,8 @@ const CodeAnalysis = () => {
             className="hidden"
           />
 
-          {/* AI Chat panel - always visible on left */}
-          <div className="w-72 flex-shrink-0 border-r border-border bg-background flex flex-col">
+          {/* AI Chat panel */}
+          <div className={`${isMobile ? (mobilePanel === 'chat' ? 'flex w-full' : 'hidden') : 'w-72 flex'} flex-shrink-0 border-r border-border bg-background flex-col`}>
             <CodeChatPanel
               allFiles={codeFiles}
               selectedFile={selectedFile}
@@ -495,7 +503,7 @@ const CodeAnalysis = () => {
           </div>
 
           {/* File tree sidebar */}
-          <div className="w-56 flex-shrink-0 border-r border-border bg-muted/30 flex flex-col">
+          <div className={`${isMobile ? (mobilePanel === 'files' ? 'flex w-full' : 'hidden') : 'w-56 flex'} flex-shrink-0 border-r border-border bg-muted/30 flex-col`}>
             <div className="flex items-center justify-between px-3 py-2 border-b border-border">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Files</span>
               <span className="text-xs text-muted-foreground">{codeFiles.length}</span>
@@ -504,13 +512,16 @@ const CodeAnalysis = () => {
               <FileTreeView
                 files={codeFiles}
                 selectedFile={selectedFile?.name || null}
-                onFileSelect={openFileInTab}
+                onFileSelect={(fileName) => {
+                  openFileInTab(fileName);
+                  if (isMobile) setMobilePanel('code');
+                }}
               />
             </div>
           </div>
 
           {/* Editor area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className={`${isMobile ? (mobilePanel === 'code' ? 'flex w-full' : 'hidden') : 'flex-1 flex'} flex-col overflow-hidden`}>
             {/* File tabs */}
             {openTabs.length > 0 && (
               <div className="flex items-center border-b border-border bg-muted/20 overflow-x-auto">
@@ -556,12 +567,12 @@ const CodeAnalysis = () => {
                   theme={theme === 'dark' ? 'vs-dark' : 'light'}
                   options={{
                     minimap: { enabled: !isMobile },
-                    fontSize: 13,
-                    lineNumbers: 'on',
+                    fontSize: isMobile ? 12 : 13,
+                    lineNumbers: isMobile ? 'off' : 'on',
                     scrollBeyondLastLine: false,
                     automaticLayout: true,
                     tabSize: 2,
-                    wordWrap: 'off',
+                    wordWrap: isMobile ? 'on' : 'off',
                     padding: { top: 8 },
                   }}
                 />
@@ -573,6 +584,41 @@ const CodeAnalysis = () => {
             </div>
           </div>
         </div>
+
+        {/* Mobile bottom toggle bar */}
+        {isMobile && (
+          <div className="h-12 flex items-center justify-center border-t border-border bg-background px-4">
+            <div className="flex items-center bg-muted rounded-full p-1 gap-0.5">
+              <button
+                onClick={() => setMobilePanel('chat')}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  mobilePanel === 'chat' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                Chat
+              </button>
+              <button
+                onClick={() => setMobilePanel('code')}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  mobilePanel === 'code' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Code2 className="h-3.5 w-3.5" />
+                Code
+              </button>
+              <button
+                onClick={() => setMobilePanel('files')}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  mobilePanel === 'files' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <FolderTree className="h-3.5 w-3.5" />
+                Files
+              </button>
+            </div>
+          </div>
+        )}
       </SidebarInset>
 
       <Dialog open={showPRDialog} onOpenChange={setShowPRDialog}>
