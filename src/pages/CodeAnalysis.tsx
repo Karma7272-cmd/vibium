@@ -52,6 +52,7 @@ const CodeAnalysis = () => {
   const [showPRDialog, setShowPRDialog] = useState(false);
   const [prTitle, setPrTitle] = useState("");
   const [prBody, setPrBody] = useState("");
+  const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'code'>('code');
   const { toast } = useToast();
   const { theme } = useTheme();
   const { session } = useAuth();
