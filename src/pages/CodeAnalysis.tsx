@@ -107,20 +107,44 @@ const CodeAnalysis = () => {
   };
 
   const handleAttachFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.name.endsWith('.zip')) {
-      await processZipFile(file);
-    } else if (isCodeFile(file.name)) {
-      const content = await file.text();
-      const newFile: CodeFile = { name: file.name, content, language: getLanguageFromFilename(file.name) };
-      setCodeFiles(prev => [...prev, newFile]);
-      setSelectedFile(newFile);
-      setOpenTabs(prev => [...prev, newFile]);
-      toast({ title: "File added", description: `${file.name} loaded.` });
-    } else {
-      toast({ title: "Unsupported file", description: "Upload a ZIP or code file.", variant: "destructive" });
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const newCodeFiles: CodeFile[] = [];
+    let imageCount = 0;
+
+    for (const file of files) {
+      // Handle webkitRelativePath for folders
+      const fileName = (file as any).webkitRelativePath || file.name;
+
+      if (file.name.endsWith('.zip')) {
+        await processZipFile(file);
+      } else if (isCodeFile(fileName)) {
+        const content = await file.text();
+        const newFile: CodeFile = { name: fileName, content, language: getLanguageFromFilename(fileName) };
+        newCodeFiles.push(newFile);
+      } else if (file.type.startsWith('image/')) {
+        // Just acknowledging images for now as requested, we could store them in state if needed
+        imageCount++;
+      }
     }
+
+    if (newCodeFiles.length > 0) {
+      setCodeFiles(prev => [...prev, ...newCodeFiles]);
+      if (!selectedFile && newCodeFiles.length > 0) {
+        setSelectedFile(newCodeFiles[0]);
+        setOpenTabs(prev => [...prev, newCodeFiles[0]]);
+      }
+      toast({
+        title: "Files added",
+        description: `Loaded ${newCodeFiles.length} file(s)${imageCount > 0 ? ` and ${imageCount} image(s)` : ''}.`
+      });
+    } else if (imageCount > 0) {
+      toast({ title: "Images added", description: `Acknowledged ${imageCount} image(s).` });
+    } else {
+      toast({ title: "No compatible files", description: "Upload ZIPs, code files, or images.", variant: "destructive" });
+    }
+
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -411,51 +435,71 @@ const CodeAnalysis = () => {
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="mr-2 h-4" />
+              <div className="flex items-center gap-2 mr-4">
+                <Label htmlFor="view-mode" className="text-xs">AI Code</Label>
+                <Switch
+                  id="view-mode"
+                  checked={viewMode === "repo"}
+                  onCheckedChange={(checked) => setViewMode(checked ? "repo" : "ai-code")}
+                />
+                <Label htmlFor="view-mode" className="text-xs">Repo</Label>
+              </div>
               <h1 className="text-sm font-semibold">Code Analysis</h1>
             </div>
           </header>
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1 p-4 pt-4">
-              <div className="mx-auto w-full max-w-3xl space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Github className="h-5 w-5" />
-                    Connect Your Repository
-                  </CardTitle>
-                  <CardDescription>Connect your GitHub repository to start analyzing code</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isGitHubAuthenticated ? (
-                    <div className="space-y-4">
-                      {githubUser && (
-                        <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
-                          <div className="flex items-center gap-3">
-                            <img src={githubUser.avatar_url} alt={githubUser.login} className="h-8 w-8 rounded-full" />
-                            <div>
-                              <p className="text-sm font-medium">{githubUser.name || githubUser.login}</p>
-                              <p className="text-xs text-muted-foreground">@{githubUser.login}</p>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {viewMode === "ai-code" ? (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <CodeChatPanel
+                  allFiles={codeFiles}
+                  selectedFile={selectedFile}
+                  onFileUpdate={handleFileUpdate}
+                  onAttachFiles={handleAttachFiles}
+                />
+              </div>
+            ) : (
+              <div className="flex-1 p-4 pt-4 overflow-y-auto">
+                <div className="mx-auto w-full max-w-3xl space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Github className="h-5 w-5" />
+                        Connect Your Repository
+                      </CardTitle>
+                      <CardDescription>Connect your GitHub repository to start analyzing code</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {isGitHubAuthenticated ? (
+                        <div className="space-y-4">
+                          {githubUser && (
+                            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
+                              <div className="flex items-center gap-3">
+                                <img src={githubUser.avatar_url} alt={githubUser.login} className="h-8 w-8 rounded-full" />
+                                <div>
+                                  <p className="text-sm font-medium">{githubUser.name || githubUser.login}</p>
+                                  <p className="text-xs text-muted-foreground">@{githubUser.login}</p>
+                                </div>
+                              </div>
+                              <Button variant="outline" size="sm" onClick={handleGithubDisconnect}>Disconnect</Button>
                             </div>
+                          )}
+                          <GitHubRepoSelector onRepoImported={handleRepoImported} />
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-6 text-center py-8">
+                          <div className="rounded-full bg-primary/10 p-4"><Github className="h-8 w-8 text-primary" /></div>
+                          <div>
+                            <h3 className="text-lg font-semibold mb-2">Connect GitHub Repository</h3>
+                            <p className="text-sm text-muted-foreground mb-6">Authorize access to analyze your GitHub repositories</p>
                           </div>
-                          <Button variant="outline" size="sm" onClick={handleGithubDisconnect}>Disconnect</Button>
+                          <Button onClick={handleGithubConnect} size="lg" className="gap-2"><Github className="h-5 w-5" />Connect GitHub</Button>
                         </div>
                       )}
-                      <GitHubRepoSelector onRepoImported={handleRepoImported} />
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-6 text-center py-8">
-                      <div className="rounded-full bg-primary/10 p-4"><Github className="h-8 w-8 text-primary" /></div>
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">Connect GitHub Repository</h3>
-                        <p className="text-sm text-muted-foreground mb-6">Authorize access to analyze your GitHub repositories</p>
-                      </div>
-                      <Button onClick={handleGithubConnect} size="lg" className="gap-2"><Github className="h-5 w-5" />Connect GitHub</Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-            </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
             <Footer className="mt-auto" />
           </div>
         </SidebarInset>
@@ -473,6 +517,15 @@ const CodeAnalysis = () => {
           <div className="flex items-center gap-2 min-w-0">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-1 md:mr-2 h-4" />
+            <div className="flex items-center gap-1 md:gap-2 mr-1 md:mr-4">
+              <Label htmlFor="view-mode-ide" className="text-[10px] md:text-xs">AI Code</Label>
+              <Switch
+                id="view-mode-ide"
+                checked={viewMode === "repo"}
+                onCheckedChange={(checked) => setViewMode(checked ? "repo" : "ai-code")}
+              />
+              <Label htmlFor="view-mode-ide" className="text-[10px] md:text-xs">Repo</Label>
+            </div>
             {repoInfo ? (
               <div className="flex items-center gap-1.5 md:gap-2 min-w-0">
                 <span className="text-xs md:text-sm font-semibold truncate max-w-[120px] md:max-w-none">
@@ -529,23 +582,28 @@ const CodeAnalysis = () => {
           <input
             ref={fileInputRef}
             type="file"
+            multiple
+            {...({ webkitdirectory: "" } as any)}
             accept=".zip,.js,.jsx,.ts,.tsx,.py,.java,.cpp,.c,.cs,.go,.rs,.php,.rb,.swift,.kt,.html,.css,.json,.xml,.sql,.sh,.bash,.png,.jpg,.jpeg,.gif,.svg"
             onChange={handleAttachFileChange}
             className="hidden"
           />
 
           {/* AI Chat panel */}
-          <div className={`${isMobile ? (mobilePanel === 'chat' ? 'flex w-full' : 'hidden') : 'w-72 flex'} flex-shrink-0 border-r border-border bg-background flex-col`}>
-            <CodeChatPanel
-              allFiles={codeFiles}
-              selectedFile={selectedFile}
-              onFileUpdate={handleFileUpdate}
-              onAttachFiles={handleAttachFiles}
-            />
-          </div>
+          {(viewMode === "ai-code" || !isMobile) && (
+            <div className={`${isMobile ? (mobilePanel === 'chat' || viewMode === 'ai-code' ? 'flex w-full' : 'hidden') : (viewMode === 'ai-code' ? 'flex-1' : 'w-72 flex')} flex-shrink-0 border-r border-border bg-background flex-col`}>
+              <CodeChatPanel
+                allFiles={codeFiles}
+                selectedFile={selectedFile}
+                onFileUpdate={handleFileUpdate}
+                onAttachFiles={handleAttachFiles}
+              />
+            </div>
+          )}
 
           {/* File tree sidebar */}
-          <div className={`${isMobile ? (mobilePanel === 'files' ? 'flex w-full' : 'hidden') : 'w-56 flex'} flex-shrink-0 border-r border-border bg-muted/30 flex-col`}>
+          {viewMode === "repo" && (!isMobile || mobilePanel === "files") && (
+            <div className={`${isMobile ? (mobilePanel === 'files' ? 'flex w-full' : 'hidden') : 'w-56 flex'} flex-shrink-0 border-r border-border bg-muted/30 flex-col`}>
             <div className="flex flex-col border-b border-border">
               <div className="flex items-center justify-between px-3 py-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Files</span>
@@ -617,74 +675,75 @@ const CodeAnalysis = () => {
               />
             </div>
           </div>
-
-          {/* Editor area */}
-          <div className={`${isMobile ? (mobilePanel === 'code' ? 'flex w-full' : 'hidden') : 'flex-1 flex'} flex-col overflow-hidden`}>
-            {/* File tabs */}
-            {openTabs.length > 0 && (
-              <div className="flex items-center border-b border-border bg-muted/20 overflow-x-auto">
-                <ScrollArea className="w-full">
-                  <div className="flex">
-                    {openTabs.map(tab => {
-                      const isActive = selectedFile?.name === tab.name;
-                      const isModified = modifiedFiles.includes(tab.name);
-                      return (
-                        <button
-                          key={tab.name}
-                          onClick={() => setSelectedFile(tab)}
-                          className={`group flex items-center gap-1.5 px-3 py-2 text-xs border-r border-border whitespace-nowrap transition-colors ${
-                            isActive
-                              ? 'bg-background text-foreground border-b-2 border-b-primary'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                          }`}
-                        >
-                          {isModified && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 flex-shrink-0" />}
-                          <span>{getShortName(tab.name)}</span>
-                          <span
-                            onClick={(e) => closeTab(tab.name, e)}
-                            className="ml-1 opacity-0 group-hover:opacity-100 hover:bg-muted rounded p-0.5 transition-opacity"
+          )}
+          {viewMode === "repo" && (
+            <div className={`${isMobile ? (mobilePanel === 'code' ? 'flex w-full' : 'hidden') : 'flex-1 flex'} flex-col overflow-hidden`}>
+              {/* File tabs */}
+              {openTabs.length > 0 && (
+                <div className="flex items-center border-b border-border bg-muted/20 overflow-x-auto">
+                  <ScrollArea className="w-full">
+                    <div className="flex">
+                      {openTabs.map(tab => {
+                        const isActive = selectedFile?.name === tab.name;
+                        const isModified = modifiedFiles.includes(tab.name);
+                        return (
+                          <button
+                            key={tab.name}
+                            onClick={() => setSelectedFile(tab)}
+                            className={`group flex items-center gap-1.5 px-3 py-2 text-xs border-r border-border whitespace-nowrap transition-colors ${
+                              isActive
+                                ? 'bg-background text-foreground border-b-2 border-b-primary'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            }`}
                           >
-                            <X className="h-3 w-3" />
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              </div>
-            )}
-
-            {/* Monaco Editor */}
-            <div className="flex-1 overflow-hidden">
-              {selectedFile ? (
-                <Editor
-                  height="100%"
-                  language={selectedFile.language || 'plaintext'}
-                  value={selectedFile.content || ''}
-                  onChange={(value) => handleCodeEdit(value || '')}
-                  theme={theme === 'dark' ? 'vs-dark' : 'light'}
-                  options={{
-                    minimap: { enabled: !isMobile },
-                    fontSize: isMobile ? 12 : 13,
-                    lineNumbers: isMobile ? 'off' : 'on',
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                    tabSize: 2,
-                    wordWrap: isMobile ? 'on' : 'off',
-                    padding: { top: 8 },
-                  }}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  <p className="text-sm">Select a file to start editing</p>
+                            {isModified && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 flex-shrink-0" />}
+                            <span>{getShortName(tab.name)}</span>
+                            <span
+                              onClick={(e) => closeTab(tab.name, e)}
+                              className="ml-1 opacity-0 group-hover:opacity-100 hover:bg-muted rounded p-0.5 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
                 </div>
               )}
+
+              {/* Monaco Editor */}
+              <div className="flex-1 overflow-hidden">
+                {selectedFile ? (
+                  <Editor
+                    height="100%"
+                    language={selectedFile.language || 'plaintext'}
+                    value={selectedFile.content || ''}
+                    onChange={(value) => handleCodeEdit(value || '')}
+                    theme={theme === 'dark' ? 'vs-dark' : 'light'}
+                    options={{
+                      minimap: { enabled: !isMobile },
+                      fontSize: isMobile ? 12 : 13,
+                      lineNumbers: isMobile ? 'off' : 'on',
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                      tabSize: 2,
+                      wordWrap: isMobile ? 'on' : 'off',
+                      padding: { top: 8 },
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <p className="text-sm">Select a file to start editing</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Mobile bottom toggle bar */}
-        {isMobile && (
+        {isMobile && viewMode === "repo" && (
           <div className="h-12 flex items-center justify-center border-t border-border bg-background px-4">
             <div className="flex items-center bg-muted rounded-full p-1 gap-0.5">
               <button
