@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, Paperclip } from "lucide-react";
+import { Send, Loader2, Sparkles, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
@@ -235,10 +235,10 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask to write"
-            className="w-full min-h-[80px] max-h-[140px] resize-none text-sm bg-transparent px-3 pt-3 pb-10 outline-none placeholder:text-muted-foreground/50"
+            placeholder="Type a message..."
+            className="w-full min-h-[100px] max-h-[200px] resize-none text-sm bg-transparent px-3 pt-3 pb-12 outline-none placeholder:text-muted-foreground/50"
             disabled={isLoading}
-            rows={3}
+            rows={4}
           />
           <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
             <Button
@@ -248,7 +248,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
               className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
               title="Attach file (ZIP, image, file)"
             >
-              <Paperclip className="h-4 w-4" />
+              <Plus className="h-4 w-4" />
             </Button>
             <Button
               onClick={handleSend}
