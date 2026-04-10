@@ -19,7 +19,7 @@ import {
   GitBranch,
   Upload,
   FilePlus,
-  FolderPlus,
+  FolderPlus, ArrowUp, GitPullRequest,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -421,22 +421,30 @@ const CodeAnalysis: React.FC = () => {
 
               <div className="flex items-center gap-1 md:gap-2">
                 {repoInfo && repoPermissions?.push && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-xs font-medium">
-                        <GitBranch className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Push</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handlePushToGitHub} disabled={isPushing || modifiedFiles.length === 0}>
-                        Commit to {repoInfo.branch}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setShowPRDialog(true)} disabled={isPushing || modifiedFiles.length === 0}>
-                        Create Pull Request
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size={isMobile ? "icon" : "sm"}
+                      className="h-8 px-2 gap-1.5 text-xs font-bold"
+                      onClick={handlePushToGitHub}
+                      disabled={isPushing || modifiedFiles.length === 0}
+                      title={`Commit to ${repoInfo.branch}`}
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                      {!isMobile && <span>Push</span>}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size={isMobile ? "icon" : "sm"}
+                      className="h-8 px-2 gap-1.5 text-xs font-bold"
+                      onClick={() => setShowPRDialog(true)}
+                      disabled={isPushing || modifiedFiles.length === 0}
+                      title="Create Pull Request"
+                    >
+                      <GitPullRequest className="h-3.5 w-3.5" />
+                      {!isMobile && <span>Pull Request</span>}
+                    </Button>
+                  </div>
                 )}
                 <Button
                   variant="ghost"
@@ -542,7 +550,7 @@ const CodeAnalysis: React.FC = () => {
               <div className={`${isMobile ? 'absolute inset-0 z-40 w-full h-full bg-background' : 'flex-1'} flex flex-col min-w-0 overflow-hidden h-full`}>
                 {/* File tabs */}
                 <div className="flex items-center border-b border-border bg-muted/30 overflow-x-auto scrollbar-hide shrink-0 z-10">
-                  <ScrollArea className="w-full">
+                  <ScrollArea className="w-full" orientation="horizontal">
                     <div className="flex min-h-[36px]">
                       {openTabs.map(tab => {
                         const isActive = selectedFile?.name === tab.name;
@@ -553,11 +561,11 @@ const CodeAnalysis: React.FC = () => {
                             onClick={() => setSelectedFile(tab)}
                             className={`group flex items-center gap-2 px-3 py-2 text-[11px] border-r border-border whitespace-nowrap transition-colors relative h-9 ${
                               isActive
-                                ? 'bg-background text-foreground font-semibold'
+                                ? 'bg-background text-foreground font-bold'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                             }`}
                           >
-                            {isActive && <div className="absolute top-0 left-0 right-0 h-[2px] bg-primary" />}
+                            {isActive && <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary" />}
                             {isModified && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />}
                             <span className="truncate max-w-[120px]">{getShortName(tab.name)}</span>
                             <span
@@ -597,6 +605,7 @@ const CodeAnalysis: React.FC = () => {
                         wordWrap: 'on',
                         padding: { top: 8 },
                         fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+                        fontWeight: '600',
                       }}
                     />
                   ) : (
@@ -605,8 +614,8 @@ const CodeAnalysis: React.FC = () => {
                         <Code2 className="h-8 w-8 opacity-20" />
                       </div>
                       <div className="text-center">
-                        <p className="text-sm font-medium">No file selected</p>
-                        <p className="text-xs opacity-60">Choose a file from the explorer to start editing</p>
+                        <p className="text-sm font-bold">No file selected</p>
+                        <p className="text-xs font-medium opacity-70">Choose a file from the explorer to start editing</p>
                       </div>
                     </div>
                   )}
