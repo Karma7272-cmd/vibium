@@ -248,17 +248,42 @@ const CodeAnalysis: React.FC = () => {
     info: { owner: string; repo: string; branch: string },
     permissions: { push: boolean; pull: boolean; admin: boolean }
   ) => {
-    const formattedFiles = files.map(f => ({ name: f.path, content: f.content, language: f.language || 'plaintext' }));
-    setCodeFiles(formattedFiles);
-    setSelectedFile(formattedFiles[0] || null);
-    setOpenTabs(formattedFiles[0] ? [formattedFiles[0]] : []);
-    setRepoInfo(info);
-    setRepoPermissions(permissions);
-    setModifiedFiles([]);
-    toast({
-      title: "Repository imported",
-      description: `${files.length} files loaded. ${permissions.push ? 'Push access.' : 'Read-only.'}`,
-    });
+    if (!files || files.length === 0) {
+      toast({
+        title: "No files found",
+        description: "The repository appears to be empty or has no compatible files.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const formattedFiles = files.map(f => ({
+        name: f.path || f.name || 'unnamed-file',
+        content: f.content || '',
+        language: f.language || 'plaintext'
+      }));
+
+      setCodeFiles(formattedFiles);
+      setSelectedFile(formattedFiles[0]);
+      setOpenTabs([formattedFiles[0]]);
+      setRepoInfo(info);
+      setRepoPermissions(permissions);
+      setModifiedFiles([]);
+      setMobilePanel('code');
+
+      toast({
+        title: "Repository imported",
+        description: `${files.length} files loaded. ${permissions.push ? 'Push access.' : 'Read-only.'}`,
+      });
+    } catch (err) {
+      console.error("Error importing repo:", err);
+      toast({
+        title: "Import failed",
+        description: "An error occurred while processing the repository files.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handlePushToGitHub = async () => {
@@ -357,9 +382,9 @@ const CodeAnalysis: React.FC = () => {
   const getShortName = (fullPath: string) => fullPath.split('/').pop() || fullPath;
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
       <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-      <SidebarInset className="flex flex-col flex-1 overflow-hidden min-w-0">
+      <SidebarInset className="flex flex-col flex-1 overflow-hidden min-w-0 h-full">
         {/* Unified Header */}
         <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-3 md:px-4 z-20">
           {codeFiles.length > 0 ? (
@@ -449,10 +474,10 @@ const CodeAnalysis: React.FC = () => {
 
         {/* Content Area */}
         {codeFiles.length > 0 ? (
-          <div className="flex-1 flex overflow-hidden relative">
+          <div className="flex-1 flex overflow-hidden relative w-full h-full">
             {/* Panel 1: AI Chat (Left) */}
             {(!isMobile || mobilePanel === 'chat') && (
-              <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'w-80 lg:w-96 border-r'} flex flex-col shrink-0 border-border bg-background overflow-hidden`}>
+              <div className={`${isMobile ? 'absolute inset-0 z-40 w-full h-full bg-background' : 'w-80 lg:w-96 border-r'} flex flex-col shrink-0 border-border bg-background overflow-hidden h-full`}>
                 <CodeChatPanel
                   allFiles={codeFiles}
                   selectedFile={selectedFile}
@@ -464,7 +489,7 @@ const CodeAnalysis: React.FC = () => {
 
             {/* Panel 2: File Explorer (Center) */}
             {(!isMobile || mobilePanel === 'files') && (
-              <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'w-64 lg:w-72 border-r'} flex flex-col shrink-0 border-border bg-muted/5 overflow-hidden`}>
+              <div className={`${isMobile ? 'absolute inset-0 z-40 w-full h-full bg-background' : 'w-64 lg:w-72 border-r'} flex flex-col shrink-0 border-border bg-muted/5 overflow-hidden h-full`}>
                 <div className="flex flex-col h-full">
                   <div className="p-3 border-b bg-background/50 flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Explorer</span>
@@ -514,7 +539,7 @@ const CodeAnalysis: React.FC = () => {
 
             {/* Panel 3: Editor (Right) */}
             {(!isMobile || mobilePanel === 'code') && (
-              <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'flex-1'} flex flex-col min-w-0 overflow-hidden`}>
+              <div className={`${isMobile ? 'absolute inset-0 z-40 w-full h-full bg-background' : 'flex-1'} flex flex-col min-w-0 overflow-hidden h-full`}>
                 {/* File tabs */}
                 <div className="flex items-center border-b border-border bg-muted/30 overflow-x-auto scrollbar-hide shrink-0 z-10">
                   <ScrollArea className="w-full">
