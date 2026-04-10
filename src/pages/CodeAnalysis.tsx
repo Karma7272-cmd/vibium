@@ -1,59 +1,69 @@
-import { useState, useEffect, useRef } from "react";
-import Footer from "@/components/Footer";
-import AppSidebar from "@/components/AppSidebar";
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
-import { Upload, Github, FileCode, Loader2, Download, Wand2, Search, Zap, GitBranch, X, FolderTree, MessageSquare, Code2, Plus, FolderPlus, FilePlus } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import JSZip from "jszip";
-import { FileTreeView } from "@/components/code-analysis/FileTreeView";
-import { CodeChatPanel } from "@/components/code-analysis/CodeChatPanel";
-import { Switch } from "@/components/ui/switch";
+import React, { useState, useEffect, useRef } from 'react';
+import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import AppSidebar from '../components/AppSidebar';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea as TextareaUI } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/components/ThemeProvider';
+import {
+  Github,
+  Search,
+  Plus,
+  X,
+  Loader2,
+  Code2,
+  MessageSquare,
+  FolderTree,
+  GitBranch,
+  Upload,
+  FilePlus,
+  FolderPlus,
+} from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { GitHubRepoSelector } from '@/components/code-analysis/GitHubRepoSelector';
+import { FileTreeView } from '@/components/code-analysis/FileTreeView';
+import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
+import { setGitHubToken, commitAndPush, createPullRequest, createBranch } from '@/services/githubService';
+import Editor from '@monaco-editor/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import JSZip from 'jszip';
+import Footer from '@/components/Footer';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import Editor from "@monaco-editor/react";
-import { useTheme } from "@/components/ThemeProvider";
-import { GitHubRepoSelector } from "@/components/code-analysis/GitHubRepoSelector";
-import { commitAndPush, setGitHubToken, createPullRequest, createBranch } from "@/services/githubService";
-import { useAuth } from "@/contexts/AuthContext";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea as TextareaUI } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface CodeFile {
   name: string;
   content: string;
-  language: string;
-  path?: string;
+  language?: string;
 }
 
-const CodeAnalysis = () => {
+const CodeAnalysis: React.FC = () => {
   const [activeSection, setActiveSection] = useState("code-analysis");
-  const [analyzing, setAnalyzing] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
   const [codeFiles, setCodeFiles] = useState<CodeFile[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
-  const [showNewItemDialog, setShowNewItemDialog] = useState(false);
-  const [newItemType, setNewItemType] = useState<"file" | "folder">("file");
-  const [newItemName, setNewItemName] = useState("");
-  const [parentPath, setParentPath] = useState("");
   const [selectedFile, setSelectedFile] = useState<CodeFile | null>(null);
-  const [openTabs, setOpenTabs] = useState<CodeFile[]>([]);
-  const [analysisResult, setAnalysisResult] = useState("");
-  const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const [viewMode, setViewMode] = useState<"ai-code" | "repo">("repo");
-  
   const [repoInfo, setRepoInfo] = useState<{ owner: string; repo: string; branch: string } | null>(null);
   const [repoPermissions, setRepoPermissions] = useState<{ push: boolean; pull: boolean; admin: boolean } | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [openTabs, setOpenTabs] = useState<CodeFile[]>([]);
   const [isPushing, setIsPushing] = useState(false);
+  const [showNewItemDialog, setShowNewItemDialog] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemType, setNewItemType] = useState<"file" | "folder">("file");
+  const [parentPath, setParentPath] = useState("");
   const [modifiedFiles, setModifiedFiles] = useState<string[]>([]);
   const [githubToken, setGithubTokenState] = useState<string | null>(localStorage.getItem('github_access_token'));
   const [githubUser, setGithubUser] = useState<{ login: string; avatar_url: string; name: string } | null>(null);
@@ -62,8 +72,7 @@ const CodeAnalysis = () => {
   const [prBody, setPrBody] = useState("");
   const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'code'>('code');
   const { toast } = useToast();
-  const { theme } = useTheme();
-  const { session } = useAuth();
+  const { actualTheme } = useTheme();
   const isGitHubAuthenticated = !!githubToken;
   const isMobile = useIsMobile();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,9 +95,6 @@ const CodeAnalysis = () => {
       setModifiedFiles(prev => [...prev, name]);
       toast({ title: "File created", description: `${name} has been created.` });
     } else {
-      // For folders, we just ensure they show up in the tree
-      // In this simple implementation, folders are derived from file paths
-      // So we might want to create a placeholder file like .keep
       const placeholderName = `${name}/.keep`;
       const newFile: CodeFile = {
         name: placeholderName,
@@ -115,7 +121,6 @@ const CodeAnalysis = () => {
     let imageCount = 0;
 
     for (const file of files) {
-      // Handle webkitRelativePath for folders
       const fileName = (file as any).webkitRelativePath || file.name;
 
       if (file.name.endsWith('.zip')) {
@@ -125,7 +130,6 @@ const CodeAnalysis = () => {
         const newFile: CodeFile = { name: fileName, content, language: getLanguageFromFilename(fileName) };
         newCodeFiles.push(newFile);
       } else if (file.type.startsWith('image/')) {
-        // Just acknowledging images for now as requested, we could store them in state if needed
         imageCount++;
       }
     }
@@ -149,7 +153,6 @@ const CodeAnalysis = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Handle GitHub OAuth callback
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
@@ -189,31 +192,7 @@ const CodeAnalysis = () => {
     }
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
-    else if (e.type === "dragleave") setDragActive(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    const files = Array.from(e.dataTransfer.files);
-    const zipFile = files.find(file => file.name.endsWith('.zip'));
-    if (zipFile) await processZipFile(zipFile);
-    else toast({ title: "Invalid file", description: "Please upload a ZIP file.", variant: "destructive" });
-  };
-
-  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.name.endsWith('.zip')) await processZipFile(file);
-    else toast({ title: "Invalid file", description: "Please upload a ZIP file.", variant: "destructive" });
-  };
-
   const processZipFile = async (file: File) => {
-    setAnalyzing(true);
     toast({ title: "Processing ZIP file", description: `Extracting ${file.name}...` });
     try {
       const zip = new JSZip();
@@ -235,8 +214,6 @@ const CodeAnalysis = () => {
       }
     } catch (error) {
       toast({ title: "Error", description: "Failed to process ZIP file.", variant: "destructive" });
-    } finally {
-      setAnalyzing(false);
     }
   };
 
@@ -257,55 +234,6 @@ const CodeAnalysis = () => {
       'sql': 'sql', 'sh': 'bash', 'bash': 'bash'
     };
     return languageMap[ext || ''] || 'plaintext';
-  };
-
-  const handleAiAction = async (action: 'analyze' | 'fix' | 'explain' | 'optimize') => {
-    if (!selectedFile) return;
-    setIsAiProcessing(true);
-    setAnalysisResult("");
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-code', {
-        body: { code: selectedFile.content, action, fileName: selectedFile.name },
-      });
-      if (error) throw error;
-      if (data.error) { toast({ title: "Error", description: data.error, variant: "destructive" }); return; }
-      if (action === 'fix' || action === 'optimize') {
-        setSelectedFile({ ...selectedFile, content: data.result });
-        toast({ title: "Success", description: `Code ${action === 'fix' ? 'fixed' : 'optimized'} successfully!` });
-      } else {
-        setAnalysisResult(data.result);
-      }
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to process request.", variant: "destructive" });
-    } finally {
-      setIsAiProcessing(false);
-    }
-  };
-
-  const handleExport = () => {
-    if (!selectedFile) return;
-    const blob = new Blob([selectedFile.content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = selectedFile.name.split('/').pop() || selectedFile.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast({ title: "Exported", description: `${selectedFile.name} downloaded successfully.` });
-  };
-
-  const handleCodeEdit = (newContent: string) => {
-    if (selectedFile) {
-      const updated = { ...selectedFile, content: newContent };
-      setSelectedFile(updated);
-      setCodeFiles(prev => prev.map(f => f.name === selectedFile.name ? { ...f, content: newContent } : f));
-      setOpenTabs(prev => prev.map(t => t.name === selectedFile.name ? { ...t, content: newContent } : t));
-      if (!modifiedFiles.includes(selectedFile.name)) {
-        setModifiedFiles(prev => [...prev, selectedFile.name]);
-      }
-    }
   };
 
   const handleFileUpdate = (fileName: string, newContent: string) => {
@@ -365,10 +293,7 @@ const CodeAnalysis = () => {
       const pr = await createPullRequest(repoInfo.owner, repoInfo.repo, prTitle, prBody || `Updated ${modifiedFiles.length} file(s)`, branchName, repoInfo.branch);
       setModifiedFiles([]);
       setShowPRDialog(false);
-      setPrTitle("");
-      setPrBody("");
-      toast({ title: "Pull Request Created", description: `PR #${pr.number} created successfully` });
-      window.open(pr.html_url, '_blank');
+      toast({ title: "PR Created", description: `Successfully created PR #${pr.number}` });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -405,6 +330,12 @@ const CodeAnalysis = () => {
     toast({ title: "Disconnected", description: "GitHub account disconnected" });
   };
 
+  const handleCodeEdit = (newContent: string) => {
+    if (selectedFile) {
+      handleFileUpdate(selectedFile.name, newContent);
+    }
+  };
+
   const openFileInTab = (fileName: string) => {
     const file = codeFiles.find(f => f.name === fileName);
     if (!file) return;
@@ -426,160 +357,120 @@ const CodeAnalysis = () => {
   const getShortName = (fullPath: string) => fullPath.split('/').pop() || fullPath;
 
 
-  // Upload / connect screen
   if (!codeFiles.length) {
     return (
-      <>
+      <div className="flex min-h-screen w-full bg-background overflow-hidden">
         <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-        <SidebarInset className="flex flex-col h-svh overflow-y-auto">
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background sticky top-0 z-10">
-            <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
-              <div className="flex items-center gap-2 mr-4">
-                <Label htmlFor="view-mode" className="text-xs">AI Code</Label>
-                <Switch
-                  id="view-mode"
-                  checked={viewMode === "repo"}
-                  onCheckedChange={(checked) => setViewMode(checked ? "repo" : "ai-code")}
-                />
-                <Label htmlFor="view-mode" className="text-xs">Repo</Label>
-              </div>
-              <h1 className="text-sm font-semibold">Code Analysis</h1>
-            </div>
+        <SidebarInset className="flex flex-col flex-1 overflow-hidden">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-4 z-20">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <h1 className="text-sm font-semibold">Code Analysis</h1>
           </header>
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {viewMode === "ai-code" ? (
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <CodeChatPanel
-                  allFiles={codeFiles}
-                  selectedFile={selectedFile}
-                  onFileUpdate={handleFileUpdate}
-                  onAttachFiles={handleAttachFiles}
-                />
-              </div>
-            ) : (
-              <div className="flex-1 p-4 pt-4 overflow-y-auto">
-                <div className="mx-auto w-full max-w-3xl space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Github className="h-5 w-5" />
-                        Connect Your Repository
-                      </CardTitle>
-                      <CardDescription>Connect your GitHub repository to start analyzing code</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {isGitHubAuthenticated ? (
-                        <div className="space-y-4">
-                          {githubUser && (
-                            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
-                              <div className="flex items-center gap-3">
-                                <img src={githubUser.avatar_url} alt={githubUser.login} className="h-8 w-8 rounded-full" />
-                                <div>
-                                  <p className="text-sm font-medium">{githubUser.name || githubUser.login}</p>
-                                  <p className="text-xs text-muted-foreground">@{githubUser.login}</p>
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" onClick={handleGithubDisconnect}>Disconnect</Button>
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+            <div className="mx-auto w-full max-w-3xl space-y-6">
+              <Card className="border-2 border-dashed border-muted-foreground/20 bg-muted/5">
+                <CardHeader className="text-center">
+                  <div className="mx-auto mb-4 rounded-full bg-primary/10 p-4 w-16 h-16 flex items-center justify-center">
+                    <Github className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle className="text-2xl font-bold">Connect Your Repository</CardTitle>
+                  <CardDescription>
+                    Connect your GitHub account or upload a local project to start analyzing code with AI.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isGitHubAuthenticated ? (
+                    <div className="space-y-6">
+                      {githubUser && (
+                        <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30">
+                          <div className="flex items-center gap-3">
+                            <img src={githubUser.avatar_url} alt={githubUser.login} className="h-10 w-10 rounded-full border border-border" />
+                            <div>
+                              <p className="font-semibold text-foreground">{githubUser.name || githubUser.login}</p>
+                              <p className="text-xs text-muted-foreground font-mono">@{githubUser.login}</p>
                             </div>
-                          )}
-                          <GitHubRepoSelector onRepoImported={handleRepoImported} />
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-6 text-center py-8">
-                          <div className="rounded-full bg-primary/10 p-4"><Github className="h-8 w-8 text-primary" /></div>
-                          <div>
-                            <h3 className="text-lg font-semibold mb-2">Connect GitHub Repository</h3>
-                            <p className="text-sm text-muted-foreground mb-6">Authorize access to analyze your GitHub repositories</p>
                           </div>
-                          <Button onClick={handleGithubConnect} size="lg" className="gap-2"><Github className="h-5 w-5" />Connect GitHub</Button>
+                          <Button variant="outline" size="sm" onClick={handleGithubDisconnect} className="hover:bg-destructive hover:text-destructive-foreground">
+                            Disconnect
+                          </Button>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            )}
-            <Footer className="mt-auto" />
-          </div>
+                      <GitHubRepoSelector onRepoImported={handleRepoImported} />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-4 py-8">
+                      <Button onClick={handleGithubConnect} size="lg" className="w-full sm:w-auto gap-2 text-base h-12 px-8">
+                        <Github className="h-5 w-5" />
+                        Connect with GitHub
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        We'll need permission to read your repositories.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </main>
+          <Footer />
         </SidebarInset>
-      </>
+      </div>
     );
   }
 
-  // IDE Layout
   return (
-    <>
+    <div className="flex h-screen w-full bg-background overflow-hidden">
       <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-      <SidebarInset className="main-scroll-fix">
-        {/* Top header bar */}
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-3 md:px-4">
-          <div className="flex items-center gap-2 min-w-0">
+      <SidebarInset className="flex flex-col flex-1 overflow-hidden min-w-0">
+        {/* IDE Header */}
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-3 md:px-4 z-20">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-1 md:mr-2 h-4" />
-            <div className="flex items-center gap-1 md:gap-2 mr-1 md:mr-4">
-              <Label htmlFor="view-mode-ide" className="text-[10px] md:text-xs">AI Code</Label>
-              <Switch
-                id="view-mode-ide"
-                checked={viewMode === "repo"}
-                onCheckedChange={(checked) => setViewMode(checked ? "repo" : "ai-code")}
-              />
-              <Label htmlFor="view-mode-ide" className="text-[10px] md:text-xs">Repo</Label>
-            </div>
             {repoInfo ? (
-              <div className="flex items-center gap-1.5 md:gap-2 min-w-0">
-                <span className="text-xs md:text-sm font-semibold truncate max-w-[120px] md:max-w-none">
-                  {isMobile ? repoInfo.repo : `${repoInfo.owner}/${repoInfo.repo}`}
-                </span>
-                <Badge variant="outline" className="text-[10px] md:text-xs shrink-0">
-                  <GitBranch className="h-3 w-3 mr-0.5 md:mr-1" />
+              <div className="flex items-center gap-1.5 md:gap-3 min-w-0 overflow-hidden">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Github className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs md:text-sm font-bold truncate max-w-[100px] md:max-w-[200px]">
+                    {repoInfo.repo}
+                  </span>
+                </div>
+                {selectedFile && !isMobile && (
+                  <div className="flex items-center gap-1.5 min-w-0 hidden sm:flex">
+                    <Separator orientation="vertical" className="h-3 opacity-30" />
+                    <Code2 className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+                    <span className="text-xs font-medium truncate text-muted-foreground">
+                      {getShortName(selectedFile.name)}
+                    </span>
+                  </div>
+                )}
+                <Badge variant="secondary" className="text-[10px] md:text-xs shrink-0 bg-muted font-mono h-5 px-1.5">
+                  <GitBranch className="h-3 w-3 mr-1" />
                   {repoInfo.branch}
                 </Badge>
-                {!isMobile && repoPermissions && (
-                  <Badge variant={repoPermissions.push ? "default" : "secondary"} className="text-xs">
-                    {repoPermissions.push ? "Push" : "Read-only"}
-                  </Badge>
-                )}
-                {!isMobile && modifiedFiles.length > 0 && (
-                  <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
-                    {modifiedFiles.length} modified
-                  </Badge>
-                )}
               </div>
             ) : (
               <span className="text-sm font-semibold">Code Editor</span>
             )}
           </div>
-          <div className="flex items-center gap-1 md:gap-2">
+
+          <div className="flex items-center gap-1 md:gap-2 ml-2">
             {repoInfo && modifiedFiles.length > 0 && repoPermissions?.push && (
-              <Button onClick={handlePushToGitHub} disabled={isPushing} size="sm" variant="default" className="h-8 text-xs px-2 md:px-3">
-                {isPushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (
-                  <>
-                    <Upload className="h-3.5 w-3.5" />
-                    {!isMobile && <span className="ml-1">Push ({modifiedFiles.length})</span>}
-                  </>
-                )}
+              <Button onClick={handlePushToGitHub} disabled={isPushing} size="sm" className="h-8 text-xs px-2 md:px-3 gap-1.5">
+                {isPushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Upload className="h-3.5 w-3.5" /> {!isMobile && <span>Push</span>}</>}
               </Button>
             )}
-            {repoInfo && modifiedFiles.length > 0 && (
-              <Button
-                onClick={() => { setPrTitle(`Update ${modifiedFiles.length} file(s)`); setShowPRDialog(true); }}
-                disabled={isPushing} size="sm" variant="outline" className="h-8 text-xs px-2 md:px-3"
-              >
-                <GitBranch className="h-3.5 w-3.5" />
-                {!isMobile && <span className="ml-1">Pull Request</span>}
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 text-xs text-destructive hover:text-destructive px-2 md:px-3">
-              {isMobile ? <X className="h-3.5 w-3.5" /> : 'Close Project'}
+            <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 text-xs text-destructive hover:bg-destructive/10 px-2 md:px-3 shrink-0">
+              <X className="h-4 w-4 md:mr-1" />
+              {!isMobile && <span>Close Project</span>}
             </Button>
           </div>
         </header>
 
-        {/* Main IDE area */}
-        <div className="flex flex-1 overflow-hidden relative" style={{ height: isMobile ? 'calc(100vh - 48px - 48px)' : 'calc(100vh - 48px)' }}>
-          {/* Hidden file input for attach */}
+        {/* IDE Main Area */}
+        <div className="flex flex-1 overflow-hidden relative" style={{ height: isMobile ? 'calc(100dvh - 48px - 48px)' : 'calc(100vh - 48px)' }}>
+          {/* File input for attachments */}
           <input
             ref={fileInputRef}
             type="file"
@@ -590,9 +481,157 @@ const CodeAnalysis = () => {
             className="hidden"
           />
 
-          {/* AI Chat panel */}
-          {(viewMode === "ai-code" || !isMobile) && (
-            <div className={`${isMobile ? (mobilePanel === 'chat' || viewMode === 'ai-code' ? 'flex w-full' : 'hidden') : (viewMode === 'ai-code' ? 'flex-1' : 'w-72 flex')} flex-shrink-0 border-r border-border bg-background flex-col`}>
+          {/* Panel 1: File Tree (Left) */}
+          {(!isMobile || mobilePanel === "files") && (
+            <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'w-64 border-r'} flex flex-col shrink-0 border-border bg-muted/20 overflow-hidden`}>
+              <div className="flex flex-col border-b border-border bg-background">
+                <div className="flex items-center justify-between px-3 py-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <FolderTree className="h-3 w-3" />
+                    Explorer
+                  </span>
+                  <div className="flex items-center gap-0.5">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowSearch(!showSearch)}>
+                      <Search className="h-3.5 w-3.5" />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40 z-[50]">
+                        <DropdownMenuItem onClick={() => { setParentPath(""); setNewItemType("file"); setShowNewItemDialog(true); }}>
+                          <FilePlus className="h-4 w-4 mr-2" />
+                          <span>New File</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setParentPath(""); setNewItemType("folder"); setShowNewItemDialog(true); }}>
+                          <FolderPlus className="h-4 w-4 mr-2" />
+                          <span>New Folder</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+                {showSearch && (
+                  <div className="px-2 pb-2">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2 h-3 w-3 text-muted-foreground" />
+                      <Input
+                        placeholder="Search files..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-7 pl-6 text-xs bg-muted/50 border-none focus-visible:ring-1"
+                        autoFocus
+                      />
+                      {searchQuery && (
+                        <button onClick={() => setSearchQuery("")} className="absolute right-2 top-2">
+                          <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 overflow-hidden bg-background">
+                <FileTreeView
+                  searchTerm={searchQuery}
+                  files={codeFiles}
+                  selectedFile={selectedFile?.name || null}
+                  onFileSelect={(fileName) => {
+                    openFileInTab(fileName);
+                    if (isMobile) setMobilePanel('code');
+                  }}
+                  onAddItem={(path, type) => {
+                    setParentPath(path);
+                    setNewItemType(type);
+                    setShowNewItemDialog(true);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Panel 2: Editor (Center) */}
+          {(!isMobile || mobilePanel === 'code') && (
+            <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'flex-1'} flex flex-col min-w-0 overflow-hidden`}>
+              {/* File tabs */}
+              <div className="flex items-center border-b border-border bg-muted/30 overflow-x-auto scrollbar-hide shrink-0 z-10">
+                <ScrollArea className="w-full">
+                  <div className="flex min-h-[36px]">
+                    {openTabs.map(tab => {
+                      const isActive = selectedFile?.name === tab.name;
+                      const isModified = modifiedFiles.includes(tab.name);
+                      return (
+                        <button
+                          key={tab.name}
+                          onClick={() => setSelectedFile(tab)}
+                          className={`group flex items-center gap-2 px-3 py-2 text-[11px] border-r border-border whitespace-nowrap transition-colors relative h-9 ${
+                            isActive
+                              ? 'bg-background text-foreground font-semibold'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                          }`}
+                        >
+                          {isActive && <div className="absolute top-0 left-0 right-0 h-[2px] bg-primary" />}
+                          {isModified && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />}
+                          <span className="truncate max-w-[120px]">{getShortName(tab.name)}</span>
+                          <span
+                            onClick={(e) => closeTab(tab.name, e)}
+                            className={`ml-1 rounded p-0.5 transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} hover:bg-muted` }
+                          >
+                            <X className="h-3 w-3" />
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {openTabs.length === 0 && (
+                      <div className="flex items-center px-4 text-[10px] text-muted-foreground italic">
+                        No files open
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+
+              {/* Editor Content */}
+              <div className="flex-1 overflow-hidden bg-background">
+                {selectedFile ? (
+                  <Editor
+                    height="100%"
+                    language={selectedFile.language || 'plaintext'}
+                    value={selectedFile.content || ''}
+                    onChange={(value) => handleCodeEdit(value || '')}
+                    theme={actualTheme === 'dark' ? 'vs-dark' : 'light'}
+                    options={{
+                      minimap: { enabled: !isMobile },
+                      fontSize: isMobile ? 12 : 13,
+                      lineNumbers: isMobile ? 'off' : 'on',
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                      tabSize: 2,
+                      wordWrap: 'on',
+                      padding: { top: 8 },
+                      fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+                    }}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4 bg-muted/5">
+                    <div className="rounded-full bg-muted p-4">
+                      <Code2 className="h-8 w-8 opacity-20" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium">No file selected</p>
+                      <p className="text-xs opacity-60">Choose a file from the explorer to start editing</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Panel 3: AI Chat (Right) */}
+          {(!isMobile || mobilePanel === 'chat') && (
+            <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'w-80 lg:w-96 border-l'} flex flex-col shrink-0 border-border bg-background overflow-hidden`}>
               <CodeChatPanel
                 allFiles={codeFiles}
                 selectedFile={selectedFile}
@@ -601,191 +640,65 @@ const CodeAnalysis = () => {
               />
             </div>
           )}
-
-          {/* File tree sidebar */}
-          {viewMode === "repo" && (!isMobile || mobilePanel === "files") && (
-            <div className={`${isMobile ? (mobilePanel === 'files' ? 'flex w-full' : 'hidden') : 'w-56 flex'} flex-shrink-0 border-r border-border bg-muted/30 flex-col`}>
-            <div className="flex flex-col border-b border-border">
-              <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Files</span>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => setShowSearch(!showSearch)}
-                  >
-                    <Search className="h-3.5 w-3.5" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Plus className="h-3.5 w-3.5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem onClick={() => { setParentPath(""); setNewItemType("file"); setShowNewItemDialog(true); }}>
-                        <FilePlus className="h-4 w-4 mr-2" />
-                        <span>New File</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setParentPath(""); setNewItemType("folder"); setShowNewItemDialog(true); }}>
-                        <FolderPlus className="h-4 w-4 mr-2" />
-                        <span>New Folder</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-              {showSearch && (
-                <div className="px-3 pb-2">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
-                    <Input
-                      placeholder="Search files..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-8 pl-7 text-xs"
-                      autoFocus
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="absolute right-2 top-2.5"
-                      >
-                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <FileTreeView
-                searchTerm={searchQuery}
-                files={codeFiles}
-                selectedFile={selectedFile?.name || null}
-                onFileSelect={(fileName) => {
-                  openFileInTab(fileName);
-                  if (isMobile) setMobilePanel('code');
-                }}
-              onAddItem={(path, type) => {
-                  setParentPath(path);
-                  setNewItemType(type);
-                  setShowNewItemDialog(true);
-                }}
-              />
-            </div>
-          </div>
-          )}
-          {viewMode === "repo" && (
-            <div className={`${isMobile ? (mobilePanel === 'code' ? 'flex w-full' : 'hidden') : 'flex-1 flex'} flex-col overflow-hidden`}>
-              {/* File tabs */}
-              {openTabs.length > 0 && (
-                <div className="flex items-center border-b border-border bg-muted/20 overflow-x-auto">
-                  <ScrollArea className="w-full">
-                    <div className="flex">
-                      {openTabs.map(tab => {
-                        const isActive = selectedFile?.name === tab.name;
-                        const isModified = modifiedFiles.includes(tab.name);
-                        return (
-                          <button
-                            key={tab.name}
-                            onClick={() => setSelectedFile(tab)}
-                            className={`group flex items-center gap-1.5 px-3 py-2 text-xs border-r border-border whitespace-nowrap transition-colors ${
-                              isActive
-                                ? 'bg-background text-foreground border-b-2 border-b-primary'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                            }`}
-                          >
-                            {isModified && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 flex-shrink-0" />}
-                            <span>{getShortName(tab.name)}</span>
-                            <span
-                              onClick={(e) => closeTab(tab.name, e)}
-                              className="ml-1 opacity-0 group-hover:opacity-100 hover:bg-muted rounded p-0.5 transition-opacity"
-                            >
-                              <X className="h-3 w-3" />
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </ScrollArea>
-                </div>
-              )}
-
-              {/* Monaco Editor */}
-              <div className="flex-1 overflow-hidden">
-                {selectedFile ? (
-                  <Editor
-                    height="100%"
-                    language={selectedFile.language || 'plaintext'}
-                    value={selectedFile.content || ''}
-                    onChange={(value) => handleCodeEdit(value || '')}
-                    theme={theme === 'dark' ? 'vs-dark' : 'light'}
-                    options={{
-                      minimap: { enabled: !isMobile },
-                      fontSize: isMobile ? 12 : 13,
-                      lineNumbers: isMobile ? 'off' : 'on',
-                      scrollBeyondLastLine: false,
-                      automaticLayout: true,
-                      tabSize: 2,
-                      wordWrap: isMobile ? 'on' : 'off',
-                      padding: { top: 8 },
-                    }}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    <p className="text-sm">Select a file to start editing</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Mobile bottom toggle bar */}
-        {isMobile && viewMode === "repo" && (
-          <div className="h-12 flex items-center justify-center border-t border-border bg-background px-4">
-            <div className="flex items-center bg-muted rounded-full p-1 gap-0.5">
+        {/* Mobile Navigation Tabs */}
+        {isMobile && (
+          <div className="h-12 flex items-center justify-center border-t border-border bg-background px-4 shrink-0 z-30">
+            <div className="flex items-center bg-muted/50 rounded-full p-1 w-full max-w-[300px]">
               <button
-                onClick={() => setMobilePanel('chat')}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  mobilePanel === 'chat' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                onClick={() => setMobilePanel('files')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  mobilePanel === 'files' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'
                 }`}
               >
-                <MessageSquare className="h-3.5 w-3.5" />
-                Chat
+                <FolderTree className="h-3.5 w-3.5" />
+                Files
               </button>
               <button
                 onClick={() => setMobilePanel('code')}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  mobilePanel === 'code' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  mobilePanel === 'code' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'
                 }`}
               >
                 <Code2 className="h-3.5 w-3.5" />
                 Code
               </button>
               <button
-                onClick={() => setMobilePanel('files')}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  mobilePanel === 'files' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                onClick={() => setMobilePanel('chat')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  mobilePanel === 'chat' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'
                 }`}
               >
-                <FolderTree className="h-3.5 w-3.5" />
-                Files
+                <MessageSquare className="h-3.5 w-3.5" />
+                Chat
               </button>
             </div>
           </div>
         )}
       </SidebarInset>
 
+      {/* Dialogs */}
       <Dialog open={showPRDialog} onOpenChange={setShowPRDialog}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Create Pull Request</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><label className="text-sm font-medium">Title</label><Input value={prTitle} onChange={(e) => setPrTitle(e.target.value)} placeholder="PR title" /></div>
-            <div><label className="text-sm font-medium">Description</label><TextareaUI value={prBody} onChange={(e) => setPrBody(e.target.value)} placeholder="Describe your changes..." rows={4} /></div>
-            <p className="text-xs text-muted-foreground">{modifiedFiles.length} file(s) will be committed to a new branch and a PR opened against <code>{repoInfo?.branch}</code>.</p>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Create Pull Request</DialogTitle>
+            <DialogDescription>
+              Submit your changes for review. A new branch will be created.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="pr-title">Title</Label>
+              <Input id="pr-title" value={prTitle} onChange={(e) => setPrTitle(e.target.value)} placeholder="Fix bug in editor layout" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pr-desc">Description</Label>
+              <TextareaUI id="pr-desc" value={prBody} onChange={(e) => setPrBody(e.target.value)} placeholder="What changed in this PR?" rows={4} className="resize-none" />
+            </div>
+            <p className="text-[10px] text-muted-foreground italic">
+              {modifiedFiles.length} modified file(s) will be included.
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPRDialog(false)}>Cancel</Button>
@@ -795,10 +708,14 @@ const CodeAnalysis = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <Dialog open={showNewItemDialog} onOpenChange={setShowNewItemDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Create New {newItemType === "file" ? "File" : "Folder"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {newItemType === "file" ? <FilePlus className="h-5 w-5" /> : <FolderPlus className="h-5 w-5" />}
+              Create New {newItemType === "file" ? "File" : "Folder"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -808,11 +725,15 @@ const CodeAnalysis = () => {
                 value={newItemName}
                 onChange={(e) => setNewItemName(e.target.value)}
                 placeholder={newItemType === "file" ? "example.ts" : "new-folder"}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCreateNewItem();
-                }}
+                onKeyDown={(e) => { if (e.key === "Enter") handleCreateNewItem(); }}
+                autoFocus
               />
             </div>
+            {parentPath && (
+              <p className="text-[10px] text-muted-foreground">
+                Will be created in: <code className="bg-muted px-1 rounded">{parentPath}</code>
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewItemDialog(false)}>Cancel</Button>
@@ -820,7 +741,7 @@ const CodeAnalysis = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 
