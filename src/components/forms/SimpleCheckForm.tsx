@@ -93,7 +93,8 @@ const SimpleCheckForm: React.FC = () => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const removeRepo = () => {
+  const removeRepo = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setSelectedRepo(null);
   };
 
@@ -104,22 +105,22 @@ const SimpleCheckForm: React.FC = () => {
   return (
     <div className={`space-y-4 ${isMobile ? "max-h-[60vh]" : ""}`}>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="relative bg-white dark:bg-slate-900 rounded-lg border-2 border-gray-300 hover:border-gray-400 focus-within:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md">
+        <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-gray-300 dark:border-slate-700 hover:border-gray-400 dark:hover:border-slate-600 focus-within:border-primary/50 transition-all duration-200 shadow-sm overflow-hidden">
 
           {(selectedFiles.length > 0 || selectedRepo) && (
-            <div className="flex flex-wrap gap-2 px-4 pt-3 max-h-32 overflow-y-auto">
+            <div className="flex flex-wrap gap-2 px-4 pt-3 pb-1 max-h-32 overflow-y-auto bg-muted/10 border-b border-border/50">
               {selectedRepo && (
-                <Badge variant="secondary" className="gap-1 px-2 py-1">
+                <Badge variant="secondary" className="gap-1.5 px-2 py-1 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20">
                   <Github className="h-3 w-3" />
-                  {selectedRepo.name}
-                  <X className="h-3 w-3 cursor-pointer hover:text-destructive transition-colors" onClick={removeRepo} />
+                  <span className="max-w-[150px] truncate">{selectedRepo.name}</span>
+                  <X className="h-3 w-3 cursor-pointer opacity-70 hover:opacity-100" onClick={removeRepo} />
                 </Badge>
               )}
               {selectedFiles.map((file, i) => (
-                <Badge key={i} variant="outline" className="gap-1 px-2 py-1">
-                  <File className="h-3 w-3" />
+                <Badge key={i} variant="outline" className="gap-1.5 px-2 py-1 bg-background">
+                  <File className="h-3 w-3 text-muted-foreground" />
                   <span className="max-w-[150px] truncate">{file.name}</span>
-                  <X className="h-3 w-3 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeFile(i)} />
+                  <X className="h-3 w-3 cursor-pointer opacity-70 hover:opacity-100" onClick={() => removeFile(i)} />
                 </Badge>
               ))}
             </div>
@@ -131,39 +132,39 @@ const SimpleCheckForm: React.FC = () => {
             onChange={(e) => setPrompt(e.target.value)}
             onFocus={() => setIsTextareaFocused(true)}
             onBlur={() => setIsTextareaFocused(false)}
-            className="w-full min-h-[100px] text-sm sm:text-base px-4 py-3 border-0 focus:ring-0 focus-visible:ring-0 shadow-none placeholder:text-gray-400 resize-none bg-transparent"
+            className="w-full min-h-[100px] text-sm sm:text-base px-4 py-4 border-0 focus:ring-0 focus-visible:ring-0 shadow-none placeholder:text-gray-400 resize-none bg-transparent"
             rows={3}
           />
 
-          <div className="flex items-center justify-between px-2 pb-2">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center justify-between px-3 pb-3">
+            <div className="flex items-center gap-1.5">
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800">
-                    <Plus className="h-5 w-5" data-testid="plus-icon" />
+                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <Plus className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48 z-[100]">
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                    <File className="mr-2 h-4 w-4" /> <span>Files</span>
+                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => fileInputRef.current?.click()}>
+                    <File className="h-4 w-4" /> <span>Files</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => folderInputRef.current?.click()}>
-                    <Folder className="mr-2 h-4 w-4" /> <span>Folder</span>
+                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => folderInputRef.current?.click()}>
+                    <Folder className="h-4 w-4" /> <span>Folder</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => zipInputRef.current?.click()}>
-                    <FileArchive className="mr-2 h-4 w-4" /> <span>Zip files</span>
+                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => zipInputRef.current?.click()}>
+                    <FileArchive className="h-4 w-4" /> <span>Zip files</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => imageInputRef.current?.click()}>
-                    <Image className="mr-2 h-4 w-4" /> <span>Images</span>
+                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => imageInputRef.current?.click()}>
+                    <Image className="h-4 w-4" /> <span>Images</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
               <DropdownMenu modal={false} onOpenChange={(open) => open && fetchRepos()}>
                 <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 px-2.5 rounded-md font-medium text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800">
+                  <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-3 rounded-full font-medium text-[11px] bg-background border-border hover:bg-muted transition-colors">
                     <Github className="h-3.5 w-3.5" />
-                    <span className="max-w-[100px] truncate">
+                    <span className="max-w-[120px] truncate">
                       {selectedRepo ? selectedRepo.name : "Select Repository"}
                     </span>
                     <ChevronDown className="h-3 w-3 opacity-50" />
@@ -172,32 +173,38 @@ const SimpleCheckForm: React.FC = () => {
                 <DropdownMenuContent align="start" className="w-[240px] max-h-[300px] overflow-y-auto z-[100]">
                   {localStorage.getItem('github_access_token') ? (
                     isReposLoading ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
                       </div>
                     ) : repos.length > 0 ? (
-                      repos.map(repo => (
-                        <DropdownMenuItem
-                          key={repo.id}
-                          className="cursor-pointer"
-                          onClick={() => setSelectedRepo({ owner: repo.full_name.split('/')[0], name: repo.name })}
-                        >
-                          <div className="flex flex-col overflow-hidden">
-                            <span className="font-medium truncate">{repo.name}</span>
-                            <span className="text-[10px] text-muted-foreground truncate">{repo.full_name}</span>
-                          </div>
-                        </DropdownMenuItem>
-                      ))
+                      <div className="py-1">
+                        <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Your Repositories</div>
+                        {repos.map(repo => (
+                          <DropdownMenuItem
+                            key={repo.id}
+                            className="cursor-pointer py-2"
+                            onClick={() => setSelectedRepo({ owner: repo.full_name.split('/')[0], name: repo.name })}
+                          >
+                            <div className="flex flex-col overflow-hidden">
+                              <span className="font-semibold text-xs truncate">{repo.name}</span>
+                              <span className="text-[10px] text-muted-foreground truncate">{repo.full_name}</span>
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
                     ) : (
-                      <div className="py-4 px-2 text-center">
+                      <div className="py-8 px-4 text-center">
                         <p className="text-xs text-muted-foreground">No repositories found.</p>
                       </div>
                     )
                   ) : (
-                    <div className="py-4 px-2 text-center">
-                      <p className="text-xs text-muted-foreground mb-2">Connect GitHub to see your repositories.</p>
-                      <Button size="sm" className="w-full text-xs h-8 gap-2" onClick={handleGithubConnect}>
-                        <Github className="h-3.5 w-3.5" />
+                    <div className="py-6 px-4 text-center">
+                      <div className="bg-primary/10 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Github className="h-5 w-5 text-primary" />
+                      </div>
+                      <p className="text-xs font-semibold mb-1">GitHub not connected</p>
+                      <p className="text-[10px] text-muted-foreground mb-4">Connect to select a repository</p>
+                      <Button size="sm" className="w-full text-xs h-8 gap-2 rounded-lg" onClick={handleGithubConnect}>
                         Connect GitHub
                       </Button>
                     </div>
@@ -208,10 +215,9 @@ const SimpleCheckForm: React.FC = () => {
 
             <Button
               type="submit"
-              className="w-10 h-10 p-0 bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-300 rounded-full font-medium flex items-center justify-center transition-colors"
-              variant="outline"
+              className="w-10 h-10 p-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full font-medium flex items-center justify-center transition-all shadow-md active:scale-95"
             >
-              <ArrowUp size={16} />
+              <ArrowUp size={18} />
             </Button>
           </div>
         </div>
