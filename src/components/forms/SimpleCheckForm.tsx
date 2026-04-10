@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { listUserRepos, GitHubRepo, setGitHubToken } from '@/services/githubService';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const SimpleCheckForm: React.FC = () => {
   const navigate = useNavigate();
@@ -42,6 +43,21 @@ const SimpleCheckForm: React.FC = () => {
     console.log('Creating new check:', checkData);
     sessionStorage.setItem('pendingCheck', JSON.stringify(checkData));
     navigate('/pending-request');
+  };
+
+  const handleGithubConnect = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('github-client-id');
+      if (error || !data?.client_id) {
+        toast({ title: "Error", description: "GitHub OAuth not configured", variant: "destructive" });
+        return;
+      }
+      const redirectUri = `${window.location.origin}/code-analysis`;
+      const scope = 'repo read:user';
+      window.location.href = `https://github.com/login/oauth/authorize?client_id=${data.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=github_oauth`;
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
   };
 
   const fetchRepos = async () => {
@@ -154,27 +170,34 @@ const SimpleCheckForm: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-[240px] max-h-[300px] overflow-y-auto z-[100]">
-                  {isReposLoading ? (
-                    <div className="flex items-center justify-center py-4">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : repos.length > 0 ? (
-                    repos.map(repo => (
-                      <DropdownMenuItem
-                        key={repo.id}
-                        className="cursor-pointer"
-                        onClick={() => setSelectedRepo({ owner: repo.full_name.split('/')[0], name: repo.name })}
-                      >
-                        <div className="flex flex-col overflow-hidden">
-                          <span className="font-medium truncate">{repo.name}</span>
-                          <span className="text-[10px] text-muted-foreground truncate">{repo.full_name}</span>
-                        </div>
-                      </DropdownMenuItem>
-                    ))
+                  {localStorage.getItem('github_access_token') ? (
+                    isReposLoading ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : repos.length > 0 ? (
+                      repos.map(repo => (
+                        <DropdownMenuItem
+                          key={repo.id}
+                          className="cursor-pointer"
+                          onClick={() => setSelectedRepo({ owner: repo.full_name.split('/')[0], name: repo.name })}
+                        >
+                          <div className="flex flex-col overflow-hidden">
+                            <span className="font-medium truncate">{repo.name}</span>
+                            <span className="text-[10px] text-muted-foreground truncate">{repo.full_name}</span>
+                          </div>
+                        </DropdownMenuItem>
+                      ))
+                    ) : (
+                      <div className="py-4 px-2 text-center">
+                        <p className="text-xs text-muted-foreground">No repositories found.</p>
+                      </div>
+                    )
                   ) : (
                     <div className="py-4 px-2 text-center">
-                      <p className="text-xs text-muted-foreground mb-2">No repositories found.</p>
-                      <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={() => navigate('/settings')}>
+                      <p className="text-xs text-muted-foreground mb-2">Connect GitHub to see your repositories.</p>
+                      <Button size="sm" className="w-full text-xs h-8 gap-2" onClick={handleGithubConnect}>
+                        <Github className="h-3.5 w-3.5" />
                         Connect GitHub
                       </Button>
                     </div>
