@@ -356,17 +356,240 @@ const CodeAnalysis: React.FC = () => {
 
   const getShortName = (fullPath: string) => fullPath.split('/').pop() || fullPath;
 
+  return (
+    <div className="flex h-screen w-full bg-background overflow-hidden">
+      <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+      <SidebarInset className="flex flex-col flex-1 overflow-hidden min-w-0">
+        {/* Unified Header */}
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-3 md:px-4 z-20">
+          {codeFiles.length > 0 ? (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <SidebarTrigger className="-ml-1" />
+                <Separator orientation="vertical" className="mr-1 md:mr-2 h-4" />
+                {repoInfo ? (
+                  <div className="flex items-center gap-1.5 md:gap-3 min-w-0 overflow-hidden">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Github className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs md:text-sm font-bold truncate max-w-[100px] md:max-w-[200px]">
+                        {repoInfo.repo}
+                      </span>
+                    </div>
+                    {selectedFile && !isMobile && (
+                      <div className="flex items-center gap-1.5 min-w-0 hidden sm:flex">
+                        <Separator orientation="vertical" className="h-3 opacity-30" />
+                        <Code2 className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+                        <span className="text-xs font-medium truncate text-muted-foreground">
+                          {getShortName(selectedFile.name)}
+                        </span>
+                      </div>
+                    )}
+                    <Badge variant="secondary" className="text-[10px] md:text-xs shrink-0 bg-muted font-mono h-5 px-1.5">
+                      <GitBranch className="h-3 w-3 mr-1" />
+                      {repoInfo.branch}
+                    </Badge>
+                  </div>
+                ) : (
+                  <h1 className="text-sm font-semibold">Local Project</h1>
+                )}
+              </div>
 
-  if (!codeFiles.length) {
-    return (
-      <div className="flex min-h-screen w-full bg-background overflow-hidden">
-        <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-        <SidebarInset className="flex flex-col flex-1 overflow-hidden">
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-4 z-20">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <h1 className="text-sm font-semibold">Code Analysis</h1>
-          </header>
+              <div className="flex items-center gap-1 md:gap-2">
+                {repoInfo && repoPermissions?.push && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-xs font-medium">
+                        <GitBranch className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Push</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handlePushToGitHub} disabled={isPushing || modifiedFiles.length === 0}>
+                        Commit to {repoInfo.branch}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowPRDialog(true)} disabled={isPushing || modifiedFiles.length === 0}>
+                        Create Pull Request
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setShowSearch(!showSearch)}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleAttachFiles}
+                >
+                  <Upload className="h-4 w-4" />
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  multiple
+                  onChange={handleAttachFileChange}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
+              <h1 className="text-sm font-semibold">Code Analysis</h1>
+            </div>
+          )}
+        </header>
+
+        {/* Content Area */}
+        {codeFiles.length > 0 ? (
+          <div className="flex-1 flex overflow-hidden relative">
+            {/* Panel 1: AI Chat (Left) */}
+            {(!isMobile || mobilePanel === 'chat') && (
+              <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'w-80 lg:w-96 border-r'} flex flex-col shrink-0 border-border bg-background overflow-hidden`}>
+                <CodeChatPanel
+                  allFiles={codeFiles}
+                  selectedFile={selectedFile}
+                  onFileUpdate={handleFileUpdate}
+                  onAttachFiles={handleAttachFiles}
+                />
+              </div>
+            )}
+
+            {/* Panel 2: File Explorer (Center) */}
+            {(!isMobile || mobilePanel === 'files') && (
+              <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'w-64 lg:w-72 border-r'} flex flex-col shrink-0 border-border bg-muted/5 overflow-hidden`}>
+                <div className="flex flex-col h-full">
+                  <div className="p-3 border-b bg-background/50 flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Explorer</span>
+                    <div className="flex items-center gap-0.5">
+                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setShowNewItemDialog(true)}>
+                        <FilePlus className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => {
+                        setNewItemType("folder");
+                        setShowNewItemDialog(true);
+                      }}>
+                        <FolderPlus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  {showSearch && (
+                    <div className="px-3 py-2 border-b bg-background/50">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                        <Input
+                          placeholder="Search files..."
+                          className="h-7 pl-7 text-[11px] bg-muted/50 border-none"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <FileTreeView
+                    searchTerm={searchQuery}
+                    files={codeFiles}
+                    selectedFile={selectedFile?.name || null}
+                    onFileSelect={(fileName) => {
+                      openFileInTab(fileName);
+                      if (isMobile) setMobilePanel('code');
+                    }}
+                    onAddItem={(path, type) => {
+                      setParentPath(path);
+                      setNewItemType(type);
+                      setShowNewItemDialog(true);
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Panel 3: Editor (Right) */}
+            {(!isMobile || mobilePanel === 'code') && (
+              <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'flex-1'} flex flex-col min-w-0 overflow-hidden`}>
+                {/* File tabs */}
+                <div className="flex items-center border-b border-border bg-muted/30 overflow-x-auto scrollbar-hide shrink-0 z-10">
+                  <ScrollArea className="w-full">
+                    <div className="flex min-h-[36px]">
+                      {openTabs.map(tab => {
+                        const isActive = selectedFile?.name === tab.name;
+                        const isModified = modifiedFiles.includes(tab.name);
+                        return (
+                          <button
+                            key={tab.name}
+                            onClick={() => setSelectedFile(tab)}
+                            className={`group flex items-center gap-2 px-3 py-2 text-[11px] border-r border-border whitespace-nowrap transition-colors relative h-9 ${
+                              isActive
+                                ? 'bg-background text-foreground font-semibold'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            }`}
+                          >
+                            {isActive && <div className="absolute top-0 left-0 right-0 h-[2px] bg-primary" />}
+                            {isModified && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />}
+                            <span className="truncate max-w-[120px]">{getShortName(tab.name)}</span>
+                            <span
+                              onClick={(e) => closeTab(tab.name, e)}
+                              className={`ml-1 rounded p-0.5 transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} hover:bg-muted` }
+                            >
+                              <X className="h-3 w-3" />
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {openTabs.length === 0 && (
+                        <div className="flex items-center px-4 text-[10px] text-muted-foreground italic">
+                          No files open
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                {/* Editor Content */}
+                <div className="flex-1 overflow-hidden bg-background">
+                  {selectedFile ? (
+                    <Editor
+                      height="100%"
+                      language={selectedFile.language || 'plaintext'}
+                      value={selectedFile.content || ''}
+                      onChange={(value) => handleCodeEdit(value || '')}
+                      theme={actualTheme === 'dark' ? 'vs-dark' : 'light'}
+                      options={{
+                        minimap: { enabled: !isMobile },
+                        fontSize: isMobile ? 12 : 13,
+                        lineNumbers: isMobile ? 'off' : 'on',
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        tabSize: 2,
+                        wordWrap: 'on',
+                        padding: { top: 8 },
+                        fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+                      }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4 bg-muted/5">
+                      <div className="rounded-full bg-muted p-4">
+                        <Code2 className="h-8 w-8 opacity-20" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium">No file selected</p>
+                        <p className="text-xs opacity-60">Choose a file from the explorer to start editing</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
           <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
             <div className="mx-auto w-full max-w-3xl space-y-6">
               <Card className="border-2 border-dashed border-muted-foreground/20 bg-muted/5">
@@ -412,240 +635,23 @@ const CodeAnalysis: React.FC = () => {
                 </CardContent>
               </Card>
             </div>
+            <Footer />
           </main>
-          <Footer />
-        </SidebarInset>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
-      <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-      <SidebarInset className="flex flex-col flex-1 overflow-hidden min-w-0">
-        {/* IDE Header */}
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-3 md:px-4 z-20">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-1 md:mr-2 h-4" />
-            {repoInfo ? (
-              <div className="flex items-center gap-1.5 md:gap-3 min-w-0 overflow-hidden">
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <Github className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs md:text-sm font-bold truncate max-w-[100px] md:max-w-[200px]">
-                    {repoInfo.repo}
-                  </span>
-                </div>
-                {selectedFile && !isMobile && (
-                  <div className="flex items-center gap-1.5 min-w-0 hidden sm:flex">
-                    <Separator orientation="vertical" className="h-3 opacity-30" />
-                    <Code2 className="h-3.5 w-3.5 text-primary/70 shrink-0" />
-                    <span className="text-xs font-medium truncate text-muted-foreground">
-                      {getShortName(selectedFile.name)}
-                    </span>
-                  </div>
-                )}
-                <Badge variant="secondary" className="text-[10px] md:text-xs shrink-0 bg-muted font-mono h-5 px-1.5">
-                  <GitBranch className="h-3 w-3 mr-1" />
-                  {repoInfo.branch}
-                </Badge>
-              </div>
-            ) : (
-              <span className="text-sm font-semibold">Code Editor</span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1 md:gap-2 ml-2">
-            {repoInfo && modifiedFiles.length > 0 && repoPermissions?.push && (
-              <Button onClick={handlePushToGitHub} disabled={isPushing} size="sm" className="h-8 text-xs px-2 md:px-3 gap-1.5">
-                {isPushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Upload className="h-3.5 w-3.5" /> {!isMobile && <span>Push</span>}</>}
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 text-xs text-destructive hover:bg-destructive/10 px-2 md:px-3 shrink-0">
-              <X className="h-4 w-4 md:mr-1" />
-              {!isMobile && <span>Close Project</span>}
-            </Button>
-          </div>
-        </header>
-
-        {/* IDE Main Area */}
-        <div className="flex flex-1 overflow-hidden relative" style={{ height: isMobile ? 'calc(100dvh - 48px - 48px)' : 'calc(100vh - 48px)' }}>
-          {/* File input for attachments */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            {...({ webkitdirectory: "" } as any)}
-            accept=".zip,.js,.jsx,.ts,.tsx,.py,.java,.cpp,.c,.cs,.go,.rs,.php,.rb,.swift,.kt,.html,.css,.json,.xml,.sql,.sh,.bash,.png,.jpg,.jpeg,.gif,.svg"
-            onChange={handleAttachFileChange}
-            className="hidden"
-          />
-
-          {/* Panel 1: File Tree (Left) */}
-          {(!isMobile || mobilePanel === "files") && (
-            <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'w-64 border-r'} flex flex-col shrink-0 border-border bg-muted/20 overflow-hidden`}>
-              <div className="flex flex-col border-b border-border bg-background">
-                <div className="flex items-center justify-between px-3 py-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <FolderTree className="h-3 w-3" />
-                    Explorer
-                  </span>
-                  <div className="flex items-center gap-0.5">
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowSearch(!showSearch)}>
-                      <Search className="h-3.5 w-3.5" />
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <Plus className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-40 z-[50]">
-                        <DropdownMenuItem onClick={() => { setParentPath(""); setNewItemType("file"); setShowNewItemDialog(true); }}>
-                          <FilePlus className="h-4 w-4 mr-2" />
-                          <span>New File</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setParentPath(""); setNewItemType("folder"); setShowNewItemDialog(true); }}>
-                          <FolderPlus className="h-4 w-4 mr-2" />
-                          <span>New Folder</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-                {showSearch && (
-                  <div className="px-2 pb-2">
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2 h-3 w-3 text-muted-foreground" />
-                      <Input
-                        placeholder="Search files..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="h-7 pl-6 text-xs bg-muted/50 border-none focus-visible:ring-1"
-                        autoFocus
-                      />
-                      {searchQuery && (
-                        <button onClick={() => setSearchQuery("")} className="absolute right-2 top-2">
-                          <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 overflow-hidden bg-background">
-                <FileTreeView
-                  searchTerm={searchQuery}
-                  files={codeFiles}
-                  selectedFile={selectedFile?.name || null}
-                  onFileSelect={(fileName) => {
-                    openFileInTab(fileName);
-                    if (isMobile) setMobilePanel('code');
-                  }}
-                  onAddItem={(path, type) => {
-                    setParentPath(path);
-                    setNewItemType(type);
-                    setShowNewItemDialog(true);
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Panel 2: Editor (Center) */}
-          {(!isMobile || mobilePanel === 'code') && (
-            <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'flex-1'} flex flex-col min-w-0 overflow-hidden`}>
-              {/* File tabs */}
-              <div className="flex items-center border-b border-border bg-muted/30 overflow-x-auto scrollbar-hide shrink-0 z-10">
-                <ScrollArea className="w-full">
-                  <div className="flex min-h-[36px]">
-                    {openTabs.map(tab => {
-                      const isActive = selectedFile?.name === tab.name;
-                      const isModified = modifiedFiles.includes(tab.name);
-                      return (
-                        <button
-                          key={tab.name}
-                          onClick={() => setSelectedFile(tab)}
-                          className={`group flex items-center gap-2 px-3 py-2 text-[11px] border-r border-border whitespace-nowrap transition-colors relative h-9 ${
-                            isActive
-                              ? 'bg-background text-foreground font-semibold'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                          }`}
-                        >
-                          {isActive && <div className="absolute top-0 left-0 right-0 h-[2px] bg-primary" />}
-                          {isModified && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />}
-                          <span className="truncate max-w-[120px]">{getShortName(tab.name)}</span>
-                          <span
-                            onClick={(e) => closeTab(tab.name, e)}
-                            className={`ml-1 rounded p-0.5 transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} hover:bg-muted` }
-                          >
-                            <X className="h-3 w-3" />
-                          </span>
-                        </button>
-                      );
-                    })}
-                    {openTabs.length === 0 && (
-                      <div className="flex items-center px-4 text-[10px] text-muted-foreground italic">
-                        No files open
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-
-              {/* Editor Content */}
-              <div className="flex-1 overflow-hidden bg-background">
-                {selectedFile ? (
-                  <Editor
-                    height="100%"
-                    language={selectedFile.language || 'plaintext'}
-                    value={selectedFile.content || ''}
-                    onChange={(value) => handleCodeEdit(value || '')}
-                    theme={actualTheme === 'dark' ? 'vs-dark' : 'light'}
-                    options={{
-                      minimap: { enabled: !isMobile },
-                      fontSize: isMobile ? 12 : 13,
-                      lineNumbers: isMobile ? 'off' : 'on',
-                      scrollBeyondLastLine: false,
-                      automaticLayout: true,
-                      tabSize: 2,
-                      wordWrap: 'on',
-                      padding: { top: 8 },
-                      fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
-                    }}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4 bg-muted/5">
-                    <div className="rounded-full bg-muted p-4">
-                      <Code2 className="h-8 w-8 opacity-20" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium">No file selected</p>
-                      <p className="text-xs opacity-60">Choose a file from the explorer to start editing</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Panel 3: AI Chat (Right) */}
-          {(!isMobile || mobilePanel === 'chat') && (
-            <div className={`${isMobile ? 'absolute inset-0 z-10 w-full h-full bg-background' : 'w-80 lg:w-96 border-l'} flex flex-col shrink-0 border-border bg-background overflow-hidden`}>
-              <CodeChatPanel
-                allFiles={codeFiles}
-                selectedFile={selectedFile}
-                onFileUpdate={handleFileUpdate}
-                onAttachFiles={handleAttachFiles}
-              />
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Mobile Navigation Tabs */}
-        {isMobile && (
+        {isMobile && codeFiles.length > 0 && (
           <div className="h-12 flex items-center justify-center border-t border-border bg-background px-4 shrink-0 z-30">
             <div className="flex items-center bg-muted/50 rounded-full p-1 w-full max-w-[300px]">
+              <button
+                onClick={() => setMobilePanel('chat')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  mobilePanel === 'chat' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                Chat
+              </button>
               <button
                 onClick={() => setMobilePanel('files')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-xs font-medium transition-all ${
@@ -663,15 +669,6 @@ const CodeAnalysis: React.FC = () => {
               >
                 <Code2 className="h-3.5 w-3.5" />
                 Code
-              </button>
-              <button
-                onClick={() => setMobilePanel('chat')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  mobilePanel === 'chat' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'
-                }`}
-              >
-                <MessageSquare className="h-3.5 w-3.5" />
-                Chat
               </button>
             </div>
           </div>
