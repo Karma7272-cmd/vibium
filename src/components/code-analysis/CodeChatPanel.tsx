@@ -210,7 +210,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
                       : 'bg-muted'
                   }`}
                 >
-                  <p className="text-xs whitespace-pre-wrap break-words leading-relaxed">
+                  <p className="text-xs font-medium whitespace-pre-wrap break-words leading-relaxed">
                     {msg.content}
                   </p>
                 </Card>

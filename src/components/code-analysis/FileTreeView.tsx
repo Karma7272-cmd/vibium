@@ -130,7 +130,7 @@ export const FileTreeView = ({ files, selectedFile, onFileSelect, searchTerm = "
               <ChevronRight className="h-4 w-4 mr-1 flex-shrink-0" />
             )}
             <Folder className="h-4 w-4 mr-2 flex-shrink-0 text-blue-500" />
-            <span className="truncate text-sm flex-1">{node.name}</span>
+            <span className="truncate text-sm font-medium flex-1">{node.name}</span>
             {onAddItem && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -175,7 +175,7 @@ export const FileTreeView = ({ files, selectedFile, onFileSelect, searchTerm = "
         onClick={() => onFileSelect(node.path)}
       >
         <File className="h-4 w-4 mr-2 ml-5 flex-shrink-0 text-gray-500" />
-        <span className="truncate text-sm">{node.name}</span>
+        <span className="truncate text-sm font-medium">{node.name}</span>
       </Button>
     );
   };
