@@ -1,9 +1,10 @@
+import { cn } from '@/lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Loader2 } from 'lucide-react';
+import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Loader2, Clock } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,9 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
 import { listUserRepos, GitHubRepo, setGitHubToken } from '@/services/githubService';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +28,8 @@ const SimpleCheckForm: React.FC = () => {
   const [selectedRepo, setSelectedRepo] = useState<{ owner: string; name: string } | null>(null);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [isReposLoading, setIsReposLoading] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
+  const [isTimerOpen, setIsTimerOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,7 +44,8 @@ const SimpleCheckForm: React.FC = () => {
       prompt: finalPrompt,
       timestamp: new Date().toISOString(),
       files: selectedFiles.map(f => f.name),
-      repo: selectedRepo
+      repo: selectedRepo,
+      scheduledDate: scheduledDate
     };
     console.log('Creating new check:', checkData);
     sessionStorage.setItem('pendingCheck', JSON.stringify(checkData));
@@ -159,6 +166,50 @@ const SimpleCheckForm: React.FC = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+
+                            <Popover open={isTimerOpen} onOpenChange={setIsTimerOpen}>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className={cn("h-9 w-9 rounded-full transition-colors", scheduledDate ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
+                    <Clock className="h-5 w-5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <div className="p-3 border-b border-border">
+                    <h4 className="text-xs font-semibold">Schedule Task</h4>
+                    {scheduledDate && (
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Selected: {format(scheduledDate, "PPP p")}
+                      </p>
+                    )}
+                  </div>
+                  <Calendar
+                    mode="single"
+                    selected={scheduledDate}
+                    onSelect={setScheduledDate}
+                    initialFocus
+                  />
+                  <div className="p-3 border-t border-border flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-medium">Time</span>
+                    <input
+                      type="time"
+                      value={scheduledDate ? format(scheduledDate, "HH:mm") : ""}
+                      className="text-xs bg-transparent border border-border rounded px-1 outline-none"
+                      onChange={(e) => {
+                        if (scheduledDate) {
+                          const [hours, minutes] = e.target.value.split(':');
+                          const newDate = new Date(scheduledDate);
+                          newDate.setHours(parseInt(hours), parseInt(minutes));
+                          setScheduledDate(newDate);
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="p-2 border-t border-border flex justify-between gap-2">
+                    <Button variant="ghost" size="sm" className="text-[10px] h-7" onClick={() => setScheduledDate(undefined)}>Clear</Button>
+                    <Button variant="primary" size="sm" className="text-[10px] h-7" onClick={() => setIsTimerOpen(false)}>Set Time</Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
 
               <DropdownMenu modal={false} onOpenChange={(open) => open && fetchRepos()}>
                 <DropdownMenuTrigger asChild>
