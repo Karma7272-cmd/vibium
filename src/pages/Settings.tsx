@@ -1,11 +1,10 @@
 import React from 'react';
-import { Palette, Database, Key, Share2 } from 'lucide-react';
+import { Palette, Database, Share2 } from 'lucide-react';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppSidebar from '../components/AppSidebar';
 import DataSourceSettings from '@/components/settings/DataSourceSettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
-import EnvSettings from '@/components/settings/EnvSettings';
 import ConnectorSettings from '@/components/settings/ConnectorSettings';
 
 const Settings: React.FC = () => {
@@ -29,7 +28,7 @@ const Settings: React.FC = () => {
             <div className="mb-8">
               <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-foreground mb-2">Settings</h1>
               <p className="text-base sm:text-lg text-gray-600 dark:text-muted-foreground">
-                Manage your application preferences, environment variables, and connectors
+                Manage your application preferences and connectors
               </p>
             </div>
 
@@ -38,10 +37,6 @@ const Settings: React.FC = () => {
                 <TabsTrigger value="data-sources" className="w-full sm:w-auto justify-start sm:justify-center gap-2 px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Database className="h-4 w-4" />
                   <span className="sm:inline">Data Sources</span>
-                </TabsTrigger>
-                <TabsTrigger value="environment" className="w-full sm:w-auto justify-start sm:justify-center gap-2 px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Key className="h-4 w-4" />
-                  <span className="sm:inline">Environment</span>
                 </TabsTrigger>
                 <TabsTrigger value="connectors" className="w-full sm:w-auto justify-start sm:justify-center gap-2 px-3 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Share2 className="h-4 w-4" />
@@ -57,9 +52,6 @@ const Settings: React.FC = () => {
                 <DataSourceSettings />
               </TabsContent>
 
-              <TabsContent value="environment">
-                <EnvSettings />
-              </TabsContent>
 
               <TabsContent value="connectors">
                 <ConnectorSettings />

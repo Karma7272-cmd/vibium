@@ -1,10 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export interface EnvVar {
-  key: string;
-  value: string;
-}
-
 export interface SettingsContextType {
   dataSource: 'mock' | 'nostr';
   setDataSource: (source: 'mock' | 'nostr') => void;
@@ -12,8 +7,6 @@ export interface SettingsContextType {
   setRelayUrls: (urls: string[]) => void;
   connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error';
   setConnectionStatus: (status: 'disconnected' | 'connecting' | 'connected' | 'error') => void;
-  envVars: EnvVar[];
-  setEnvVars: (vars: EnvVar[]) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -44,10 +37,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return saved ? JSON.parse(saved) : DEFAULT_RELAYS;
   });
 
-  const [envVars, setEnvVarsState] = useState<EnvVar[]>(() => {
-    const saved = localStorage.getItem('valet-env-vars');
-    return saved ? JSON.parse(saved) : [];
-  });
 
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
 
@@ -61,10 +50,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('valet-relay-urls', JSON.stringify(urls));
   };
 
-  const setEnvVars = (vars: EnvVar[]) => {
-    setEnvVarsState(vars);
-    localStorage.setItem('valet-env-vars', JSON.stringify(vars));
-  };
 
   useEffect(() => {
     if (dataSource === 'nostr') {
@@ -86,8 +71,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setRelayUrls,
       connectionStatus,
       setConnectionStatus,
-      envVars,
-      setEnvVars
     }}>
       {children}
     </SettingsContext.Provider>
