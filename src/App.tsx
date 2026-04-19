@@ -28,6 +28,7 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Security from "./pages/Security";
 import Pricing from "./pages/Pricing";
+import Connectors from "./pages/Connectors";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/security" element={<Security />} />
                   <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/connectors" element={<Connectors />} />
                   <Route path="/pending-request" element={<PendingRequest />} />
                   <Route path="/network" element={<Index />} />
                   <Route path="/operators" element={<Operators />} />
