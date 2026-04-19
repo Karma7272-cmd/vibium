@@ -2,7 +2,7 @@ import React from 'react';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '../components/Footer';
-import { Shield, Lock, EyeOff, Server, HardDrive, CheckShield } from 'lucide-react';
+import { Shield, Lock, EyeOff, Server, HardDrive, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Security: React.FC = () => {
@@ -16,7 +16,7 @@ const Security: React.FC = () => {
         <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-2 sm:px-4 bg-background/80 dark:bg-background/20 backdrop-blur-sm">
           <SidebarTrigger className="-ml-1" />
           <div className="ml-auto">
-            <h1 className="text-lg sm:text-xl font-semibold text-foreground">Security at Vibium</h1>
+            <h1 className="text-lg sm:text-xl font-semibold text-foreground">Website Security</h1>
           </div>
         </header>
 
@@ -60,7 +60,7 @@ const Security: React.FC = () => {
 
               <Card className="bg-white dark:bg-card/40 dark:backdrop-blur-sm border-gray-200 dark:border-border">
                 <CardHeader>
-                  <CheckShield className="w-8 h-8 text-primary mb-2" />
+                  <ShieldCheck className="w-8 h-8 text-primary mb-2" />
                   <CardTitle>Node Integrity</CardTitle>
                 </CardHeader>
                 <CardContent className="text-gray-600 dark:text-muted-foreground">

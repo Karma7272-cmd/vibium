@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Shield, CreditCard, FileCode, Clock, Settings, Globe, Users, Smartphone, Bot, CheckCircle, BarChart3, FolderOpen, ListTodo, Info, LogOut, ChevronDown } from "lucide-react";
+import { Plus, Shield, CreditCard, Share2, FileCode, Clock, Settings, Globe, Users, Smartphone, Bot, CheckCircle, BarChart3, FolderOpen, ListTodo, Info, LogOut, ChevronDown } from "lucide-react";
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { ThemeToggle } from './ThemeToggle';
@@ -35,13 +35,18 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     isRoute: true
   }, {
     id: 'security',
-    label: 'Security',
+    label: 'Website Security',
     icon: Shield,
     isRoute: true
   }, {
     id: 'pricing',
     label: 'Pricing',
     icon: CreditCard,
+    isRoute: true
+  }, {
+    id: 'connectors',
+    label: 'Connectors',
+    icon: Share2,
     isRoute: true
   }, {
     id: 'analytics',
@@ -92,6 +97,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         navigate('/security');
       } else if (item.id === 'pricing') {
         navigate('/pricing');
+      } else if (item.id === 'connectors') {
+        navigate('/connectors');
       } else if (item.id === 'about') {
         navigate('/about');
       } else if (item.id === 'settings') {
@@ -138,6 +145,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         return location.pathname === '/security';
       } else if (item.id === 'pricing') {
         return location.pathname === '/pricing';
+      } else if (item.id === 'connectors') {
+        return location.pathname === '/connectors';
       } else if (item.id === 'about') {
         return location.pathname === '/about';
       } else if (item.id === 'settings') {
