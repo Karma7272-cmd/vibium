@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Loader2, Clock } from 'lucide-react';
+import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Loader2, Clock, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -110,7 +110,7 @@ const SimpleCheckForm: React.FC = () => {
     : "Ask to write";
 
   return (
-    <div className={`space-y-4 ${isMobile ? "max-h-[60vh]" : ""}`}>
+    <div className={cn("space-y-4", isMobile && "max-h-[60vh]")}>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-gray-300 dark:border-slate-700 hover:border-gray-400 dark:hover:border-slate-600 focus-within:border-primary/50 transition-all duration-200 shadow-sm overflow-hidden">
 
@@ -163,6 +163,10 @@ const SimpleCheckForm: React.FC = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => imageInputRef.current?.click()}>
                     <Image className="h-4 w-4" /> <span>Images</span>
+                  </DropdownMenuItem>
+                  <div className="h-px my-1 bg-muted" />
+                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/settings')}>
+                    <Settings className="h-4 w-4" /> <span>Settings</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
