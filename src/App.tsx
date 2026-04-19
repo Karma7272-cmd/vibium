@@ -26,6 +26,8 @@ import Settings from "./pages/Settings";
 import CodeAnalysis from "./pages/CodeAnalysis";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import Security from "./pages/Security";
+import Pricing from "./pages/Pricing";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +44,8 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<NewCheck />} />
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/security" element={<Security />} />
+                  <Route path="/pricing" element={<Pricing />} />
                   <Route path="/pending-request" element={<PendingRequest />} />
                   <Route path="/network" element={<Index />} />
                   <Route path="/operators" element={<Operators />} />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, Plus, Settings, Globe, Smartphone, CheckCircle, Users, Bot, Info, FileCode, LogOut, Clock, FolderOpen, ListTodo } from 'lucide-react';
+import { Plus, Shield, CreditCard, FileCode, Clock, Settings, Globe, Users, Smartphone, Bot, CheckCircle, BarChart3, FolderOpen, ListTodo, Info, LogOut, ChevronDown } from "lucide-react";
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { ThemeToggle } from './ThemeToggle';
@@ -22,7 +22,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   const location = useLocation();
   const { user, signOut } = useAuth();
   const isCollapsed = state === 'collapsed';
-  const menuItems = [{
+  const menuItems = [
+    {
     id: 'new-check',
     label: 'New Check',
     icon: Plus,
@@ -33,32 +34,15 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     icon: FileCode,
     isRoute: true
   }, {
-    id: 'network',
-    label: 'Network Overview',
-    icon: Globe,
-    isRoute: true,
-    hasSubmenu: true,
-    submenu: [{
-      id: 'operators',
-      label: 'Operators',
-      icon: Users,
-      isRoute: true
-    }, {
-      id: 'nodes',
-      label: 'Nodes',
-      icon: Smartphone,
-      isRoute: true
-    }, {
-      id: 'agents',
-      label: 'Agents',
-      icon: Bot,
-      isRoute: true
-    }, {
-      id: 'checks',
-      label: 'Checks',
-      icon: CheckCircle,
-      isRoute: true
-    }]
+    id: 'security',
+    label: 'Security',
+    icon: Shield,
+    isRoute: true
+  }, {
+    id: 'pricing',
+    label: 'Pricing',
+    icon: CreditCard,
+    isRoute: true
   }, {
     id: 'analytics',
     label: 'Analytics',
@@ -104,10 +88,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         navigate('/tasks');
       } else if (item.id === 'code-analysis') {
         navigate('/code-analysis');
+      } else if (item.id === 'security') {
+        navigate('/security');
+      } else if (item.id === 'pricing') {
+        navigate('/pricing');
       } else if (item.id === 'about') {
         navigate('/about');
-      } else if (item.id === 'network') {
-        navigate('/network');
       } else if (item.id === 'settings') {
         navigate('/settings');
       }
@@ -125,26 +111,11 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     }
   };
   const handleSubMenuClick = (subItemId: string, subItem: any) => {
-    if (subItem.isRoute) {
-      // Direct route navigation for operators, nodes, agents, and checks
-      if (subItemId === 'operators') {
-        navigate('/operators');
-      } else if (subItemId === 'nodes') {
-        navigate('/nodes');
-      } else if (subItemId === 'agents') {
-        navigate('/agents');
-      } else if (subItemId === 'checks') {
-        navigate('/checks');
-      }
-    } else {
-      // Navigate to the network page with the section parameter for other items
-      navigate(`/network?section=${subItemId}`, {
-        replace: location.pathname === '/network'
-      });
-      onSectionChange(subItemId);
-    }
-
-    // Close mobile sidebar after navigation
+    // Navigate to the network page with the section parameter for other items
+    navigate(`/network?section=${subItemId}`, {
+      replace: location.pathname === '/network'
+    });
+    onSectionChange(subItemId);
     if (isMobile) {
       setOpenMobile(false);
     }
@@ -163,10 +134,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         return location.pathname === '/tasks';
       } else if (item.id === 'code-analysis') {
         return location.pathname === '/code-analysis';
+      } else if (item.id === 'security') {
+        return location.pathname === '/security';
+      } else if (item.id === 'pricing') {
+        return location.pathname === '/pricing';
       } else if (item.id === 'about') {
         return location.pathname === '/about';
-      } else if (item.id === 'network') {
-        return location.pathname === '/network';
       } else if (item.id === 'settings') {
         return location.pathname === '/settings';
       }
@@ -174,18 +147,6 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     return activeSection === item.id;
   };
   const isSubItemActive = (subItemId: string, subItem: any) => {
-    if (subItem?.isRoute) {
-      // Check direct routes for operators, nodes, agents, and checks
-      if (subItemId === 'operators') {
-        return location.pathname === '/operators';
-      } else if (subItemId === 'nodes') {
-        return location.pathname === '/nodes';
-      } else if (subItemId === 'agents') {
-        return location.pathname === '/agents';
-      } else if (subItemId === 'checks') {
-        return location.pathname === '/checks';
-      }
-    }
     return location.pathname === '/network' && activeSection === subItemId;
   };
 
