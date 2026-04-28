@@ -1,104 +1,66 @@
 import React from 'react';
-import { Share2, Puzzle, Database, Globe, Cloud, Code } from 'lucide-react';
+import { Share2, ExternalLink, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const ConnectorSettings: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Share2 className="h-5 w-5" />
-            Connect Your Workflow
-          </CardTitle>
-          <CardDescription>
-            Integrate Vibium Network with your existing development tools and CI/CD pipelines.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <Share2 className="h-5 w-5 text-primary" />
+                Integrations & Connectors
+              </CardTitle>
+              <CardDescription>
+                Manage your connections to external platforms and services.
+              </CardDescription>
+            </div>
+            <Button onClick={() => navigate('/connectors')} size="sm" className="gap-2">
+              Browse All <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-3 mb-2">
-                <Code className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-sm">CI/CD Pipelines</h3>
+            <div className="flex items-center justify-between p-4 rounded-xl border bg-background/50 group hover:border-primary/30 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center font-bold text-xs">GH</div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold">GitHub</span>
+                  <span className="text-[10px] text-green-500 font-medium">Connected</span>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Automate tests with GitHub Actions, GitLab CI, or Jenkins.
-              </p>
+              <Button variant="ghost" size="sm" className="h-8">Configure</Button>
             </div>
 
-            <div className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-3 mb-2">
-                <Database className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-sm">Data Export</h3>
+            <div className="flex items-center justify-between p-4 rounded-xl border bg-background/50 group hover:border-primary/30 transition-all opacity-60">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center font-bold text-xs text-muted-foreground">NF</div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold">Netlify</span>
+                  <span className="text-[10px] text-muted-foreground font-medium">Not Connected</span>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Stream your testing data to Prometheus, Grafana, or Datadog.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-3 mb-2">
-                <Globe className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-sm">Webhooks</h3>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Receive real-time notifications to Slack, Discord, or custom APIs.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-3 mb-2">
-                <Cloud className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-sm">Cloud Providers</h3>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Native integrations with AWS, Azure, and Google Cloud.
-              </p>
+              <Button variant="ghost" size="sm" className="h-8">Connect</Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Popular Connectors</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex flex-col items-center gap-2 p-4 border rounded-lg bg-muted/20">
-              <div className="w-10 h-10 bg-background rounded-full flex items-center justify-center font-bold border">GH</div>
-              <span className="text-xs font-medium">GitHub</span>
-            </div>
-            <div className="flex flex-col items-center gap-2 p-4 border rounded-lg bg-muted/20">
-              <div className="w-10 h-10 bg-background rounded-full flex items-center justify-center font-bold border">SL</div>
-              <span className="text-xs font-medium">Slack</span>
-            </div>
-            <div className="flex flex-col items-center gap-2 p-4 border rounded-lg bg-muted/20">
-              <div className="w-10 h-10 bg-background rounded-full flex items-center justify-center font-bold border">DD</div>
-              <span className="text-xs font-medium">Datadog</span>
-            </div>
-            <div className="flex flex-col items-center gap-2 p-4 border rounded-lg bg-muted/20">
-              <div className="w-10 h-10 bg-background rounded-full flex items-center justify-center font-bold border">VS</div>
-              <span className="text-xs font-medium">VS Code</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-primary/5 border-primary/20">
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center text-center space-y-4">
-            <Puzzle className="w-10 h-10 text-primary" />
-            <h3 className="text-lg font-bold">Ready to Integrate?</h3>
-            <p className="text-sm text-muted-foreground max-w-md">
-              Our SDKs and API documentation make it easy to build your own connectors if we don't already support your tool.
-            </p>
-            <div className="flex gap-3">
-              <Button size="sm">Browse SDKs</Button>
-              <Button size="sm" variant="outline">API Docs</Button>
-            </div>
-          </div>
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-6 text-center">
+          <p className="text-sm text-muted-foreground mb-4">
+            Looking for Vercel, Render, or Railway integrations?
+          </p>
+          <Button variant="outline" onClick={() => navigate('/connectors')} className="gap-2 border-primary/20 hover:bg-primary/10">
+            View Platform Connectors <ExternalLink className="h-4 w-4" />
+          </Button>
         </CardContent>
       </Card>
     </div>
