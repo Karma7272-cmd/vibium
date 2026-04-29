@@ -16,7 +16,7 @@ const NewCheck: React.FC = () => {
           </div>
         </header>
         <div className={`flex-1 bg-cover bg-center bg-no-repeat px-4 ${isMobile ? "h-[calc(100vh-3rem)]" : "min-h-0"} dark:bg-none`} style={{
-        backgroundImage: 'url(/background.png)'
+        backgroundImage: 'url(/hero-background.jpg)'
       }}>
           <div className="w-full max-w-lg mx-auto pt-[20vh] pb-20">
             <div className="text-center mb-4">
