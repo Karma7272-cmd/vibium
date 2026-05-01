@@ -20,7 +20,8 @@ const NewCheck: React.FC = () => {
       }}>
           <div className="w-full max-w-lg mx-auto pt-[20vh] pb-20">
             <div className="text-center mb-4">
-              <h1 className={`font-black font-sans text-white mb-2 ${isMobile ? "text-2xl" : "text-2xl sm:text-3xl"} drop-shadow-lg`}>What can I check for you?</h1>
+              <h1 className={`font-black font-sans text-white mb-2 ${isMobile ? "text-2xl" : "text-2xl sm:text-3xl"} drop-shadow-lg`}>What can I build for you?</h1>
+              <p className="text-xs sm:text-sm text-white/80 drop-shadow">Describe an app to generate, or pick a repo to analyze & edit.</p>
             </div>
             <SimpleCheckForm />
           </div>
