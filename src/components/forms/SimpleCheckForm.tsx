@@ -129,9 +129,9 @@ const SimpleCheckForm: React.FC = () => {
     setSelectedRepo(null);
   };
 
-  const currentPlaceholder = prompt || isTextareaFocused 
-    ? "Test anything" 
-    : "Ask to write";
+  const currentPlaceholder = selectedRepo
+    ? `Ask AI to edit ${selectedRepo.name}…`
+    : (isTextareaFocused ? "Describe a full-stack app to generate" : "Ask to write");
 
   return (
     <div className={cn("space-y-4", isMobile && "max-h-[60vh]")}>
