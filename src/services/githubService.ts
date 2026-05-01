@@ -5,6 +5,34 @@ export function setGitHubToken(token: string | null) {
   currentGitHubToken = token;
 }
 
+export async function createRepo(name: string, description: string, isPrivate: boolean = false): Promise<{ owner: string; name: string; default_branch: string; html_url: string }> {
+  const token = currentGitHubToken;
+  if (!token) throw new Error("Not authenticated with GitHub");
+
+  const response = await fetch('https://api.github.com/user/repos', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name, description, private: isPrivate, auto_init: true }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || `Failed to create repo: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return {
+    owner: data.owner.login,
+    name: data.name,
+    default_branch: data.default_branch || 'main',
+    html_url: data.html_url,
+  };
+}
+
 export interface GitHubRepo {
   id: number;
   name: string;

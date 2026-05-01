@@ -39,17 +39,41 @@ const SimpleCheckForm: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalPrompt = prompt || "Ask to write";
-    const checkData = {
-      prompt: finalPrompt,
-      timestamp: new Date().toISOString(),
-      files: selectedFiles.map(f => f.name),
-      repo: selectedRepo,
-      scheduledDate: scheduledDate
-    };
-    console.log('Creating new check:', checkData);
-    sessionStorage.setItem('pendingCheck', JSON.stringify(checkData));
-    navigate('/pending-request');
+    const trimmed = prompt.trim();
+    if (!trimmed) {
+      toast({ title: "Enter a prompt", description: "Describe what you'd like to build or change." });
+      return;
+    }
+
+    // Auto-detect mode based on whether a repo is selected
+    if (selectedRepo) {
+      // Analyze mode requires GitHub auth (already implied since repo was picked)
+      if (!localStorage.getItem('github_access_token')) {
+        toast({ title: "GitHub not connected", description: "Reconnect to analyze this repo.", variant: "destructive" });
+        return;
+      }
+      sessionStorage.setItem('pendingCodeRequest', JSON.stringify({
+        mode: 'analyze',
+        prompt: trimmed,
+        repo: selectedRepo,
+      }));
+      navigate('/code-review');
+      return;
+    }
+
+    // Generate mode — full-stack code from prompt, then create new repo
+    if (!localStorage.getItem('github_access_token')) {
+      toast({
+        title: "Connect GitHub to push",
+        description: "We'll still generate the code — you can connect before pushing.",
+      });
+    }
+    sessionStorage.setItem('pendingCodeRequest', JSON.stringify({
+      mode: 'generate',
+      prompt: trimmed,
+      repo: null,
+    }));
+    navigate('/code-review');
   };
 
   const handleGithubConnect = async () => {
@@ -105,9 +129,9 @@ const SimpleCheckForm: React.FC = () => {
     setSelectedRepo(null);
   };
 
-  const currentPlaceholder = prompt || isTextareaFocused 
-    ? "Test anything" 
-    : "Ask to write";
+  const currentPlaceholder = selectedRepo
+    ? `Ask AI to edit ${selectedRepo.name}…`
+    : (isTextareaFocused ? "Describe a full-stack app to generate" : "Ask to write");
 
   return (
     <div className={cn("space-y-4", isMobile && "max-h-[60vh]")}>
@@ -210,7 +234,7 @@ const SimpleCheckForm: React.FC = () => {
                   </div>
                   <div className="p-2 border-t border-border flex justify-between gap-2">
                     <Button variant="ghost" size="sm" className="text-[10px] h-7" onClick={() => setScheduledDate(undefined)}>Clear</Button>
-                    <Button variant="primary" size="sm" className="text-[10px] h-7" onClick={() => setIsTimerOpen(false)}>Set Time</Button>
+                    <Button variant="default" size="sm" className="text-[10px] h-7" onClick={() => setIsTimerOpen(false)}>Set Time</Button>
                   </div>
                 </PopoverContent>
               </Popover>
