@@ -24,6 +24,7 @@ import Operators from "./pages/Operators";
 import Checks from "./pages/Checks";
 import Settings from "./pages/Settings";
 import CodeAnalysis from "./pages/CodeAnalysis";
+import CodeReview from "./pages/CodeReview";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Security from "./pages/Security";
@@ -59,6 +60,7 @@ const App = () => (
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/tasks" element={<Tasks />} />
                   <Route path="/code-analysis" element={<CodeAnalysis />} />
+                  <Route path="/code-review" element={<CodeReview />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/node/:npub" element={<NodeProfile />} />

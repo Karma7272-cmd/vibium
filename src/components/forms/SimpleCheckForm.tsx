@@ -39,17 +39,41 @@ const SimpleCheckForm: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalPrompt = prompt || "Ask to write";
-    const checkData = {
-      prompt: finalPrompt,
-      timestamp: new Date().toISOString(),
-      files: selectedFiles.map(f => f.name),
-      repo: selectedRepo,
-      scheduledDate: scheduledDate
-    };
-    console.log('Creating new check:', checkData);
-    sessionStorage.setItem('pendingCheck', JSON.stringify(checkData));
-    navigate('/pending-request');
+    const trimmed = prompt.trim();
+    if (!trimmed) {
+      toast({ title: "Enter a prompt", description: "Describe what you'd like to build or change." });
+      return;
+    }
+
+    // Auto-detect mode based on whether a repo is selected
+    if (selectedRepo) {
+      // Analyze mode requires GitHub auth (already implied since repo was picked)
+      if (!localStorage.getItem('github_access_token')) {
+        toast({ title: "GitHub not connected", description: "Reconnect to analyze this repo.", variant: "destructive" });
+        return;
+      }
+      sessionStorage.setItem('pendingCodeRequest', JSON.stringify({
+        mode: 'analyze',
+        prompt: trimmed,
+        repo: selectedRepo,
+      }));
+      navigate('/code-review');
+      return;
+    }
+
+    // Generate mode — full-stack code from prompt, then create new repo
+    if (!localStorage.getItem('github_access_token')) {
+      toast({
+        title: "Connect GitHub to push",
+        description: "We'll still generate the code — you can connect before pushing.",
+      });
+    }
+    sessionStorage.setItem('pendingCodeRequest', JSON.stringify({
+      mode: 'generate',
+      prompt: trimmed,
+      repo: null,
+    }));
+    navigate('/code-review');
   };
 
   const handleGithubConnect = async () => {
