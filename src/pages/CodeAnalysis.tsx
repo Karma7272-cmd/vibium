@@ -47,7 +47,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 interface CodeFile {
   name: string;
   content: string;
-  language?: string;
+  language: string;
 }
 
 const CodeAnalysis: React.FC = () => {
@@ -550,7 +550,7 @@ const CodeAnalysis: React.FC = () => {
               <div className={`${isMobile ? 'absolute inset-0 z-40 w-full h-full bg-background' : 'flex-1'} flex flex-col min-w-0 overflow-hidden h-full`}>
                 {/* File tabs */}
                 <div className="flex items-center border-b border-border bg-muted/30 overflow-x-auto scrollbar-hide shrink-0 z-10">
-                  <ScrollArea className="w-full" orientation="horizontal">
+                  <ScrollArea className="w-full">
                     <div className="flex min-h-[36px]">
                       {openTabs.map(tab => {
                         const isActive = selectedFile?.name === tab.name;

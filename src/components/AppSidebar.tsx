@@ -22,7 +22,15 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   const location = useLocation();
   const { user, signOut } = useAuth();
   const isCollapsed = state === 'collapsed';
-  const menuItems = [
+  type MenuItem = {
+    id: string;
+    label: string;
+    icon: any;
+    isRoute: boolean;
+    hasSubmenu?: boolean;
+    submenu?: { id: string; label: string; icon: any }[];
+  };
+  const menuItems: MenuItem[] = [
     {
     id: 'new-check',
     label: 'New Check',

@@ -210,7 +210,7 @@ const SimpleCheckForm: React.FC = () => {
                   </div>
                   <div className="p-2 border-t border-border flex justify-between gap-2">
                     <Button variant="ghost" size="sm" className="text-[10px] h-7" onClick={() => setScheduledDate(undefined)}>Clear</Button>
-                    <Button variant="primary" size="sm" className="text-[10px] h-7" onClick={() => setIsTimerOpen(false)}>Set Time</Button>
+                    <Button variant="default" size="sm" className="text-[10px] h-7" onClick={() => setIsTimerOpen(false)}>Set Time</Button>
                   </div>
                 </PopoverContent>
               </Popover>
