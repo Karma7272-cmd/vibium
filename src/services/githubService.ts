@@ -31,6 +31,7 @@ export async function createRepo(name: string, description: string, isPrivate: b
     default_branch: data.default_branch || 'main',
     html_url: data.html_url,
   };
+}
 
 export interface GitHubRepo {
   id: number;
