@@ -321,113 +321,131 @@ const CodeReview: React.FC = () => {
           </div>
         ) : (
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-            {/* Sidebar list */}
-            <div className="w-full md:w-72 border-b md:border-b-0 md:border-r border-border bg-muted/10 flex flex-col">
-              {payload?.mode === 'generate' && genMeta && (
-                <div className="p-3 border-b border-border space-y-2">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Stack</p>
-                    <p className="text-xs">{genMeta.stack}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Repo name</p>
-                    <Input
-                      value={newRepoName}
-                      onChange={(e) => setNewRepoName(e.target.value)}
-                      className="h-7 text-xs"
-                    />
-                  </div>
-                  <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
-                    Private repository
-                  </label>
+            {/* Left: files sidebar */}
+            {showFiles && (
+              <div className="w-full md:w-72 shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/10 flex flex-col">
+                {payload?.mode === 'generate' && genMeta && (
+                  <div className="p-3 border-b border-border space-y-2">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Stack</p>
+                      <p className="text-xs">{genMeta.stack}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Repo name</p>
+                      <Input
+                        value={newRepoName}
+                        onChange={(e) => setNewRepoName(e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
+                      Private repository
+                    </label>
 
-                  {envVars.length > 0 && (
-                    <div className="pt-2 border-t border-border/60">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 flex items-center gap-1">
-                        <Key className="h-3 w-3" /> Env variables ({envVars.length})
-                      </p>
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                        {envVars.map((v) => (
-                          <div key={v.name} className="text-[10px] bg-background/60 rounded px-1.5 py-1 border border-border/40">
-                            <div className="flex items-center gap-1">
-                              <span className="font-mono font-semibold">{v.name}</span>
-                              {v.required && <Badge variant="outline" className="h-3.5 text-[8px] px-1">req</Badge>}
+                    {envVars.length > 0 && (
+                      <div className="pt-2 border-t border-border/60">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 flex items-center gap-1">
+                          <Key className="h-3 w-3" /> Env variables ({envVars.length})
+                        </p>
+                        <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                          {envVars.map((v) => (
+                            <div key={v.name} className="text-[10px] bg-background/60 rounded px-1.5 py-1 border border-border/40">
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono font-semibold">{v.name}</span>
+                                {v.required && <Badge variant="outline" className="h-3.5 text-[8px] px-1">req</Badge>}
+                              </div>
+                              <p className="text-muted-foreground leading-tight">{v.description}</p>
+                              {v.example && <p className="font-mono text-muted-foreground/70 truncate">e.g. {v.example}</p>}
                             </div>
-                            <p className="text-muted-foreground leading-tight">{v.description}</p>
-                            {v.example && <p className="font-mono text-muted-foreground/70 truncate">e.g. {v.example}</p>}
-                          </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {schema.length > 0 && (
+                      <div className="pt-2 border-t border-border/60">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 flex items-center gap-1">
+                          <Database className="h-3 w-3" /> DB schema ({schema.length})
+                        </p>
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                          {schema.map((t) => (
+                            <div key={t.name} className="text-[10px] bg-background/60 rounded px-1.5 py-1 border border-border/40">
+                              <p className="font-mono font-semibold text-primary">{t.name}</p>
+                              {t.description && <p className="text-muted-foreground leading-tight mb-0.5">{t.description}</p>}
+                              <ul className="space-y-0.5">
+                                {t.columns.map((c) => (
+                                  <li key={c.name} className="font-mono leading-tight">
+                                    <span>{c.name}</span> <span className="text-muted-foreground">{c.type}</span>
+                                    {c.constraints && <span className="text-muted-foreground/70"> {c.constraints}</span>}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {payload?.mode === 'analyze' && (
+                  <>
+                    {editSummary && (
+                      <div className="p-3 border-b border-border">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Summary</p>
+                        <p className="text-xs leading-relaxed">{editSummary}</p>
+                      </div>
+                    )}
+                    {edits.length > 0 && (
+                      <div className="p-2 border-b border-border space-y-0.5 max-h-48 overflow-y-auto">
+                        <p className="px-1 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                          Changes ({edits.length})
+                        </p>
+                        {edits.map(e => (
+                          <button
+                            key={e.path}
+                            onClick={() => setActivePath(e.path)}
+                            className={`w-full text-left px-2 py-1 rounded text-xs hover:bg-muted ${activePath === e.path ? 'bg-muted font-medium' : ''}`}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant={e.action === 'create' ? 'default' : 'secondary'} className="h-4 text-[9px] px-1">
+                                {e.action === 'create' ? 'NEW' : 'EDIT'}
+                              </Badge>
+                              <span className="truncate">{e.path.split('/').pop()}</span>
+                            </div>
+                          </button>
                         ))}
                       </div>
-                    </div>
-                  )}
-
-                  {schema.length > 0 && (
-                    <div className="pt-2 border-t border-border/60">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 flex items-center gap-1">
-                        <Database className="h-3 w-3" /> DB schema ({schema.length})
+                    )}
+                    {edits.length === 0 && (
+                      <p className="px-3 py-4 text-xs text-muted-foreground text-center border-b border-border">
+                        No changes suggested.
                       </p>
-                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                        {schema.map((t) => (
-                          <div key={t.name} className="text-[10px] bg-background/60 rounded px-1.5 py-1 border border-border/40">
-                            <p className="font-mono font-semibold text-primary">{t.name}</p>
-                            {t.description && <p className="text-muted-foreground leading-tight mb-0.5">{t.description}</p>}
-                            <ul className="space-y-0.5">
-                              {t.columns.map((c) => (
-                                <li key={c.name} className="font-mono leading-tight">
-                                  <span>{c.name}</span> <span className="text-muted-foreground">{c.type}</span>
-                                  {c.constraints && <span className="text-muted-foreground/70"> {c.constraints}</span>}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              {payload?.mode === 'analyze' && editSummary && (
-                <div className="p-3 border-b border-border">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Summary</p>
-                  <p className="text-xs leading-relaxed">{editSummary}</p>
-                </div>
-              )}
-              <ScrollArea className="flex-1">
-                <div className="p-2 space-y-0.5">
-                  {payload?.mode === 'generate' && genFiles.map(f => (
-                    <button
-                      key={f.path}
-                      onClick={() => setActivePath(f.path)}
-                      className={`w-full text-left px-2 py-1.5 rounded text-xs flex items-center gap-1.5 hover:bg-muted ${activePath === f.path ? 'bg-muted font-medium' : ''}`}
-                    >
-                      <FileCode className="h-3 w-3 text-muted-foreground shrink-0" />
-                      <span className="truncate">{f.path}</span>
-                    </button>
-                  ))}
-                  {payload?.mode === 'analyze' && edits.map(e => (
-                    <button
-                      key={e.path}
-                      onClick={() => setActivePath(e.path)}
-                      className={`w-full text-left px-2 py-1.5 rounded text-xs hover:bg-muted ${activePath === e.path ? 'bg-muted font-medium' : ''}`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <Badge variant={e.action === 'create' ? 'default' : 'secondary'} className="h-4 text-[9px] px-1">
-                          {e.action === 'create' ? 'NEW' : 'EDIT'}
-                        </Badge>
-                        <span className="truncate">{e.path}</span>
-                      </div>
-                      {e.note && <p className="text-[10px] text-muted-foreground truncate ml-1 mt-0.5">{e.note}</p>}
-                    </button>
-                  ))}
-                  {payload?.mode === 'analyze' && edits.length === 0 && (
-                    <p className="px-2 py-4 text-xs text-muted-foreground text-center">No changes suggested.</p>
-                  )}
-                </div>
-              </ScrollArea>
-            </div>
+                    )}
+                  </>
+                )}
 
-            {/* Editor / Diff */}
+                <div className="p-2 border-b border-border">
+                  <Input
+                    value={treeSearch}
+                    onChange={(e) => setTreeSearch(e.target.value)}
+                    placeholder="Search files…"
+                    className="h-7 text-xs"
+                  />
+                </div>
+                <div className="flex-1 min-h-0">
+                  <FileTreeView
+                    files={treeFiles}
+                    selectedFile={activePath}
+                    onFileSelect={setActivePath}
+                    searchTerm={treeSearch}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Center: Editor / Diff */}
             <div className="flex-1 min-w-0 flex flex-col">
               {payload?.mode === 'generate' && activeGen && (
                 <>
@@ -442,7 +460,8 @@ const CodeReview: React.FC = () => {
                       theme={monacoTheme}
                       language={langFromPath(activeGen.path)}
                       value={activeGen.content}
-                      options={{ readOnly: true, minimap: { enabled: false }, fontSize: 12, wordWrap: 'on' }}
+                      onChange={(v) => v !== undefined && handleFileUpdate(activeGen.path, v)}
+                      options={{ minimap: { enabled: false }, fontSize: 12, wordWrap: 'on' }}
                     />
                   </div>
                 </>
@@ -474,6 +493,29 @@ const CodeReview: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Right: AI chat */}
+            {showChat && (
+              <div className="w-full md:w-96 shrink-0 border-t md:border-t-0 md:border-l border-border bg-muted/5 flex flex-col">
+                <div className="flex items-center justify-between px-3 h-10 border-b border-border">
+                  <div className="flex items-center gap-1.5">
+                    <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-xs font-semibold">AI Assistant</span>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowChat(false)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <div className="flex-1 min-h-0">
+                  <CodeChatPanel
+                    allFiles={treeFiles}
+                    selectedFile={activeFileForChat}
+                    onFileUpdate={handleFileUpdate}
+                    onClose={() => setShowChat(false)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </SidebarInset>
