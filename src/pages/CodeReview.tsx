@@ -267,6 +267,25 @@ const CodeReview: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowFiles(s => !s)}
+              className="gap-1.5 hidden md:inline-flex"
+              title={showFiles ? 'Hide files' : 'Show files'}
+            >
+              {showFiles ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+            </Button>
+            <Button
+              size="sm"
+              variant={showChat ? 'default' : 'outline'}
+              onClick={() => setShowChat(s => !s)}
+              className="gap-1.5"
+              title="AI chat"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Chat</span>
+            </Button>
             {payload?.mode === 'generate' && genFiles.length > 0 && (
               <Button size="sm" onClick={handlePushNew} disabled={pushing || !newRepoName.trim()} className="gap-1.5">
                 {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Github className="h-3.5 w-3.5" />}
