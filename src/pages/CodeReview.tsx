@@ -294,6 +294,50 @@ const CodeReview: React.FC = () => {
                     <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
                     Private repository
                   </label>
+
+                  {envVars.length > 0 && (
+                    <div className="pt-2 border-t border-border/60">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 flex items-center gap-1">
+                        <Key className="h-3 w-3" /> Env variables ({envVars.length})
+                      </p>
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                        {envVars.map((v) => (
+                          <div key={v.name} className="text-[10px] bg-background/60 rounded px-1.5 py-1 border border-border/40">
+                            <div className="flex items-center gap-1">
+                              <span className="font-mono font-semibold">{v.name}</span>
+                              {v.required && <Badge variant="outline" className="h-3.5 text-[8px] px-1">req</Badge>}
+                            </div>
+                            <p className="text-muted-foreground leading-tight">{v.description}</p>
+                            {v.example && <p className="font-mono text-muted-foreground/70 truncate">e.g. {v.example}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {schema.length > 0 && (
+                    <div className="pt-2 border-t border-border/60">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 flex items-center gap-1">
+                        <Database className="h-3 w-3" /> DB schema ({schema.length})
+                      </p>
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                        {schema.map((t) => (
+                          <div key={t.name} className="text-[10px] bg-background/60 rounded px-1.5 py-1 border border-border/40">
+                            <p className="font-mono font-semibold text-primary">{t.name}</p>
+                            {t.description && <p className="text-muted-foreground leading-tight mb-0.5">{t.description}</p>}
+                            <ul className="space-y-0.5">
+                              {t.columns.map((c) => (
+                                <li key={c.name} className="font-mono leading-tight">
+                                  <span>{c.name}</span> <span className="text-muted-foreground">{c.type}</span>
+                                  {c.constraints && <span className="text-muted-foreground/70"> {c.constraints}</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {payload?.mode === 'analyze' && editSummary && (
