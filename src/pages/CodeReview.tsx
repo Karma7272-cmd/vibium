@@ -70,6 +70,9 @@ const CodeReview: React.FC = () => {
 
   const [activePath, setActivePath] = useState<string | null>(null);
   const [pushing, setPushing] = useState(false);
+  const [showFiles, setShowFiles] = useState(true);
+  const [showChat, setShowChat] = useState(false);
+  const [treeSearch, setTreeSearch] = useState('');
 
   useEffect(() => {
     const raw = sessionStorage.getItem('pendingCodeRequest');
