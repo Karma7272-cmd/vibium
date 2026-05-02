@@ -7,11 +7,13 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Loader2, ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest, Database, Key } from 'lucide-react';
+import { Loader2, ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest, Database, Key, MessageSquare, X, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from '@/components/ThemeProvider';
 import { DiffEditor, Editor } from '@monaco-editor/react';
+import { FileTreeView } from '@/components/code-analysis/FileTreeView';
+import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
 import {
   setGitHubToken, createRepo, commitAndPush, getRepoTree, getBlobContent,
   fetchFilesInParallel, getRepoPermissions, createBranch, createPullRequest,
