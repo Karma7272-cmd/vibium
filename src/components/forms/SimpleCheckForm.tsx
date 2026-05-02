@@ -37,11 +37,38 @@ const SimpleCheckForm: React.FC = () => {
   const zipInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = prompt.trim();
     if (!trimmed) {
       toast({ title: "Enter a prompt", description: "Describe what you'd like to build or change." });
+      return;
+    }
+
+    // If a future schedule is set, persist as a task and exit.
+    if (scheduledDate && scheduledDate.getTime() > Date.now()) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Sign in required", description: "Sign in to schedule tasks.", variant: "destructive" });
+        navigate('/auth');
+        return;
+      }
+      const { error } = await supabase.from('tasks').insert({
+        user_id: user.id,
+        title: trimmed.slice(0, 120),
+        prompt: trimmed,
+        status: 'scheduled',
+        scheduled_at: scheduledDate.toISOString(),
+        repo_full_name: selectedRepo ? `${selectedRepo.owner}/${selectedRepo.name}` : null,
+      });
+      if (error) {
+        toast({ title: "Could not schedule", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Task scheduled", description: `Will run ${format(scheduledDate, "PPP p")}` });
+      setPrompt('');
+      setScheduledDate(undefined);
+      navigate('/tasks');
       return;
     }
 
