@@ -69,7 +69,6 @@ Rules:
                     additionalProperties: false,
                   },
                 },
-              },
                 database_schema: {
                   type: "object",
                   properties: {
