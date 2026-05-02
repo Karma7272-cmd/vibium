@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Loader2, ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest } from 'lucide-react';
+import { Loader2, ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest, Database, Key } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from '@/components/ThemeProvider';
@@ -21,6 +21,9 @@ type Mode = 'generate' | 'analyze';
 
 interface GeneratedFile { path: string; content: string }
 interface EditFile { path: string; action: 'edit' | 'create'; before: string; after: string; note: string }
+interface SchemaColumn { name: string; type: string; constraints?: string }
+interface SchemaTable { name: string; description?: string; columns: SchemaColumn[] }
+interface EnvVar { name: string; description: string; example?: string; required: boolean }
 
 interface PendingPayload {
   mode: Mode;
@@ -52,6 +55,8 @@ const CodeReview: React.FC = () => {
   // generate mode state
   const [genFiles, setGenFiles] = useState<GeneratedFile[]>([]);
   const [genMeta, setGenMeta] = useState<{ project_name: string; description: string; stack: string } | null>(null);
+  const [schema, setSchema] = useState<SchemaTable[]>([]);
+  const [envVars, setEnvVars] = useState<EnvVar[]>([]);
   const [newRepoName, setNewRepoName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
 
@@ -88,6 +93,8 @@ const CodeReview: React.FC = () => {
       if (data.error) throw new Error(data.error);
       setGenFiles(data.files);
       setGenMeta({ project_name: data.project_name, description: data.description, stack: data.stack });
+      setSchema(data.database_schema?.tables || []);
+      setEnvVars(data.env_vars || []);
       setNewRepoName(data.project_name);
       setActivePath(data.files[0]?.path || null);
     } catch (e: any) {
@@ -287,6 +294,50 @@ const CodeReview: React.FC = () => {
                     <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
                     Private repository
                   </label>
+
+                  {envVars.length > 0 && (
+                    <div className="pt-2 border-t border-border/60">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 flex items-center gap-1">
+                        <Key className="h-3 w-3" /> Env variables ({envVars.length})
+                      </p>
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                        {envVars.map((v) => (
+                          <div key={v.name} className="text-[10px] bg-background/60 rounded px-1.5 py-1 border border-border/40">
+                            <div className="flex items-center gap-1">
+                              <span className="font-mono font-semibold">{v.name}</span>
+                              {v.required && <Badge variant="outline" className="h-3.5 text-[8px] px-1">req</Badge>}
+                            </div>
+                            <p className="text-muted-foreground leading-tight">{v.description}</p>
+                            {v.example && <p className="font-mono text-muted-foreground/70 truncate">e.g. {v.example}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {schema.length > 0 && (
+                    <div className="pt-2 border-t border-border/60">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 flex items-center gap-1">
+                        <Database className="h-3 w-3" /> DB schema ({schema.length})
+                      </p>
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                        {schema.map((t) => (
+                          <div key={t.name} className="text-[10px] bg-background/60 rounded px-1.5 py-1 border border-border/40">
+                            <p className="font-mono font-semibold text-primary">{t.name}</p>
+                            {t.description && <p className="text-muted-foreground leading-tight mb-0.5">{t.description}</p>}
+                            <ul className="space-y-0.5">
+                              {t.columns.map((c) => (
+                                <li key={c.name} className="font-mono leading-tight">
+                                  <span>{c.name}</span> <span className="text-muted-foreground">{c.type}</span>
+                                  {c.constraints && <span className="text-muted-foreground/70"> {c.constraints}</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {payload?.mode === 'analyze' && editSummary && (

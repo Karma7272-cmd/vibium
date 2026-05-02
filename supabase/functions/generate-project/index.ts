@@ -29,7 +29,10 @@ Rules:
 - Include .gitignore appropriate to the stack.
 - Each file's content must be complete and runnable — no placeholders like "// TODO".
 - Keep total files reasonable (5-20 files) but enough to be useful.
-- Use relative paths like "src/index.ts", "backend/app.py", "README.md".`;
+- Use relative paths like "src/index.ts", "backend/app.py", "README.md".
+- If the project needs persistence, design a relational database schema and emit a "database_schema" object describing tables (name, columns with type & constraints, relationships, indexes) AND include an actual SQL migration file in files (e.g. "db/schema.sql" or "migrations/001_init.sql") that creates those tables.
+- Always emit an "env_vars" array with every environment variable the project reads (DATABASE_URL, JWT_SECRET, STRIPE_KEY, etc.) including: name, description, example value, and whether it is required. Also include a ".env.example" file in files that lists them.
+- If no DB is needed, return database_schema as { "tables": [] }.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -67,7 +70,54 @@ Rules:
                   },
                 },
               },
-              required: ["project_name", "description", "stack", "files"],
+                database_schema: {
+                  type: "object",
+                  properties: {
+                    tables: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          name: { type: "string" },
+                          description: { type: "string" },
+                          columns: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              properties: {
+                                name: { type: "string" },
+                                type: { type: "string" },
+                                constraints: { type: "string", description: "e.g. PRIMARY KEY, NOT NULL, UNIQUE, REFERENCES other(id)" },
+                              },
+                              required: ["name", "type"],
+                              additionalProperties: false,
+                            },
+                          },
+                        },
+                        required: ["name", "columns"],
+                        additionalProperties: false,
+                      },
+                    },
+                  },
+                  required: ["tables"],
+                  additionalProperties: false,
+                },
+                env_vars: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string" },
+                      description: { type: "string" },
+                      example: { type: "string" },
+                      required: { type: "boolean" },
+                    },
+                    required: ["name", "description", "required"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["project_name", "description", "stack", "files", "database_schema", "env_vars"],
               additionalProperties: false,
             },
           },
