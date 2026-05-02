@@ -225,6 +225,29 @@ const CodeReview: React.FC = () => {
   const activeEdit = useMemo(() => edits.find(e => e.path === activePath), [edits, activePath]);
   const monacoTheme = actualTheme === 'dark' ? 'vs-dark' : 'vs-light';
 
+  // Unified file list for tree + chat
+  const treeFiles = useMemo(() => {
+    if (payload?.mode === 'generate') {
+      return genFiles.map(f => ({ name: f.path, content: f.content, language: langFromPath(f.path) }));
+    }
+    return edits.map(e => ({ name: e.path, content: e.after, language: langFromPath(e.path) }));
+  }, [payload?.mode, genFiles, edits]);
+
+  const handleFileUpdate = (fileName: string, newContent: string) => {
+    if (payload?.mode === 'generate') {
+      setGenFiles(prev => prev.map(f => f.path === fileName ? { ...f, content: newContent } : f));
+    } else {
+      setEdits(prev => prev.map(e => e.path === fileName ? { ...e, after: newContent } : e));
+    }
+    toast({ title: 'File updated', description: fileName });
+  };
+
+  const activeFileForChat = activeGen
+    ? { name: activeGen.path, content: activeGen.content }
+    : activeEdit
+      ? { name: activeEdit.path, content: activeEdit.after }
+      : null;
+
   return (
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
       <AppSidebar activeSection="code-analysis" onSectionChange={() => {}} />
