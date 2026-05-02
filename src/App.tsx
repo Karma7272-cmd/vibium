@@ -18,6 +18,7 @@ import Analytics from "./pages/Analytics";
 import History from "./pages/History";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
+import Team from "./pages/Team";
 import About from "./pages/About";
 import Nodes from "./pages/Nodes";
 import Operators from "./pages/Operators";
@@ -59,6 +60,7 @@ const App = () => (
                   <Route path="/history" element={<History />} />
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/team" element={<Team />} />
                   <Route path="/code-analysis" element={<CodeAnalysis />} />
                   <Route path="/code-review" element={<CodeReview />} />
                   <Route path="/about" element={<About />} />

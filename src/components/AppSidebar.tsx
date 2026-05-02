@@ -77,6 +77,11 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
     icon: ListTodo,
     isRoute: true
   }, {
+    id: 'team',
+    label: 'Team',
+    icon: Users,
+    isRoute: true
+  }, {
     id: 'about',
     label: 'About',
     icon: Info,
@@ -99,6 +104,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         navigate('/projects');
       } else if (item.id === 'tasks') {
         navigate('/tasks');
+      } else if (item.id === 'team') {
+        navigate('/team');
       } else if (item.id === 'code-analysis') {
         navigate('/code-analysis');
       } else if (item.id === 'security') {
@@ -147,6 +154,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         return location.pathname === '/projects';
       } else if (item.id === 'tasks') {
         return location.pathname === '/tasks';
+      } else if (item.id === 'team') {
+        return location.pathname === '/team';
       } else if (item.id === 'code-analysis') {
         return location.pathname === '/code-analysis';
       } else if (item.id === 'security') {

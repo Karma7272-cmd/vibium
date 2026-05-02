@@ -1,1 +1,4 @@
 project_id = "rpxbhmgwgnavxxeqwsbg"
+
+[functions.run-scheduled-tasks]
+verify_jwt = false
