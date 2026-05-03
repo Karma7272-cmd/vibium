@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, Plus } from "lucide-react";
+import { Send, Loader2, Sparkles, Plus, FolderTree, FileCode } from "lucide-react";
+
+type Scope = 'project' | 'file';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
