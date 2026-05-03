@@ -441,7 +441,7 @@ const CodeReview: React.FC = () => {
                   <FileTreeView
                     files={treeFiles}
                     selectedFile={activePath}
-                    onFileSelect={setActivePath}
+                    onFileSelect={(p) => { setActivePath(p); if (isMobile) setMobileView('code'); }}
                     searchTerm={treeSearch}
                   />
                 </div>
