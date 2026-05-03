@@ -9,25 +9,34 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, files } = await req.json();
+    const { messages, files, scope } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
+    const effectiveScope: 'project' | 'file' = scope === 'file' ? 'file' : 'project';
+
     let filesContext = "";
     if (files?.length) {
-      filesContext = `\n\nProject Files (${files.length} total):\n\n`;
+      const label = effectiveScope === 'file'
+        ? `Selected File (single-file scope)`
+        : `Project Files (${files.length} total)`;
+      filesContext = `\n\n${label}:\n\n`;
       for (const f of files) {
         filesContext += `--- ${f.name} ---\n\`\`\`${f.language || ""}\n${f.content}\n\`\`\`\n\n`;
       }
     }
 
-    const systemPrompt = `You are an expert code assistant analyzing an entire codebase.
+    const scopeRule = effectiveScope === 'file'
+      ? `SCOPE: SINGLE FILE. You MUST only modify the one file shown above. Do NOT propose changes to any other file. Always reference it as "File: <its exact path>".`
+      : `SCOPE: WHOLE PROJECT. You may edit/create across multiple files. For each changed file, output a separate code block prefixed with "File: <path>".`;
+
+    const systemPrompt = `You are an expert code assistant.
+${scopeRule}
 ${filesContext || "No files provided yet."}
 
 Guidelines:
 - When suggesting code changes, specify the file name like: "File: filename.ts"
-- Return COMPLETE fixed code in code blocks with the filename
-- You can suggest changes to multiple files
+- Return COMPLETE fixed code in fenced code blocks
 - Be concise but thorough`;
 
     // Convert OpenAI-style messages to Gemini contents
