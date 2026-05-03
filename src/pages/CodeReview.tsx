@@ -74,6 +74,8 @@ const CodeReview: React.FC = () => {
   const [showFiles, setShowFiles] = useState(true);
   const [showChat, setShowChat] = useState(false);
   const [treeSearch, setTreeSearch] = useState('');
+  const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState<'chat' | 'files' | 'code'>('files');
 
   useEffect(() => {
     const raw = sessionStorage.getItem('pendingCodeRequest');
