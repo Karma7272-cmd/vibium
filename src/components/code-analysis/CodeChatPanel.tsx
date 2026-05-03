@@ -30,6 +30,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [scope, setScope] = useState<Scope>('project');
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
