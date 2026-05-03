@@ -5,6 +5,66 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const SCHEMA = {
+  type: "object",
+  properties: {
+    project_name: { type: "string" },
+    description: { type: "string" },
+    stack: { type: "string" },
+    files: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { path: { type: "string" }, content: { type: "string" } },
+        required: ["path", "content"],
+      },
+    },
+    database_schema: {
+      type: "object",
+      properties: {
+        tables: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              description: { type: "string" },
+              columns: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    type: { type: "string" },
+                    constraints: { type: "string" },
+                  },
+                  required: ["name", "type"],
+                },
+              },
+            },
+            required: ["name", "columns"],
+          },
+        },
+      },
+      required: ["tables"],
+    },
+    env_vars: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          description: { type: "string" },
+          example: { type: "string" },
+          required: { type: "boolean" },
+        },
+        required: ["name", "description", "required"],
+      },
+    },
+  },
+  required: ["project_name", "description", "stack", "files", "database_schema", "env_vars"],
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -16,137 +76,54 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
     const systemPrompt = `You are an expert full-stack engineer. Given a user request, generate a COMPLETE working project scaffold.
 
 Rules:
-- Infer the most appropriate language/framework from the user's prompt (e.g. Python+FastAPI, Node+Express, Next.js, Go, Rust, etc.)
-- Produce both frontend AND backend when applicable; otherwise produce whichever fits.
-- Include README.md with setup/run instructions.
-- Include package manifest (package.json / requirements.txt / Cargo.toml / go.mod / etc.) as needed.
-- Include .gitignore appropriate to the stack.
-- Each file's content must be complete and runnable — no placeholders like "// TODO".
-- Keep total files reasonable (5-20 files) but enough to be useful.
-- Use relative paths like "src/index.ts", "backend/app.py", "README.md".
-- If the project needs persistence, design a relational database schema and emit a "database_schema" object describing tables (name, columns with type & constraints, relationships, indexes) AND include an actual SQL migration file in files (e.g. "db/schema.sql" or "migrations/001_init.sql") that creates those tables.
-- Always emit an "env_vars" array with every environment variable the project reads (DATABASE_URL, JWT_SECRET, STRIPE_KEY, etc.) including: name, description, example value, and whether it is required. Also include a ".env.example" file in files that lists them.
-- If no DB is needed, return database_schema as { "tables": [] }.`;
+- Infer the most appropriate language/framework from the user's prompt.
+- Produce both frontend AND backend when applicable.
+- Include README.md, package manifest, and .gitignore.
+- Each file's content must be complete and runnable — no placeholders.
+- Keep total files reasonable (5-20).
+- If persistence is needed, design a relational schema, emit database_schema and include a SQL migration file.
+- Always emit env_vars listing every env var used and include a .env.example file.
+- If no DB needed, return database_schema as { "tables": [] }.
+- Respond ONLY with a single JSON object matching the required schema. No prose, no markdown fences.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_API_KEY}`;
+    const response = await fetch(url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "emit_project",
-            description: "Emit the generated project files.",
-            parameters: {
-              type: "object",
-              properties: {
-                project_name: { type: "string", description: "Short kebab-case repo name" },
-                description: { type: "string" },
-                stack: { type: "string", description: "Short summary of the chosen stack" },
-                files: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      path: { type: "string" },
-                      content: { type: "string" },
-                    },
-                    required: ["path", "content"],
-                    additionalProperties: false,
-                  },
-                },
-                database_schema: {
-                  type: "object",
-                  properties: {
-                    tables: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          name: { type: "string" },
-                          description: { type: "string" },
-                          columns: {
-                            type: "array",
-                            items: {
-                              type: "object",
-                              properties: {
-                                name: { type: "string" },
-                                type: { type: "string" },
-                                constraints: { type: "string", description: "e.g. PRIMARY KEY, NOT NULL, UNIQUE, REFERENCES other(id)" },
-                              },
-                              required: ["name", "type"],
-                              additionalProperties: false,
-                            },
-                          },
-                        },
-                        required: ["name", "columns"],
-                        additionalProperties: false,
-                      },
-                    },
-                  },
-                  required: ["tables"],
-                  additionalProperties: false,
-                },
-                env_vars: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      name: { type: "string" },
-                      description: { type: "string" },
-                      example: { type: "string" },
-                      required: { type: "boolean" },
-                    },
-                    required: ["name", "description", "required"],
-                    additionalProperties: false,
-                  },
-                },
-              },
-              required: ["project_name", "description", "stack", "files", "database_schema", "env_vars"],
-              additionalProperties: false,
-            },
-          },
-        }],
-        tool_choice: { type: "function", function: { name: "emit_project" } },
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: SCHEMA,
+          temperature: 0.4,
+        },
       }),
     });
 
     if (!response.ok) {
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error("Gemini error:", response.status, t);
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }), {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded on Gemini API." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Add credits in Settings → Workspace → Usage." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
+      return new Response(JSON.stringify({ error: `Gemini API error: ${response.status}` }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in AI response");
-    const args = JSON.parse(toolCall.function.arguments);
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error("Empty response from Gemini");
+    const args = JSON.parse(text);
 
     return new Response(JSON.stringify(args), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
