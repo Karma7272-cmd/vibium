@@ -408,7 +408,7 @@ const CodeReview: React.FC = () => {
                         {edits.map(e => (
                           <button
                             key={e.path}
-                            onClick={() => setActivePath(e.path)}
+                            onClick={() => { setActivePath(e.path); if (isMobile) setMobileView('code'); }}
                             className={`w-full text-left px-2 py-1 rounded text-xs hover:bg-muted ${activePath === e.path ? 'bg-muted font-medium' : ''}`}
                           >
                             <div className="flex items-center gap-1.5">
