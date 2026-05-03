@@ -449,7 +449,7 @@ const CodeReview: React.FC = () => {
             )}
 
             {/* Center: Editor / Diff */}
-            <div className="flex-1 min-w-0 flex flex-col">
+            <div className={`flex-1 min-w-0 flex-col ${isMobile ? (mobileView === 'code' ? 'flex' : 'hidden') : 'flex'}`}>
               {payload?.mode === 'generate' && activeGen && (
                 <>
                   <div className="px-3 py-2 border-b border-border bg-background flex items-center gap-2">
@@ -485,7 +485,7 @@ const CodeReview: React.FC = () => {
                       language={langFromPath(activeEdit.path)}
                       original={activeEdit.before}
                       modified={activeEdit.after}
-                      options={{ readOnly: true, renderSideBySide: true, minimap: { enabled: false }, fontSize: 12, wordWrap: 'on' }}
+                      options={{ readOnly: true, renderSideBySide: !isMobile, minimap: { enabled: false }, fontSize: 12, wordWrap: 'on' }}
                     />
                   </div>
                 </>
@@ -498,16 +498,18 @@ const CodeReview: React.FC = () => {
             </div>
 
             {/* Right: AI chat */}
-            {showChat && (
-              <div className="w-full md:w-96 shrink-0 border-t md:border-t-0 md:border-l border-border bg-muted/5 flex flex-col">
+            {(isMobile ? mobileView === 'chat' : showChat) && (
+              <div className="w-full md:w-96 shrink-0 md:border-l border-border bg-muted/5 flex flex-col overflow-hidden">
                 <div className="flex items-center justify-between px-3 h-10 border-b border-border">
                   <div className="flex items-center gap-1.5">
                     <MessageSquare className="h-3.5 w-3.5 text-primary" />
                     <span className="text-xs font-semibold">AI Assistant</span>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowChat(false)}>
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
+                  {!isMobile && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowChat(false)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
                 <div className="flex-1 min-h-0">
                   <CodeChatPanel
@@ -516,6 +518,36 @@ const CodeReview: React.FC = () => {
                     onFileUpdate={handleFileUpdate}
                     onClose={() => setShowChat(false)}
                   />
+                </div>
+              </div>
+            )}
+
+            {/* Mobile pill nav */}
+            {isMobile && (
+              <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50">
+                <div className="flex items-center gap-1 bg-background/95 backdrop-blur border border-border rounded-full shadow-lg p-1">
+                  {([
+                    { id: 'chat', label: 'Chat', icon: MessageSquare },
+                    { id: 'files', label: 'Files', icon: FolderTree },
+                    { id: 'code', label: 'Code', icon: Code2 },
+                  ] as const).map(t => {
+                    const Icon = t.icon;
+                    const active = mobileView === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setMobileView(t.id)}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors ${
+                          active
+                            ? 'bg-primary/15 text-primary border border-primary/40'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {t.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
