@@ -57,7 +57,10 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
           },
           body: JSON.stringify({
             messages: [...messages, userMsg],
-            files: allFiles
+            files: scope === 'file' && selectedFile
+              ? [{ name: selectedFile.name, content: selectedFile.content, language: '' }]
+              : allFiles,
+            scope,
           }),
         }
       );
