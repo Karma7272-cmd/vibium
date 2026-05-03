@@ -130,7 +130,10 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
           const codeContent = match[2];
           
           if (codeContent.length > 50) {
-            const matchingFile = allFiles.find(f => f.name.includes(fileName) || fileName.includes(f.name));
+            const pool = scope === 'file' && selectedFile
+              ? allFiles.filter(f => f.name === selectedFile.name)
+              : allFiles;
+            const matchingFile = pool.find(f => f.name.includes(fileName) || fileName.includes(f.name));
             if (matchingFile) {
               onFileUpdate(matchingFile.name, codeContent);
               updatedFiles++;
