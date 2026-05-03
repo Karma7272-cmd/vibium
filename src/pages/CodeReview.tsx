@@ -323,10 +323,10 @@ const CodeReview: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative pb-16 md:pb-0">
             {/* Left: files sidebar */}
-            {showFiles && (
-              <div className="w-full md:w-72 shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/10 flex flex-col">
+            {(isMobile ? mobileView === 'files' : showFiles) && (
+              <div className="w-full md:w-72 shrink-0 md:border-r border-border bg-muted/10 flex flex-col overflow-hidden">
                 {payload?.mode === 'generate' && genMeta && (
                   <div className="p-3 border-b border-border space-y-2">
                     <div>
