@@ -182,15 +182,44 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Sparkles className="h-4 w-4 text-primary shrink-0" />
           <span className="text-xs font-semibold">AI Chat</span>
         </div>
-        {selectedFile && (
-          <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]">
-            {selectedFile.name.split('/').pop()}
-          </span>
+        {/* Scope toggle */}
+        <div className="flex items-center rounded-full border border-border bg-muted/40 p-0.5 text-[10px]">
+          <button
+            type="button"
+            onClick={() => setScope('project')}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full transition-colors ${
+              scope === 'project' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
+            title="Edit across all files"
+          >
+            <FolderTree className="h-3 w-3" /> Project
+          </button>
+          <button
+            type="button"
+            onClick={() => setScope('file')}
+            disabled={!selectedFile}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+              scope === 'file' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
+            title={selectedFile ? 'Only edit the selected file' : 'Select a file first'}
+          >
+            <FileCode className="h-3 w-3" /> File
+          </button>
+        </div>
+      </div>
+      {/* Scope context bar */}
+      <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-b border-border bg-muted/20 flex items-center gap-1.5 truncate">
+        {scope === 'project' ? (
+          <><FolderTree className="h-3 w-3" /> Whole project ({allFiles.length} files)</>
+        ) : selectedFile ? (
+          <><FileCode className="h-3 w-3" /> <span className="font-mono truncate">{selectedFile.name}</span></>
+        ) : (
+          <>No file selected</>
         )}
       </div>
 
