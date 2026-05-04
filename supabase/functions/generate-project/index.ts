@@ -92,7 +92,7 @@ Rules:
 - If no DB needed, return database_schema as { "tables": [] }.
 - Respond ONLY with a single JSON object matching the required schema. No prose, no markdown fences.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
