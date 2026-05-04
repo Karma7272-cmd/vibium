@@ -19,7 +19,7 @@ import {
   GitBranch,
   Upload,
   FilePlus,
-  FolderPlus, ArrowUp, GitPullRequest,
+  FolderPlus, ArrowUp, GitPullRequest, Sparkles,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -71,6 +71,8 @@ const CodeAnalysis: React.FC = () => {
   const [prTitle, setPrTitle] = useState("");
   const [prBody, setPrBody] = useState("");
   const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'code'>('code');
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const { actualTheme } = useTheme();
   const isGitHubAuthenticated = !!githubToken;
@@ -324,6 +326,28 @@ const CodeAnalysis: React.FC = () => {
     } finally {
       setIsPushing(false);
     }
+  };
+
+  const handleAIGenerate = async () => {
+    if (!aiPrompt.trim()) return;
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-project', { body: { prompt: aiPrompt.trim() } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const files: CodeFile[] = (data.files || []).map((f: any) => ({
+        name: f.path, content: f.content, language: getLanguageFromFilename(f.path),
+      }));
+      if (files.length === 0) throw new Error('No files generated');
+      setCodeFiles(files);
+      setSelectedFile(files[0]);
+      setOpenTabs([files[0]]);
+      setModifiedFiles(files.map(f => f.name));
+      setMobilePanel('code');
+      toast({ title: 'Project generated', description: `${files.length} files created with Gemini` });
+    } catch (e: any) {
+      toast({ title: 'Generation failed', description: e.message || String(e), variant: 'destructive' });
+    } finally { setIsGenerating(false); }
   };
 
   const handleClearAll = () => {
@@ -626,6 +650,35 @@ const CodeAnalysis: React.FC = () => {
         ) : (
           <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
             <div className="mx-auto w-full max-w-3xl space-y-6">
+              <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+                <CardHeader>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="p-2 rounded-lg bg-primary/10"><Sparkles className="h-5 w-5 text-primary" /></div>
+                    <div>
+                      <CardTitle className="text-xl font-bold">Generate with AI</CardTitle>
+                      <CardDescription>Describe what you want to build — Gemini will scaffold the project files.</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <TextareaUI
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="Ask to write… e.g. A React todo app with Supabase auth and dark mode"
+                    rows={4}
+                    className="resize-none text-sm"
+                    onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAIGenerate(); }}
+                  />
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <p className="text-[11px] text-muted-foreground">⌘/Ctrl + Enter to generate</p>
+                    <Button onClick={handleAIGenerate} disabled={isGenerating || !aiPrompt.trim()} className="gap-2">
+                      {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      {isGenerating ? 'Generating…' : 'Generate project'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card className="border-2 border-dashed border-muted-foreground/20 bg-muted/5">
                 <CardHeader className="text-center">
                   <div className="mx-auto mb-4 rounded-full bg-primary/10 p-4 w-16 h-16 flex items-center justify-center">
