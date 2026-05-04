@@ -71,6 +71,8 @@ const CodeAnalysis: React.FC = () => {
   const [prTitle, setPrTitle] = useState("");
   const [prBody, setPrBody] = useState("");
   const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'code'>('code');
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const { actualTheme } = useTheme();
   const isGitHubAuthenticated = !!githubToken;
@@ -324,6 +326,28 @@ const CodeAnalysis: React.FC = () => {
     } finally {
       setIsPushing(false);
     }
+  };
+
+  const handleAIGenerate = async () => {
+    if (!aiPrompt.trim()) return;
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-project', { body: { prompt: aiPrompt.trim() } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const files: CodeFile[] = (data.files || []).map((f: any) => ({
+        name: f.path, content: f.content, language: getLanguageFromFilename(f.path),
+      }));
+      if (files.length === 0) throw new Error('No files generated');
+      setCodeFiles(files);
+      setSelectedFile(files[0]);
+      setOpenTabs([files[0]]);
+      setModifiedFiles(files.map(f => f.name));
+      setMobilePanel('code');
+      toast({ title: 'Project generated', description: `${files.length} files created with Gemini` });
+    } catch (e: any) {
+      toast({ title: 'Generation failed', description: e.message || String(e), variant: 'destructive' });
+    } finally { setIsGenerating(false); }
   };
 
   const handleClearAll = () => {
