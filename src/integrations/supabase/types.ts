@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          country: string | null
+          created_at: string
+          event_type: string
+          id: string
+          path: string | null
+          referrer: string | null
+          screen: string | null
+          session_id: string | null
+          site_id: string
+          tracking_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          path?: string | null
+          referrer?: string | null
+          screen?: string | null
+          session_id?: string | null
+          site_id: string
+          tracking_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          path?: string | null
+          referrer?: string | null
+          screen?: string | null
+          session_id?: string | null
+          site_id?: string
+          tracking_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_sites: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          name: string
+          tracking_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          name: string
+          tracking_id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          name?: string
+          tracking_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       checks: {
         Row: {
           created_at: string | null
@@ -70,6 +147,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      connector_credentials: {
+        Row: {
+          api_key: string
+          config: Json | null
+          connector_id: string
+          created_at: string
+          id: string
+          last_tested_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          config?: Json | null
+          connector_id: string
+          created_at?: string
+          id?: string
+          last_tested_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          config?: Json | null
+          connector_id?: string
+          created_at?: string
+          id?: string
+          last_tested_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       nodes: {
         Row: {
@@ -172,6 +285,51 @@ export type Database = {
           id?: string
           npub?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      security_scans: {
+        Row: {
+          ai_analysis: string | null
+          created_at: string
+          findings: Json | null
+          grade: string | null
+          headers: Json | null
+          id: string
+          score: number | null
+          ssl: Json | null
+          status: string
+          summary: string | null
+          url: string
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: string | null
+          created_at?: string
+          findings?: Json | null
+          grade?: string | null
+          headers?: Json | null
+          id?: string
+          score?: number | null
+          ssl?: Json | null
+          status?: string
+          summary?: string | null
+          url: string
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: string | null
+          created_at?: string
+          findings?: Json | null
+          grade?: string | null
+          headers?: Json | null
+          id?: string
+          score?: number | null
+          ssl?: Json | null
+          status?: string
+          summary?: string | null
+          url?: string
+          user_id?: string
         }
         Relationships: []
       }
