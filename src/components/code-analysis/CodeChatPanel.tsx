@@ -33,8 +33,20 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [scope, setScope] = useState<Scope>('project');
+  const [connectors, setConnectors] = useState<Array<{ connector_id: string; status: string }>>([]);
+  const [enabledConnectors, setEnabledConnectors] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    supabase.from('connector_credentials').select('connector_id,status').then(({ data }) => {
+      if (data) setConnectors(data as any);
+    });
+  }, []);
+
+  const toggleConnector = (id: string) => {
+    setEnabledConnectors(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
