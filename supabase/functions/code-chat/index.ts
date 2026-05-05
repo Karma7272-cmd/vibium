@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, files, scope } = await req.json();
+    const { messages, files, scope, connectors } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
@@ -30,8 +30,12 @@ serve(async (req) => {
       ? `SCOPE: SINGLE FILE. You MUST only modify the one file shown above. Do NOT propose changes to any other file. Always reference it as "File: <its exact path>".`
       : `SCOPE: WHOLE PROJECT. You may edit/create across multiple files. For each changed file, output a separate code block prefixed with "File: <path>".`;
 
+    const connectorContext = (connectors && connectors.length)
+      ? `\n\nUser has authorized these connectors with stored API keys: ${connectors.join(", ")}. When relevant, generate integration code that reads keys from environment variables (e.g. process.env.OPENAI_API_KEY) and uses these services.`
+      : "";
+
     const systemPrompt = `You are an expert code assistant.
-${scopeRule}
+${scopeRule}${connectorContext}
 ${filesContext || "No files provided yet."}
 
 Guidelines:
