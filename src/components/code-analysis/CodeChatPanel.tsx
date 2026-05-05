@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, Plus, FolderTree, FileCode } from "lucide-react";
+import { Send, Loader2, Sparkles, Plus, FolderTree, FileCode, Plug, Check as CheckIcon } from "lucide-react";
 
 type Scope = 'project' | 'file';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -31,8 +33,20 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [scope, setScope] = useState<Scope>('project');
+  const [connectors, setConnectors] = useState<Array<{ connector_id: string; status: string }>>([]);
+  const [enabledConnectors, setEnabledConnectors] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    supabase.from('connector_credentials').select('connector_id,status').then(({ data }) => {
+      if (data) setConnectors(data as any);
+    });
+  }, []);
+
+  const toggleConnector = (id: string) => {
+    setEnabledConnectors(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -61,6 +75,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
               ? [{ name: selectedFile.name, content: selectedFile.content, language: '' }]
               : allFiles,
             scope,
+            connectors: enabledConnectors,
           }),
         }
       );
@@ -211,6 +226,34 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
             <FileCode className="h-3 w-3" /> File
           </button>
         </div>
+        {/* Connector picker */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1 px-2 py-1 rounded-full border border-border bg-muted/40 text-[10px] text-muted-foreground hover:text-foreground"
+              title="Allow AI to use connectors"
+            >
+              <Plug className="h-3 w-3" />
+              {enabledConnectors.length > 0 ? `${enabledConnectors.length} on` : 'Connectors'}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-2">
+            <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 px-1">Allow AI access to:</p>
+            {connectors.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground px-1 py-2">No connectors saved. Visit Connectors page.</p>
+            ) : connectors.map(c => (
+              <button
+                key={c.connector_id}
+                onClick={() => toggleConnector(c.connector_id)}
+                className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded hover:bg-muted"
+              >
+                <span className="capitalize">{c.connector_id}</span>
+                {enabledConnectors.includes(c.connector_id) && <CheckIcon className="h-3 w-3 text-primary" />}
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
       </div>
       {/* Scope context bar */}
       <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-b border-border bg-muted/20 flex items-center gap-1.5 truncate">
