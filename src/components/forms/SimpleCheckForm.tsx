@@ -240,22 +240,39 @@ const SimpleCheckForm: React.FC = () => {
                   <Calendar
                     mode="single"
                     selected={scheduledDate}
-                    onSelect={setScheduledDate}
+                    onSelect={(d) => {
+                      if (!d) { setScheduledDate(undefined); return; }
+                      // Preserve previously selected time if any, else default to next hour
+                      const base = new Date(d);
+                      if (scheduledDate) {
+                        base.setHours(scheduledDate.getHours(), scheduledDate.getMinutes(), 0, 0);
+                      } else {
+                        const now = new Date();
+                        base.setHours(now.getHours() + 1, 0, 0, 0);
+                      }
+                      setScheduledDate(base);
+                    }}
+                    disabled={(date) => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      return date < today;
+                    }}
                     initialFocus
+                    className="p-3 pointer-events-auto"
                   />
                   <div className="p-3 border-t border-border flex items-center justify-between gap-2">
                     <span className="text-[10px] font-medium">Time</span>
                     <input
                       type="time"
                       value={scheduledDate ? format(scheduledDate, "HH:mm") : ""}
-                      className="text-xs bg-transparent border border-border rounded px-1 outline-none"
+                      className="text-xs bg-transparent border border-border rounded px-2 py-1 outline-none"
                       onChange={(e) => {
-                        if (scheduledDate) {
-                          const [hours, minutes] = e.target.value.split(':');
-                          const newDate = new Date(scheduledDate);
-                          newDate.setHours(parseInt(hours), parseInt(minutes));
-                          setScheduledDate(newDate);
-                        }
+                        const v = e.target.value;
+                        if (!v) return;
+                        const [hours, minutes] = v.split(':').map((n) => parseInt(n, 10));
+                        const base = scheduledDate ? new Date(scheduledDate) : new Date();
+                        base.setHours(hours, minutes, 0, 0);
+                        setScheduledDate(base);
                       }}
                     />
                   </div>
