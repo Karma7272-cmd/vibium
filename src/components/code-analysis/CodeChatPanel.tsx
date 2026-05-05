@@ -75,6 +75,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
               ? [{ name: selectedFile.name, content: selectedFile.content, language: '' }]
               : allFiles,
             scope,
+            connectors: enabledConnectors,
           }),
         }
       );
