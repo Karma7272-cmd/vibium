@@ -63,6 +63,20 @@ const Connectors: React.FC = () => {
     load();
   };
 
+  const retest = async (connector_id: string) => {
+    setTesting(true);
+    try {
+      const { data: row } = await supabase.from('connector_credentials').select('api_key').eq('connector_id', connector_id).maybeSingle();
+      if (!row?.api_key) throw new Error('Stored key missing — reconnect.');
+      const { data, error } = await supabase.functions.invoke('connector-test', { body: { connector_id, api_key: row.api_key } });
+      if (error) throw error;
+      toast({ title: data.ok ? 'Test passed' : 'Test failed', description: data.message, variant: data.ok ? 'default' : 'destructive' });
+      load();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally { setTesting(false); }
+  };
+
   return (
     <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
       <AppSidebar activeSection="" onSectionChange={() => {}} />
