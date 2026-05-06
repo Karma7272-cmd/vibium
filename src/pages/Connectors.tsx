@@ -117,7 +117,10 @@ const Connectors: React.FC = () => {
                         <KeyRound className="h-3.5 w-3.5" />{conn ? 'Update key' : 'Connect'}
                       </Button>
                       {conn && (
-                        <Button variant="ghost" size="icon" onClick={() => disconnect(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        <>
+                          <Button variant="outline" size="sm" onClick={() => retest(c.id)} disabled={testing}>Test</Button>
+                          <Button variant="ghost" size="icon" onClick={() => disconnect(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </>
                       )}
                     </CardContent>
                   </Card>
