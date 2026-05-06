@@ -184,6 +184,57 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_projects: {
+        Row: {
+          created_at: string
+          database_schema: Json | null
+          description: string | null
+          env_vars: Json
+          files: Json
+          id: string
+          name: string
+          pr_url: string | null
+          prompt: string | null
+          repo_full_name: string | null
+          stack: string | null
+          task_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          database_schema?: Json | null
+          description?: string | null
+          env_vars?: Json
+          files?: Json
+          id?: string
+          name: string
+          pr_url?: string | null
+          prompt?: string | null
+          repo_full_name?: string | null
+          stack?: string | null
+          task_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          database_schema?: Json | null
+          description?: string | null
+          env_vars?: Json
+          files?: Json
+          id?: string
+          name?: string
+          pr_url?: string | null
+          prompt?: string | null
+          repo_full_name?: string | null
+          stack?: string | null
+          task_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       nodes: {
         Row: {
           created_at: string | null
@@ -288,6 +339,41 @@ export type Database = {
         }
         Relationships: []
       }
+      project_envs: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          project_id: string
+          user_id: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          project_id: string
+          user_id: string
+          value?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          project_id?: string
+          user_id?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_envs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "generated_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_scans: {
         Row: {
           ai_analysis: string | null
@@ -338,7 +424,9 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
+          kind: string
           priority: string
+          project_id: string | null
           prompt: string | null
           repo_full_name: string | null
           result: string | null
@@ -352,7 +440,9 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          kind?: string
           priority?: string
+          project_id?: string | null
           prompt?: string | null
           repo_full_name?: string | null
           result?: string | null
@@ -366,7 +456,9 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          kind?: string
           priority?: string
+          project_id?: string | null
           prompt?: string | null
           repo_full_name?: string | null
           result?: string | null
