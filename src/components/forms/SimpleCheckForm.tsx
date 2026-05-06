@@ -58,9 +58,10 @@ const SimpleCheckForm: React.FC = () => {
         title: trimmed.slice(0, 120),
         prompt: trimmed,
         status: 'scheduled',
+        kind: 'generate',
         scheduled_at: scheduledDate.toISOString(),
         repo_full_name: selectedRepo ? `${selectedRepo.owner}/${selectedRepo.name}` : null,
-      });
+      } as any);
       if (error) {
         toast({ title: "Could not schedule", description: error.message, variant: "destructive" });
         return;
