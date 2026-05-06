@@ -732,7 +732,7 @@ const CodeAnalysis: React.FC = () => {
                   />
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <p className="text-[11px] text-muted-foreground">⌘/Ctrl + Enter to generate</p>
-                    <Button onClick={handleAIGenerate} disabled={isGenerating || !aiPrompt.trim()} className="gap-2">
+                    <Button onClick={() => handleAIGenerate()} disabled={isGenerating || !aiPrompt.trim()} className="gap-2">
                       {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                       {isGenerating ? 'Generating…' : 'Generate project'}
                     </Button>
