@@ -99,7 +99,7 @@ const SimpleCheckForm: React.FC = () => {
     sessionStorage.setItem('pendingCodeRequest', JSON.stringify({
       mode: 'generate',
       prompt: trimmed,
-      repo: null,
+      repo: selectedRepo,
     }));
     navigate('/code-review');
   };
