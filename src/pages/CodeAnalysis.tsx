@@ -328,11 +328,12 @@ const CodeAnalysis: React.FC = () => {
     }
   };
 
-  const handleAIGenerate = async () => {
-    if (!aiPrompt.trim()) return;
+  const handleAIGenerate = async (overridePrompt?: string, overrideRepo?: { owner: string; name: string } | null) => {
+    const usedPrompt = (overridePrompt ?? aiPrompt).trim();
+    if (!usedPrompt) return;
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-project', { body: { prompt: aiPrompt.trim() } });
+      const { data, error } = await supabase.functions.invoke('generate-project', { body: { prompt: usedPrompt } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       const files: CodeFile[] = (data.files || []).map((f: any) => ({
@@ -344,11 +345,71 @@ const CodeAnalysis: React.FC = () => {
       setOpenTabs([files[0]]);
       setModifiedFiles(files.map(f => f.name));
       setMobilePanel('code');
-      toast({ title: 'Project generated', description: `${files.length} files created with Gemini` });
+
+      const { data: { user } } = await supabase.auth.getUser();
+      let projectId: string | null = null;
+      if (user) {
+        const { data: ins } = await supabase.from('generated_projects' as any).insert({
+          user_id: user.id,
+          name: data.project_name || usedPrompt.slice(0, 80),
+          description: data.description,
+          prompt: usedPrompt,
+          stack: data.stack,
+          files: data.files || [],
+          env_vars: data.env_vars || [],
+          database_schema: data.database_schema || null,
+          repo_full_name: overrideRepo ? `${overrideRepo.owner}/${overrideRepo.name}` : null,
+        } as any).select('id').single();
+        projectId = (ins as any)?.id ?? null;
+      }
+      toast({ title: 'Project generated', description: `${files.length} files created` });
+
+      if (overrideRepo && localStorage.getItem('github_access_token')) {
+        try {
+          const tk = localStorage.getItem('github_access_token')!;
+          setGitHubToken(tk);
+          const branchName = `ai-generate-${Date.now()}`;
+          const repoRes = await fetch(`https://api.github.com/repos/${overrideRepo.owner}/${overrideRepo.name}`, {
+            headers: { Authorization: `Bearer ${tk}` },
+          });
+          const repoData = await repoRes.json();
+          const baseBranch = repoData.default_branch || 'main';
+          await createBranch(overrideRepo.owner, overrideRepo.name, branchName, baseBranch);
+          await commitAndPush(overrideRepo.owner, overrideRepo.name, branchName,
+            files.map(f => ({ path: f.name, content: f.content })),
+            `AI: ${(data.project_name || usedPrompt).slice(0, 60)}`);
+          const pr = await createPullRequest(
+            overrideRepo.owner, overrideRepo.name,
+            `AI generated: ${(data.project_name || usedPrompt).slice(0, 60)}`,
+            `Generated from prompt:\n\n> ${usedPrompt}\n\n${data.description || ''}`,
+            branchName, baseBranch,
+          );
+          if (projectId) {
+            await supabase.from('generated_projects' as any).update({ pr_url: pr.html_url }).eq('id', projectId);
+          }
+          toast({ title: 'Pull request created', description: `#${pr.number} on ${overrideRepo.owner}/${overrideRepo.name}` });
+        } catch (prErr: any) {
+          toast({ title: 'PR creation failed', description: prErr.message, variant: 'destructive' });
+        }
+      }
     } catch (e: any) {
       toast({ title: 'Generation failed', description: e.message || String(e), variant: 'destructive' });
     } finally { setIsGenerating(false); }
   };
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem('pendingCodeRequest');
+    if (!raw) return;
+    sessionStorage.removeItem('pendingCodeRequest');
+    try {
+      const req = JSON.parse(raw);
+      if (req.mode === 'generate' && req.prompt) {
+        setAiPrompt(req.prompt);
+        setTimeout(() => handleAIGenerate(req.prompt, req.repo || null), 100);
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line
+  }, []);
 
   const handleClearAll = () => {
     setCodeFiles([]);
