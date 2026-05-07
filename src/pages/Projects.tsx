@@ -3,11 +3,15 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { FolderOpen, Loader2, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft } from 'lucide-react';
+import { FolderOpen, Loader2, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  setGitHubToken, createRepo, commitAndPush, createBranch, createPullRequest,
+} from '@/services/githubService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -46,6 +50,10 @@ const Projects: React.FC = () => {
   const [envs, setEnvs] = useState<ProjEnv[]>([]);
   const [newKey, setNewKey] = useState('');
   const [newVal, setNewVal] = useState('');
+  const [pushing, setPushing] = useState(false);
+  const [repoName, setRepoName] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [showPushForm, setShowPushForm] = useState(false);
 
   const load = async () => {
     if (!user) { setLoading(false); return; }
@@ -123,28 +131,172 @@ const Projects: React.FC = () => {
     setEnvs(prev => prev.filter(x => x.key !== e.key));
   };
 
+  const handlePushToNewRepo = async () => {
+    if (!active || !repoName.trim()) return;
+    const token = localStorage.getItem('github_access_token');
+    if (!token) {
+      toast({ title: 'GitHub not connected', description: 'Sign in with GitHub first.', variant: 'destructive' });
+      return;
+    }
+    setGitHubToken(token);
+    try {
+      setPushing(true);
+      const repo = await createRepo(repoName.trim(), active.description || '', isPrivate);
+      await commitAndPush(
+        repo.owner, repo.name, repo.default_branch,
+        (active.files || []).map(f => ({ path: f.path, content: f.content })),
+        `Initial commit via Vibium AI`,
+      );
+      await supabase.from('generated_projects' as any).update({
+        repo_full_name: `${repo.owner}/${repo.name}`,
+      } as any).eq('id', active.id);
+      setActive({ ...active, repo_full_name: `${repo.owner}/${repo.name}` });
+      setShowPushForm(false);
+      toast({ title: 'Repository created', description: `Pushed ${(active.files || []).length} files to ${repo.owner}/${repo.name}` });
+      window.open(repo.html_url, '_blank');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Push failed';
+      toast({ title: 'Push failed', description: msg, variant: 'destructive' });
+    } finally {
+      setPushing(false);
+    }
+  };
+
+  const handlePushToExistingRepo = async () => {
+    if (!active?.repo_full_name) return;
+    const token = localStorage.getItem('github_access_token');
+    if (!token) {
+      toast({ title: 'GitHub not connected', description: 'Sign in with GitHub first.', variant: 'destructive' });
+      return;
+    }
+    setGitHubToken(token);
+    const [owner, repo] = active.repo_full_name.split('/');
+    try {
+      setPushing(true);
+      const repoResp = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' },
+      });
+      const repoJson = await repoResp.json();
+      const branch = repoJson.default_branch || 'main';
+      await commitAndPush(
+        owner, repo, branch,
+        (active.files || []).map(f => ({ path: f.path, content: f.content })),
+        `Update via Vibium AI`,
+      );
+      toast({ title: 'Pushed', description: `${(active.files || []).length} file(s) pushed to ${active.repo_full_name}` });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Push failed';
+      toast({ title: 'Push failed', description: msg, variant: 'destructive' });
+    } finally {
+      setPushing(false);
+    }
+  };
+
+  const handleCreatePR = async () => {
+    if (!active?.repo_full_name) return;
+    const token = localStorage.getItem('github_access_token');
+    if (!token) {
+      toast({ title: 'GitHub not connected', description: 'Sign in with GitHub first.', variant: 'destructive' });
+      return;
+    }
+    setGitHubToken(token);
+    const [owner, repo] = active.repo_full_name.split('/');
+    try {
+      setPushing(true);
+      const repoResp = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' },
+      });
+      const repoJson = await repoResp.json();
+      const baseBranch = repoJson.default_branch || 'main';
+      const branchName = `vibium-ai-${Date.now()}`;
+      await createBranch(owner, repo, branchName, baseBranch);
+      await commitAndPush(
+        owner, repo, branchName,
+        (active.files || []).map(f => ({ path: f.path, content: f.content })),
+        `AI updates via Vibium`,
+      );
+      const pr = await createPullRequest(
+        owner, repo,
+        `AI updates to ${active.name}`,
+        active.description || 'Generated by Vibium AI',
+        branchName, baseBranch,
+      );
+      await supabase.from('generated_projects' as any).update({
+        pr_url: pr.html_url,
+      } as any).eq('id', active.id);
+      setActive({ ...active, pr_url: pr.html_url });
+      toast({ title: 'PR created', description: `#${pr.number}` });
+      window.open(pr.html_url, '_blank');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'PR creation failed';
+      toast({ title: 'PR failed', description: msg, variant: 'destructive' });
+    } finally {
+      setPushing(false);
+    }
+  };
+
   if (active) {
     return (
       <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
         <AppSidebar activeSection="projects" onSectionChange={() => {}} />
         <SidebarInset className="flex-1 flex flex-col">
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
+          <header className="flex h-auto min-h-[48px] shrink-0 items-center gap-2 border-b border-border px-3 py-2 flex-wrap">
             <SidebarTrigger className="-ml-1" />
-            <Button variant="ghost" size="sm" onClick={() => setActive(null)} className="gap-1">
+            <Button variant="ghost" size="sm" onClick={() => { setActive(null); setShowPushForm(false); }} className="gap-1">
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
             <span className="font-semibold truncate">{active.name}</span>
-            <div className="ml-auto flex items-center gap-2">
-              {active.pr_url && (
-                <a href={active.pr_url} target="_blank" rel="noreferrer" className="text-xs flex items-center gap-1 text-primary">
-                  <Github className="h-3.5 w-3.5" /> View PR <ExternalLink className="h-3 w-3" />
-                </a>
+            <div className="ml-auto flex items-center gap-2 flex-wrap">
+              {active.pr_url ? (
+                <Button size="sm" className="gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => window.open(active.pr_url!, '_blank')}>
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span className="text-xs">View PR</span>
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              ) : active.repo_full_name ? (
+                <>
+                  <Button size="sm" onClick={handlePushToExistingRepo} disabled={pushing} className="gap-1.5 h-8">
+                    {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                    <span className="text-xs">Push</span>
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleCreatePR} disabled={pushing} className="gap-1.5 h-8">
+                    <GitPullRequest className="h-3.5 w-3.5" />
+                    <span className="text-xs">Open PR</span>
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" onClick={() => { setShowPushForm(s => !s); setRepoName(active.name); }} className="gap-1.5 h-8">
+                  <Github className="h-3.5 w-3.5" />
+                  <span className="text-xs">Push to GitHub</span>
+                </Button>
               )}
               <Button variant="ghost" size="icon" onClick={() => removeProject(active.id)}>
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </div>
           </header>
+          {showPushForm && !active.repo_full_name && (
+            <div className="border-b border-border bg-muted/30 px-4 py-3 flex items-center gap-3 flex-wrap">
+              <Input
+                value={repoName}
+                onChange={(e) => setRepoName(e.target.value)}
+                placeholder="Repository name"
+                className="h-8 text-xs w-48"
+              />
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                <Switch checked={isPrivate} onCheckedChange={setIsPrivate} className="h-4 w-7" />
+                <Lock className="h-3 w-3" />
+                <span>Private</span>
+              </label>
+              <Button size="sm" onClick={handlePushToNewRepo} disabled={pushing || !repoName.trim()} className="gap-1.5 h-8">
+                {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                <span className="text-xs">Create & Push</span>
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowPushForm(false)} className="h-8">
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
           <div className="flex-1 grid grid-cols-12 overflow-hidden">
             <aside className="col-span-3 border-r border-border overflow-y-auto bg-muted/20">
               <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase">Files</div>
