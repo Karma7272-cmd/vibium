@@ -3,11 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/AppSidebar';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Loader2, ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest, Database, Key, MessageSquare, X, PanelLeftClose, PanelLeft, Code2, FolderTree } from 'lucide-react';
+import {
+  Loader2, ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest,
+  Database, Key, MessageSquare, X, PanelLeftClose, PanelLeft, Code2, FolderTree,
+  GitBranch, Download, ChevronsUpDown, ChevronDown, Columns2, AlignJustify,
+  Search, Filter, Eye,
+} from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,12 +19,14 @@ import { useTheme } from '@/components/ThemeProvider';
 import { DiffEditor, Editor } from '@monaco-editor/react';
 import { FileTreeView } from '@/components/code-analysis/FileTreeView';
 import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
+import FileChangeCard from '@/components/code-review/FileChangeCard';
 import {
   setGitHubToken, createRepo, commitAndPush, getRepoTree, getBlobContent,
   fetchFilesInParallel, getRepoPermissions, createBranch, createPullRequest,
 } from '@/services/githubService';
 
 type Mode = 'generate' | 'analyze';
+type ViewMode = 'stacked' | 'editor';
 
 interface GeneratedFile { path: string; content: string }
 interface EditFile { path: string; action: 'edit' | 'create'; before: string; after: string; note: string }
@@ -53,9 +59,8 @@ const CodeReview: React.FC = () => {
 
   const [payload, setPayload] = useState<PendingPayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [stageMsg, setStageMsg] = useState('Preparing…');
+  const [stageMsg, setStageMsg] = useState('Preparing\u2026');
 
-  // generate mode state
   const [genFiles, setGenFiles] = useState<GeneratedFile[]>([]);
   const [genMeta, setGenMeta] = useState<{ project_name: string; description: string; stack: string } | null>(null);
   const [schema, setSchema] = useState<SchemaTable[]>([]);
@@ -63,7 +68,6 @@ const CodeReview: React.FC = () => {
   const [newRepoName, setNewRepoName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
 
-  // analyze mode state
   const [edits, setEdits] = useState<EditFile[]>([]);
   const [editSummary, setEditSummary] = useState('');
   const [repoBranch, setRepoBranch] = useState<string>('main');
@@ -75,7 +79,12 @@ const CodeReview: React.FC = () => {
   const [showChat, setShowChat] = useState(false);
   const [treeSearch, setTreeSearch] = useState('');
   const isMobile = useIsMobile();
-  const [mobileView, setMobileView] = useState<'chat' | 'files' | 'code'>('files');
+  const [mobileView, setMobileView] = useState<'chat' | 'files' | 'code'>('code');
+
+  const [viewMode, setViewMode] = useState<ViewMode>('stacked');
+  const [sideBySide, setSideBySide] = useState(true);
+  const [allExpanded, setAllExpanded] = useState(false);
+  const [filterText, setFilterText] = useState('');
 
   useEffect(() => {
     const raw = sessionStorage.getItem('pendingCodeRequest');
@@ -95,7 +104,7 @@ const CodeReview: React.FC = () => {
 
   const runGenerate = async (prompt: string) => {
     try {
-      setStageMsg('Generating full-stack code…');
+      setStageMsg('Generating full-stack code\u2026');
       const { data, error } = await supabase.functions.invoke('generate-project', { body: { prompt } });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
@@ -105,8 +114,9 @@ const CodeReview: React.FC = () => {
       setEnvVars(data.env_vars || []);
       setNewRepoName(data.project_name);
       setActivePath(data.files[0]?.path || null);
-    } catch (e: any) {
-      toast({ title: 'Generation failed', description: e.message, variant: 'destructive' });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      toast({ title: 'Generation failed', description: msg, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -118,11 +128,10 @@ const CodeReview: React.FC = () => {
       if (!token) throw new Error('GitHub not connected');
       setGitHubToken(token);
 
-      setStageMsg('Fetching repository…');
+      setStageMsg('Fetching repository\u2026');
       const perms = await getRepoPermissions(repo.owner, repo.name).catch(() => ({ push: false, pull: true, admin: false }));
       setCanPush(perms.push);
 
-      // determine default branch via repo lookup
       const repoResp = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.name}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' },
       });
@@ -131,12 +140,12 @@ const CodeReview: React.FC = () => {
       setRepoBranch(branch);
 
       const tree = await getRepoTree(repo.owner, repo.name, branch);
-      const blobs = tree.filter((t: any) => t.type === 'blob' && (t.size ?? 0) < 200_000);
+      const blobs = tree.filter((t: { type: string; size?: number }) => t.type === 'blob' && (t.size ?? 0) < 200_000);
 
-      setStageMsg(`Reading ${blobs.length} files…`);
+      setStageMsg(`Reading ${blobs.length} files\u2026`);
       const files = await fetchFilesInParallel(
         blobs,
-        async (b: any) => {
+        async (b: { path: string; sha: string }) => {
           try {
             const content = await getBlobContent(repo.owner, repo.name, b.sha);
             return { path: b.path, content };
@@ -144,9 +153,9 @@ const CodeReview: React.FC = () => {
         },
         15,
       );
-      const cleaned = files.filter((f: any) => f && f.content !== null);
+      const cleaned = files.filter((f: { path: string; content: string } | null) => f && f.content !== null);
 
-      setStageMsg('AI is analyzing and editing…');
+      setStageMsg('AI is analyzing and editing\u2026');
       const { data, error } = await supabase.functions.invoke('analyze-and-edit', {
         body: { prompt, files: cleaned },
       });
@@ -156,8 +165,9 @@ const CodeReview: React.FC = () => {
       setEdits(data.edits || []);
       setEditSummary(data.summary || '');
       setActivePath(data.edits?.[0]?.path || null);
-    } catch (e: any) {
-      toast({ title: 'Analysis failed', description: e.message, variant: 'destructive' });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      toast({ title: 'Analysis failed', description: msg, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -174,7 +184,6 @@ const CodeReview: React.FC = () => {
     try {
       setPushing(true);
       const repo = await createRepo(newRepoName.trim(), genMeta?.description || '', isPrivate);
-      // Filter out README.md if repo was auto-init'd to avoid conflict overwrite – we'll still push it
       await commitAndPush(
         repo.owner, repo.name, repo.default_branch,
         genFiles.map(f => ({ path: f.path, content: f.content })),
@@ -184,8 +193,9 @@ const CodeReview: React.FC = () => {
       window.open(repo.html_url, '_blank');
       sessionStorage.removeItem('pendingCodeRequest');
       navigate('/');
-    } catch (e: any) {
-      toast({ title: 'Push failed', description: e.message, variant: 'destructive' });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      toast({ title: 'Push failed', description: msg, variant: 'destructive' });
     } finally {
       setPushing(false);
     }
@@ -217,8 +227,9 @@ const CodeReview: React.FC = () => {
         toast({ title: 'Pushed', description: `${edits.length} file(s) committed to ${repoBranch}` });
       }
       sessionStorage.removeItem('pendingCodeRequest');
-    } catch (e: any) {
-      toast({ title: 'Push failed', description: e.message, variant: 'destructive' });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      toast({ title: 'Push failed', description: msg, variant: 'destructive' });
     } finally {
       setPushing(false);
     }
@@ -228,7 +239,6 @@ const CodeReview: React.FC = () => {
   const activeEdit = useMemo(() => edits.find(e => e.path === activePath), [edits, activePath]);
   const monacoTheme = actualTheme === 'dark' ? 'vs-dark' : 'vs-light';
 
-  // Unified file list for tree + chat
   const treeFiles = useMemo(() => {
     if (payload?.mode === 'generate') {
       return genFiles.map(f => ({ name: f.path, content: f.content, language: langFromPath(f.path) }));
@@ -251,82 +261,117 @@ const CodeReview: React.FC = () => {
       ? { name: activeEdit.path, content: activeEdit.after }
       : null;
 
+  const filteredEdits = useMemo(() => {
+    if (!filterText) return edits;
+    const q = filterText.toLowerCase();
+    return edits.filter(e => e.path.toLowerCase().includes(q));
+  }, [edits, filterText]);
+
+  const filteredGenFiles = useMemo(() => {
+    if (!filterText) return genFiles;
+    const q = filterText.toLowerCase();
+    return genFiles.filter(f => f.path.toLowerCase().includes(q));
+  }, [genFiles, filterText]);
+
+  const totalChanges = payload?.mode === 'generate' ? genFiles.length : edits.length;
+
+  const handleDownloadZip = async () => {
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      const files = payload?.mode === 'generate' ? genFiles : edits.map(e => ({ path: e.path, content: e.after }));
+      files.forEach(f => zip.file(f.path, f.content));
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${genMeta?.project_name || payload?.repo?.name || 'code-review'}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      toast({ title: 'Download failed', description: msg, variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
       <AppSidebar activeSection="code-analysis" onSectionChange={() => {}} />
       <SidebarInset className="flex flex-col flex-1 overflow-hidden min-w-0 h-full">
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-3 md:px-4">
+        {/* Header */}
+        <header className="flex h-12 md:h-14 shrink-0 items-center justify-between border-b border-border bg-card px-3 md:px-4">
           <div className="flex items-center gap-2 min-w-0">
             <SidebarTrigger className="-ml-1" />
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="gap-1">
-              <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back</span>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="gap-1 h-8">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline text-xs">Back</span>
             </Button>
+            <div className="h-5 w-px bg-border hidden sm:block" />
             <div className="flex items-center gap-2 min-w-0">
               <Sparkles className="h-4 w-4 text-primary shrink-0" />
-              <h1 className="text-sm font-semibold truncate">
-                {payload?.mode === 'generate' ? 'Review generated project' : 'Review AI edits'}
+              <h1 className="text-xs md:text-sm font-semibold truncate">
+                {payload?.mode === 'generate' ? 'Review Generated Project' : 'Review AI Edits'}
               </h1>
             </div>
           </div>
-
           <div className="flex items-center gap-1.5">
             <Button
               size="sm"
-              variant="ghost"
-              onClick={() => setShowFiles(s => !s)}
-              className="gap-1.5 hidden md:inline-flex"
-              title={showFiles ? 'Hide files' : 'Show files'}
-            >
-              {showFiles ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
-            </Button>
-            <Button
-              size="sm"
               variant={showChat ? 'default' : 'outline'}
-              onClick={() => setShowChat(s => !s)}
-              className="gap-1.5"
+              onClick={() => {
+                setShowChat(s => !s);
+                if (isMobile) setMobileView('chat');
+              }}
+              className="gap-1.5 h-8"
               title="AI chat"
             >
               <MessageSquare className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Chat</span>
+              <span className="hidden sm:inline text-xs">Chat</span>
             </Button>
             {payload?.mode === 'generate' && genFiles.length > 0 && (
-              <Button size="sm" onClick={handlePushNew} disabled={pushing || !newRepoName.trim()} className="gap-1.5">
+              <Button size="sm" onClick={handlePushNew} disabled={pushing || !newRepoName.trim()} className="gap-1.5 h-8">
                 {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Github className="h-3.5 w-3.5" />}
-                <span className="hidden sm:inline">Create repo & push</span>
-                <span className="sm:hidden">Push</span>
+                <span className="hidden sm:inline text-xs">Create repo & push</span>
+                <span className="sm:hidden text-xs">Push</span>
               </Button>
             )}
             {payload?.mode === 'analyze' && edits.length > 0 && (
               <>
                 {canPush && (
-                  <Button size="sm" onClick={() => handlePushEdits(false)} disabled={pushing} className="gap-1.5">
+                  <Button size="sm" onClick={() => handlePushEdits(false)} disabled={pushing} className="gap-1.5 h-8">
                     {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                    <span className="hidden sm:inline">Push</span>
+                    <span className="hidden sm:inline text-xs">Push</span>
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={() => handlePushEdits(true)} disabled={pushing} className="gap-1.5">
+                <Button size="sm" variant="outline" onClick={() => handlePushEdits(true)} disabled={pushing} className="gap-1.5 h-8">
                   <GitPullRequest className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Open PR</span>
-                  <span className="sm:hidden">PR</span>
+                  <span className="hidden sm:inline text-xs">Open PR</span>
+                  <span className="sm:hidden text-xs">PR</span>
                 </Button>
               </>
             )}
           </div>
         </header>
 
+        {/* Loading state */}
         {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">{stageMsg}</p>
-            {payload && (
-              <p className="text-xs text-muted-foreground/70 max-w-md truncate">"{payload.prompt}"</p>
-            )}
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 text-center">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+              <Loader2 className="h-10 w-10 animate-spin text-primary relative" />
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium">{stageMsg}</p>
+              {payload && (
+                <p className="text-xs text-muted-foreground/60 max-w-md truncate">&ldquo;{payload.prompt}&rdquo;</p>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative pb-16 md:pb-0">
-            {/* Left: files sidebar */}
-            {(isMobile ? mobileView === 'files' : showFiles) && (
-              <div className="w-full md:w-72 shrink-0 md:border-r border-border bg-muted/10 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+            {/* Left sidebar: file tree (editor mode) or meta info */}
+            {viewMode === 'editor' && (isMobile ? mobileView === 'files' : showFiles) && (
+              <div className="w-full md:w-72 shrink-0 md:border-r border-border bg-card/50 flex flex-col overflow-hidden">
                 {payload?.mode === 'generate' && genMeta && (
                   <div className="p-3 border-b border-border space-y-2">
                     <div>
@@ -392,48 +437,18 @@ const CodeReview: React.FC = () => {
                   </div>
                 )}
 
-                {payload?.mode === 'analyze' && (
-                  <>
-                    {editSummary && (
-                      <div className="p-3 border-b border-border">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Summary</p>
-                        <p className="text-xs leading-relaxed">{editSummary}</p>
-                      </div>
-                    )}
-                    {edits.length > 0 && (
-                      <div className="p-2 border-b border-border space-y-0.5 max-h-48 overflow-y-auto">
-                        <p className="px-1 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                          Changes ({edits.length})
-                        </p>
-                        {edits.map(e => (
-                          <button
-                            key={e.path}
-                            onClick={() => { setActivePath(e.path); if (isMobile) setMobileView('code'); }}
-                            className={`w-full text-left px-2 py-1 rounded text-xs hover:bg-muted ${activePath === e.path ? 'bg-muted font-medium' : ''}`}
-                          >
-                            <div className="flex items-center gap-1.5">
-                              <Badge variant={e.action === 'create' ? 'default' : 'secondary'} className="h-4 text-[9px] px-1">
-                                {e.action === 'create' ? 'NEW' : 'EDIT'}
-                              </Badge>
-                              <span className="truncate">{e.path.split('/').pop()}</span>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {edits.length === 0 && (
-                      <p className="px-3 py-4 text-xs text-muted-foreground text-center border-b border-border">
-                        No changes suggested.
-                      </p>
-                    )}
-                  </>
+                {payload?.mode === 'analyze' && editSummary && (
+                  <div className="p-3 border-b border-border">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Summary</p>
+                    <p className="text-xs leading-relaxed">{editSummary}</p>
+                  </div>
                 )}
 
                 <div className="p-2 border-b border-border">
                   <Input
                     value={treeSearch}
                     onChange={(e) => setTreeSearch(e.target.value)}
-                    placeholder="Search files…"
+                    placeholder="Search files\u2026"
                     className="h-7 text-xs"
                   />
                 </div>
@@ -448,58 +463,329 @@ const CodeReview: React.FC = () => {
               </div>
             )}
 
-            {/* Center: Editor / Diff */}
-            <div className={`flex-1 min-w-0 flex-col ${isMobile ? (mobileView === 'code' ? 'flex' : 'hidden') : 'flex'}`}>
-              {payload?.mode === 'generate' && activeGen && (
-                <>
-                  <div className="px-3 py-2 border-b border-border bg-background flex items-center gap-2">
-                    <FileCode className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-xs font-mono truncate">{activeGen.path}</span>
-                    <Badge variant="default" className="h-4 text-[9px] px-1 ml-auto">NEW</Badge>
-                  </div>
-                  <div className="flex-1 min-h-0">
-                    <Editor
-                      height="100%"
-                      theme={monacoTheme}
-                      language={langFromPath(activeGen.path)}
-                      value={activeGen.content}
-                      onChange={(v) => v !== undefined && handleFileUpdate(activeGen.path, v)}
-                      options={{ minimap: { enabled: false }, fontSize: 12, wordWrap: 'on' }}
+            {/* Main content area */}
+            <div className={`flex-1 min-w-0 flex flex-col overflow-hidden ${isMobile && mobileView === 'chat' ? 'hidden' : ''} ${isMobile && viewMode === 'editor' && mobileView === 'files' ? 'hidden' : ''}`}>
+              {/* Review toolbar */}
+              <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-2.5 border-b border-border bg-card/50 gap-2 shrink-0">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {/* Branch info */}
+                  {payload?.repo && (
+                    <div className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1 border border-border/50 shrink-0">
+                      <GitBranch className="h-3 w-3 text-muted-foreground/70" />
+                      <span className="text-[10px] md:text-xs font-mono text-muted-foreground truncate max-w-[120px] md:max-w-[200px]">
+                        {repoBranch}
+                      </span>
+                    </div>
+                  )}
+                  {payload?.mode === 'generate' && genMeta && (
+                    <div className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1 border border-border/50 shrink-0">
+                      <Code2 className="h-3 w-3 text-muted-foreground/70" />
+                      <span className="text-[10px] md:text-xs font-mono text-muted-foreground truncate max-w-[120px] md:max-w-[200px]">
+                        {genMeta.project_name}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* File count badge */}
+                  <Badge variant="secondary" className="text-[10px] md:text-xs h-5 md:h-6 px-1.5 md:px-2 shrink-0">
+                    {totalChanges} file{totalChanges !== 1 ? 's' : ''} changed
+                  </Badge>
+                </div>
+
+                {/* Toolbar actions */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {/* Filter */}
+                  <div className="hidden md:flex items-center gap-1 bg-muted/30 rounded-md border border-border/40 px-2 py-1">
+                    <Search className="h-3 w-3 text-muted-foreground/50" />
+                    <input
+                      value={filterText}
+                      onChange={(e) => setFilterText(e.target.value)}
+                      placeholder="Filter files\u2026"
+                      className="bg-transparent border-none outline-none text-xs w-24 lg:w-32 placeholder:text-muted-foreground/40"
                     />
                   </div>
-                </>
-              )}
-              {payload?.mode === 'analyze' && activeEdit && (
-                <>
-                  <div className="px-3 py-2 border-b border-border bg-background flex items-center gap-2">
-                    <FileCode className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-xs font-mono truncate">{activeEdit.path}</span>
-                    <Badge variant={activeEdit.action === 'create' ? 'default' : 'secondary'} className="h-4 text-[9px] px-1 ml-auto">
-                      {activeEdit.action === 'create' ? 'NEW' : 'EDIT'}
-                    </Badge>
+
+                  {/* Download zip */}
+                  <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs hidden md:inline-flex" onClick={handleDownloadZip}>
+                    <Download className="h-3 w-3" />
+                    <span className="hidden lg:inline">Download zip</span>
+                  </Button>
+
+                  {/* Side-by-side toggle (stacked view only) */}
+                  {viewMode === 'stacked' && !isMobile && (
+                    <Button
+                      variant={sideBySide ? 'default' : 'outline'}
+                      size="sm"
+                      className="gap-1 h-7 text-xs"
+                      onClick={() => setSideBySide(s => !s)}
+                    >
+                      {sideBySide ? <Columns2 className="h-3 w-3" /> : <AlignJustify className="h-3 w-3" />}
+                      <span className="hidden lg:inline">{sideBySide ? 'Split' : 'Unified'}</span>
+                    </Button>
+                  )}
+
+                  {/* Collapse/expand all (stacked view) */}
+                  {viewMode === 'stacked' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1 h-7 text-xs"
+                      onClick={() => setAllExpanded(e => !e)}
+                    >
+                      <ChevronsUpDown className="h-3 w-3" />
+                      <span className="hidden md:inline">{allExpanded ? 'Collapse all' : 'Expand all'}</span>
+                    </Button>
+                  )}
+
+                  {/* View mode toggle */}
+                  <div className="flex items-center bg-muted/50 rounded-md border border-border/50 p-0.5">
+                    <button
+                      onClick={() => setViewMode('stacked')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] md:text-xs font-medium transition-colors ${
+                        viewMode === 'stacked'
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <Filter className="h-3 w-3" />
+                      <span className="hidden md:inline">Stacked</span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('editor')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] md:text-xs font-medium transition-colors ${
+                        viewMode === 'editor'
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <Eye className="h-3 w-3" />
+                      <span className="hidden md:inline">Editor</span>
+                    </button>
                   </div>
-                  <div className="flex-1 min-h-0">
-                    <DiffEditor
-                      height="100%"
-                      theme={monacoTheme}
-                      language={langFromPath(activeEdit.path)}
-                      original={activeEdit.before}
-                      modified={activeEdit.after}
-                      options={{ readOnly: true, renderSideBySide: !isMobile, minimap: { enabled: false }, fontSize: 12, wordWrap: 'on' }}
-                    />
+
+                  {/* File tree toggle (editor mode) */}
+                  {viewMode === 'editor' && !isMobile && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowFiles(s => !s)}
+                      className="gap-1 h-7"
+                      title={showFiles ? 'Hide files' : 'Show files'}
+                    >
+                      {showFiles ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeft className="h-3.5 w-3.5" />}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Stacked view */}
+              {viewMode === 'stacked' && (
+                <ScrollArea className="flex-1">
+                  <div className="p-3 md:p-5 space-y-2 md:space-y-3 max-w-[1400px] mx-auto w-full pb-20 md:pb-6">
+                    {/* Summary (analyze mode) */}
+                    {payload?.mode === 'analyze' && editSummary && (
+                      <div className="rounded-lg border border-border/60 bg-card p-3 md:p-4 mb-3 md:mb-4">
+                        <div className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">AI Summary</p>
+                            <p className="text-xs md:text-sm leading-relaxed text-foreground/80">{editSummary}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Generate mode meta */}
+                    {payload?.mode === 'generate' && genMeta && (
+                      <div className="rounded-lg border border-border/60 bg-card p-3 md:p-4 mb-3 md:mb-4">
+                        <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex items-center gap-1.5 bg-primary/10 rounded-md px-2 py-1">
+                              <Code2 className="h-3.5 w-3.5 text-primary" />
+                              <span className="text-xs font-semibold text-primary">{genMeta.project_name}</span>
+                            </div>
+                            <Badge variant="outline" className="text-[10px] h-5">{genMeta.stack}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground/70 flex-1 min-w-0 truncate">{genMeta.description}</p>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Input
+                              value={newRepoName}
+                              onChange={(e) => setNewRepoName(e.target.value)}
+                              placeholder="Repo name"
+                              className="h-7 text-xs w-36 md:w-44"
+                            />
+                            <label className="flex items-center gap-1 text-[10px] text-muted-foreground whitespace-nowrap">
+                              <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="rounded" />
+                              Private
+                            </label>
+                          </div>
+                        </div>
+
+                        {(envVars.length > 0 || schema.length > 0) && (
+                          <div className="mt-3 pt-3 border-t border-border/40 flex flex-wrap gap-3">
+                            {envVars.length > 0 && (
+                              <div className="flex-1 min-w-[200px]">
+                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 flex items-center gap-1">
+                                  <Key className="h-3 w-3" /> Env variables ({envVars.length})
+                                </p>
+                                <div className="space-y-1 max-h-32 overflow-y-auto">
+                                  {envVars.map((v) => (
+                                    <div key={v.name} className="text-[10px] bg-muted/30 rounded px-1.5 py-0.5 border border-border/30 flex items-center gap-1">
+                                      <span className="font-mono font-semibold">{v.name}</span>
+                                      {v.required && <span className="text-[8px] text-primary">req</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {schema.length > 0 && (
+                              <div className="flex-1 min-w-[200px]">
+                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 flex items-center gap-1">
+                                  <Database className="h-3 w-3" /> DB schema ({schema.length})
+                                </p>
+                                <div className="space-y-1 max-h-32 overflow-y-auto">
+                                  {schema.map((t) => (
+                                    <div key={t.name} className="text-[10px] bg-muted/30 rounded px-1.5 py-0.5 border border-border/30">
+                                      <span className="font-mono font-semibold text-primary">{t.name}</span>
+                                      <span className="text-muted-foreground ml-1">({t.columns.length} cols)</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Mobile filter */}
+                    {isMobile && (
+                      <div className="flex items-center gap-1 bg-muted/30 rounded-md border border-border/40 px-2 py-1.5">
+                        <Search className="h-3 w-3 text-muted-foreground/50" />
+                        <input
+                          value={filterText}
+                          onChange={(e) => setFilterText(e.target.value)}
+                          placeholder="Filter files\u2026"
+                          className="bg-transparent border-none outline-none text-xs flex-1 placeholder:text-muted-foreground/40"
+                        />
+                      </div>
+                    )}
+
+                    {/* File cards */}
+                    {payload?.mode === 'analyze' && (
+                      filteredEdits.length > 0 ? (
+                        filteredEdits.map((edit) => (
+                          <FileChangeCard
+                            key={edit.path}
+                            path={edit.path}
+                            action={edit.action}
+                            before={edit.before}
+                            after={edit.after}
+                            note={edit.note}
+                            isActive={activePath === edit.path}
+                            onSelect={() => setActivePath(edit.path)}
+                            sideBySide={!isMobile && sideBySide}
+                            defaultExpanded={allExpanded}
+                          />
+                        ))
+                      ) : (
+                        <div className="rounded-lg border border-border/40 bg-card p-8 text-center">
+                          <FileCode className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            {filterText ? 'No files match your filter' : 'No changes suggested'}
+                          </p>
+                        </div>
+                      )
+                    )}
+
+                    {payload?.mode === 'generate' && (
+                      filteredGenFiles.length > 0 ? (
+                        filteredGenFiles.map((file) => (
+                          <FileChangeCard
+                            key={file.path}
+                            path={file.path}
+                            action="create"
+                            before=""
+                            after={file.content}
+                            isActive={activePath === file.path}
+                            onSelect={() => setActivePath(file.path)}
+                            sideBySide={false}
+                            defaultExpanded={allExpanded}
+                          />
+                        ))
+                      ) : (
+                        <div className="rounded-lg border border-border/40 bg-card p-8 text-center">
+                          <FileCode className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            {filterText ? 'No files match your filter' : 'No files generated'}
+                          </p>
+                        </div>
+                      )
+                    )}
                   </div>
-                </>
+                </ScrollArea>
               )}
-              {!activeGen && !activeEdit && (
-                <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-                  Select a file to view
+
+              {/* Editor view */}
+              {viewMode === 'editor' && (isMobile ? mobileView === 'code' : true) && (
+                <div className="flex-1 min-h-0 flex flex-col">
+                  {payload?.mode === 'generate' && activeGen && (
+                    <>
+                      <div className="px-3 py-2 border-b border-border bg-card/50 flex items-center gap-2">
+                        <FileCode className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-xs font-mono truncate">{activeGen.path}</span>
+                        <Badge variant="default" className="h-4 text-[9px] px-1 ml-auto">NEW</Badge>
+                      </div>
+                      <div className="flex-1 min-h-0">
+                        <Editor
+                          height="100%"
+                          theme={monacoTheme}
+                          language={langFromPath(activeGen.path)}
+                          value={activeGen.content}
+                          onChange={(v) => v !== undefined && handleFileUpdate(activeGen.path, v)}
+                          options={{ minimap: { enabled: false }, fontSize: 12, wordWrap: 'on' }}
+                        />
+                      </div>
+                    </>
+                  )}
+                  {payload?.mode === 'analyze' && activeEdit && (
+                    <>
+                      <div className="px-3 py-2 border-b border-border bg-card/50 flex items-center gap-2">
+                        <FileCode className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-xs font-mono truncate">{activeEdit.path}</span>
+                        <Badge variant={activeEdit.action === 'create' ? 'default' : 'secondary'} className="h-4 text-[9px] px-1 ml-auto">
+                          {activeEdit.action === 'create' ? 'NEW' : 'EDIT'}
+                        </Badge>
+                      </div>
+                      <div className="flex-1 min-h-0">
+                        <DiffEditor
+                          height="100%"
+                          theme={monacoTheme}
+                          language={langFromPath(activeEdit.path)}
+                          original={activeEdit.before}
+                          modified={activeEdit.after}
+                          options={{ readOnly: true, renderSideBySide: !isMobile, minimap: { enabled: false }, fontSize: 12, wordWrap: 'on' }}
+                        />
+                      </div>
+                    </>
+                  )}
+                  {!activeGen && !activeEdit && (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                      <FileCode className="h-10 w-10 text-muted-foreground/20" />
+                      <p className="text-sm">Select a file to view</p>
+                      <Button variant="outline" size="sm" onClick={() => setViewMode('stacked')} className="gap-1.5">
+                        <Filter className="h-3.5 w-3.5" />
+                        Switch to Stacked view
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             {/* Right: AI chat */}
             {(isMobile ? mobileView === 'chat' : showChat) && (
-              <div className="w-full md:w-96 shrink-0 md:border-l border-border bg-muted/5 flex flex-col overflow-hidden">
+              <div className="w-full md:w-96 shrink-0 md:border-l border-border bg-card/30 flex flex-col overflow-hidden">
                 <div className="flex items-center justify-between px-3 h-10 border-b border-border">
                   <div className="flex items-center gap-1.5">
                     <MessageSquare className="h-3.5 w-3.5 text-primary" />
@@ -525,22 +811,25 @@ const CodeReview: React.FC = () => {
             {/* Mobile pill nav */}
             {isMobile && (
               <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50">
-                <div className="flex items-center gap-1 bg-background/95 backdrop-blur border border-border rounded-full shadow-lg p-1">
+                <div className="flex items-center gap-1 bg-card/95 backdrop-blur-md border border-border rounded-full shadow-lg p-1">
                   {([
                     { id: 'chat', label: 'Chat', icon: MessageSquare },
                     { id: 'files', label: 'Files', icon: FolderTree },
-                    { id: 'code', label: 'Code', icon: Code2 },
+                    { id: 'code', label: viewMode === 'stacked' ? 'Review' : 'Code', icon: Code2 },
                   ] as const).map(t => {
                     const Icon = t.icon;
                     const active = mobileView === t.id;
                     return (
                       <button
                         key={t.id}
-                        onClick={() => setMobileView(t.id)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors ${
+                        onClick={() => {
+                          setMobileView(t.id);
+                          if (t.id === 'chat') setShowChat(true);
+                        }}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 ${
                           active
-                            ? 'bg-primary/15 text-primary border border-primary/40'
-                            : 'text-muted-foreground hover:text-foreground'
+                            ? 'bg-primary/15 text-primary border border-primary/40 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                         }`}
                       >
                         <Icon className="h-3.5 w-3.5" />
