@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import {
   Loader2, ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest,
   Database, Key, MessageSquare, X, PanelLeftClose, PanelLeft, Code2, FolderTree,
   GitBranch, Download, ChevronsUpDown, ChevronDown, Columns2, AlignJustify,
-  Search, Filter, Eye,
+  Search, Filter, Eye, ExternalLink, CheckCircle2,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
@@ -86,6 +87,9 @@ const CodeReview: React.FC = () => {
   const [sideBySide, setSideBySide] = useState(true);
   const [allExpanded, setAllExpanded] = useState(false);
   const [filterText, setFilterText] = useState('');
+  const [autoPR, setAutoPR] = useState(true);
+  const [prUrl, setPrUrl] = useState<string | null>(null);
+  const [prNumber, setPrNumber] = useState<number | null>(null);
 
   useEffect(() => {
     const raw = sessionStorage.getItem('pendingCodeRequest');
@@ -165,9 +169,34 @@ const CodeReview: React.FC = () => {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      setEdits(data.edits || []);
-      setEditSummary(data.summary || '');
-      setActivePath(data.edits?.[0]?.path || null);
+      const editsList: EditFile[] = data.edits || [];
+      const summary: string = data.summary || '';
+      setEdits(editsList);
+      setEditSummary(summary);
+      setActivePath(editsList[0]?.path || null);
+
+      if (autoPR && editsList.length > 0) {
+        try {
+          setStageMsg('Creating pull request\u2026');
+          const branchName = `vibium-ai-${Date.now()}`;
+          const filesToCommit = editsList.map(e => ({ path: e.path, content: e.after }));
+          const message = summary || `AI edits to ${editsList.length} file(s)`;
+          await createBranch(repo.owner, repo.name, branchName, branch);
+          await commitAndPush(repo.owner, repo.name, branchName, filesToCommit, message);
+          const pr = await createPullRequest(
+            repo.owner, repo.name,
+            message.split('\n')[0].slice(0, 80),
+            summary,
+            branchName, branch,
+          );
+          setPrUrl(pr.html_url);
+          setPrNumber(pr.number);
+          toast({ title: 'PR created automatically', description: `#${pr.number}` });
+        } catch (prErr: unknown) {
+          const prMsg = prErr instanceof Error ? prErr.message : 'PR creation failed';
+          toast({ title: 'Auto PR failed', description: prMsg, variant: 'destructive' });
+        }
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Unknown error';
       toast({ title: 'Analysis failed', description: msg, variant: 'destructive' });
@@ -223,6 +252,8 @@ const CodeReview: React.FC = () => {
           editSummary,
           branchName, repoBranch,
         );
+        setPrUrl(pr.html_url);
+        setPrNumber(pr.number);
         toast({ title: 'PR opened', description: `#${pr.number}` });
         window.open(pr.html_url, '_blank');
       } else {
@@ -367,17 +398,25 @@ const CodeReview: React.FC = () => {
             )}
             {payload?.mode === 'analyze' && edits.length > 0 && (
               <>
-                {canPush && (
+                {canPush && !prUrl && (
                   <Button size="sm" onClick={() => handlePushEdits(false)} disabled={pushing} className="gap-1.5 h-8">
                     {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                     <span className="hidden sm:inline text-xs">Push</span>
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={() => handlePushEdits(true)} disabled={pushing} className="gap-1.5 h-8">
-                  <GitPullRequest className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline text-xs">Open PR</span>
-                  <span className="sm:hidden text-xs">PR</span>
-                </Button>
+                {prUrl ? (
+                  <Button size="sm" className="gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => window.open(prUrl, '_blank')}>
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline text-xs">PR #{prNumber}</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => handlePushEdits(true)} disabled={pushing} className="gap-1.5 h-8">
+                    <GitPullRequest className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline text-xs">Open PR</span>
+                    <span className="sm:hidden text-xs">PR</span>
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -535,6 +574,14 @@ const CodeReview: React.FC = () => {
                     />
                   </div>
 
+                  {/* Auto PR toggle (analyze mode only) */}
+                  {payload?.mode === 'analyze' && !prUrl && (
+                    <label className="hidden md:flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer px-1">
+                      <Switch checked={autoPR} onCheckedChange={setAutoPR} className="h-4 w-7 data-[state=checked]:bg-primary" />
+                      <span>Auto PR</span>
+                    </label>
+                  )}
+
                   {/* Download zip */}
                   <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs hidden md:inline-flex" onClick={handleDownloadZip}>
                     <Download className="h-3 w-3" />
@@ -621,6 +668,33 @@ const CodeReview: React.FC = () => {
                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">AI Summary</p>
                             <p className="text-xs md:text-sm leading-relaxed text-foreground/80">{editSummary}</p>
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Auto-PR success banner */}
+                    {prUrl && (
+                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/20 p-3 md:p-4 mb-3 md:mb-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-xs md:text-sm font-medium text-emerald-800 dark:text-emerald-300">
+                                Pull request created automatically
+                              </p>
+                              <p className="text-[10px] md:text-xs text-emerald-600/80 dark:text-emerald-400/60">
+                                PR #{prNumber} is ready for review
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="gap-1.5 h-7 bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+                            onClick={() => window.open(prUrl, '_blank')}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span className="text-xs">View PR</span>
+                          </Button>
                         </div>
                       </div>
                     )}
