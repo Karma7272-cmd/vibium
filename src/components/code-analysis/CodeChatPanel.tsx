@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, Plus, FolderTree, FileCode, Plug, Check as CheckIcon } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Loader2, Sparkles, Plus, FolderTree, FileCode, Plug, Check as CheckIcon, RefreshCw, FileEdit } from "lucide-react";
 
 type Scope = 'project' | 'file';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  updatedFiles?: string[];
 }
 
 interface CodeFile {
@@ -28,6 +30,14 @@ interface CodeChatPanelProps {
   onAttachFiles?: () => void;
 }
 
+const stripCodeBlocks = (text: string): string => {
+  return text
+    .replace(/(?:File:\s*|filename:\s*|File name:\s*|---\s*)[^\n]+?\s*(?:---\s*)?\n```[\w]*\n[\s\S]*?\n```/gi, '')
+    .replace(/```[\w]*\n[\s\S]*?\n```/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
 export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, onAttachFiles }: CodeChatPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -35,6 +45,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
   const [scope, setScope] = useState<Scope>('project');
   const [connectors, setConnectors] = useState<Array<{ connector_id: string; status: string }>>([]);
   const [enabledConnectors, setEnabledConnectors] = useState<string[]>([]);
+  const [autoApplied, setAutoApplied] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -53,6 +64,33 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const extractAndApplyCode = useCallback((assistantContent: string): string[] => {
+    const updatedFileNames: string[] = [];
+
+    if (assistantContent.includes("```")) {
+      const filePattern = /(?:File:\s*|filename:\s*|File name:\s*|---\s*)([^\n]+?)\s*(?:---\s*)?\n```[\w]*\n([\s\S]*?)\n```/gi;
+      let match;
+
+      while ((match = filePattern.exec(assistantContent)) !== null) {
+        const fileName = match[1].trim();
+        const codeContent = match[2];
+
+        if (codeContent.length > 50) {
+          const pool = scope === 'file' && selectedFile
+            ? allFiles.filter(f => f.name === selectedFile.name)
+            : allFiles;
+          const matchingFile = pool.find(f => f.name.includes(fileName) || fileName.includes(f.name));
+          if (matchingFile) {
+            onFileUpdate(matchingFile.name, codeContent);
+            updatedFileNames.push(matchingFile.name);
+          }
+        }
+      }
+    }
+
+    return updatedFileNames;
+  }, [allFiles, onFileUpdate, scope, selectedFile]);
 
   const streamChat = async (userMessage: string) => {
     setIsLoading(true);
@@ -95,7 +133,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
         setMessages(prev => {
           const last = prev[prev.length - 1];
           if (last?.role === 'assistant') {
-            return prev.map((m, i) => 
+            return prev.map((m, i) =>
               i === prev.length - 1 ? { ...m, content } : m
             );
           }
@@ -134,35 +172,23 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
         }
       }
 
-      // Check if the response contains code that should update files
-      if (assistantContent.includes("```")) {
-        const filePattern = /(?:File:\s*|filename:\s*|File name:\s*|---\s*)([^\n]+?)\s*(?:---\s*)?\n```[\w]*\n([\s\S]*?)\n```/gi;
-        let match;
-        let updatedFiles = 0;
-        
-        while ((match = filePattern.exec(assistantContent)) !== null) {
-          const fileName = match[1].trim();
-          const codeContent = match[2];
-          
-          if (codeContent.length > 50) {
-            const pool = scope === 'file' && selectedFile
-              ? allFiles.filter(f => f.name === selectedFile.name)
-              : allFiles;
-            const matchingFile = pool.find(f => f.name.includes(fileName) || fileName.includes(f.name));
-            if (matchingFile) {
-              onFileUpdate(matchingFile.name, codeContent);
-              updatedFiles++;
-            }
-          }
-        }
-        
-        if (updatedFiles > 0) {
-          toast({
-            title: "Code Updated",
-            description: `Updated ${updatedFiles} file${updatedFiles > 1 ? 's' : ''} with AI suggestions.`,
-          });
-        }
+      const updatedFileNames = extractAndApplyCode(assistantContent);
+
+      if (updatedFileNames.length > 0) {
+        setAutoApplied(prev => [...prev, ...updatedFileNames]);
+        toast({
+          title: "Files auto-updated",
+          description: `Applied changes to ${updatedFileNames.length} file${updatedFileNames.length > 1 ? 's' : ''}.`,
+        });
       }
+
+      setMessages(prev =>
+        prev.map((m, i) =>
+          i === prev.length - 1 && m.role === 'assistant'
+            ? { ...m, updatedFiles: updatedFileNames }
+            : m
+        )
+      );
 
     } catch (error: any) {
       console.error('Chat error:', error);
@@ -192,6 +218,44 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
   const handleNewChat = () => {
     setMessages([]);
     setInput("");
+    setAutoApplied([]);
+  };
+
+  const renderMessageContent = (msg: Message) => {
+    if (msg.role === 'user') {
+      return (
+        <p className="text-xs font-medium whitespace-pre-wrap break-words leading-relaxed">
+          {msg.content}
+        </p>
+      );
+    }
+
+    const cleanContent = stripCodeBlocks(msg.content);
+    const hasUpdates = msg.updatedFiles && msg.updatedFiles.length > 0;
+
+    return (
+      <div className="space-y-2">
+        {cleanContent && (
+          <p className="text-xs font-medium whitespace-pre-wrap break-words leading-relaxed">
+            {cleanContent}
+          </p>
+        )}
+        {hasUpdates && (
+          <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-border/40">
+            <FileEdit className="h-3 w-3 text-emerald-400 shrink-0" />
+            <span className="text-[10px] text-emerald-400 font-medium">Auto-applied to:</span>
+            {msg.updatedFiles!.map(f => (
+              <Badge key={f} variant="secondary" className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                {f.split('/').pop()}
+              </Badge>
+            ))}
+          </div>
+        )}
+        {!cleanContent && !hasUpdates && (
+          <p className="text-xs text-muted-foreground italic">Processing response...</p>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -255,14 +319,22 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
           </PopoverContent>
         </Popover>
       </div>
+
       {/* Scope context bar */}
-      <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-b border-border bg-muted/20 flex items-center gap-1.5 truncate">
-        {scope === 'project' ? (
-          <><FolderTree className="h-3 w-3" /> Whole project ({allFiles.length} files)</>
-        ) : selectedFile ? (
-          <><FileCode className="h-3 w-3" /> <span className="font-mono truncate">{selectedFile.name}</span></>
-        ) : (
-          <>No file selected</>
+      <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-b border-border bg-muted/20 flex items-center justify-between gap-1.5">
+        <div className="flex items-center gap-1.5 truncate">
+          {scope === 'project' ? (
+            <><FolderTree className="h-3 w-3" /> Whole project ({allFiles.length} files)</>
+          ) : selectedFile ? (
+            <><FileCode className="h-3 w-3" /> <span className="font-mono truncate">{selectedFile.name}</span></>
+          ) : (
+            <>No file selected</>
+          )}
+        </div>
+        {autoApplied.length > 0 && (
+          <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shrink-0">
+            {autoApplied.length} file{autoApplied.length !== 1 ? 's' : ''} updated
+          </Badge>
         )}
       </div>
 
@@ -270,14 +342,20 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
       <ScrollArea className="flex-1" ref={scrollRef}>
         <div className="p-3">
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Sparkles className="h-8 w-8 text-muted-foreground/40 mb-3" />
-              <p className="text-xs text-muted-foreground">
-                Ask about your code
-              </p>
+            <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl" />
+                <Sparkles className="h-8 w-8 text-muted-foreground/40 relative" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-foreground/70">Ask AI to edit your code</p>
+                <p className="text-[10px] text-muted-foreground/50 max-w-[200px]">
+                  Describe changes and they&apos;ll be applied automatically to your files
+                </p>
+              </div>
             </div>
           )}
-          
+
           <div className="space-y-3">
             {messages.map((msg, i) => (
               <div
@@ -291,9 +369,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
                       : 'bg-muted'
                   }`}
                 >
-                  <p className="text-xs font-medium whitespace-pre-wrap break-words leading-relaxed">
-                    {msg.content}
-                  </p>
+                  {renderMessageContent(msg)}
                 </Card>
               </div>
             ))}
@@ -302,7 +378,10 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
           {isLoading && messages[messages.length - 1]?.role === 'user' && (
             <div className="flex justify-start mt-3">
               <Card className="bg-muted p-2.5 shadow-none">
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                  <span className="text-[10px] text-muted-foreground">Generating & applying changes...</span>
+                </div>
               </Card>
             </div>
           )}
@@ -316,21 +395,37 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder={scope === 'file' && selectedFile
+              ? `Describe changes to ${selectedFile.name.split('/').pop()}...`
+              : "Describe code changes to generate or edit..."
+            }
             className="w-full min-h-[100px] max-h-[200px] resize-none text-sm bg-transparent px-3 pt-3 pb-12 outline-none placeholder:text-muted-foreground/50"
             disabled={isLoading}
             rows={4}
           />
           <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onAttachFiles}
-              className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
-              title="Attach file (ZIP, image, file)"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onAttachFiles}
+                className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+                title="Attach file (ZIP, image, file)"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+              {messages.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleNewChat}
+                  className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+                  title="New chat"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
             <Button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
