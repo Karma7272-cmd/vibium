@@ -181,43 +181,43 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
         </div>
       </CardHeader>
       <CardContent>
-        <div className="h-[500px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+        <div className="h-[500px] overflow-y-auto pr-1 sm:pr-4 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
           <div className="space-y-2">
             {filteredRepos.length > 0 ? (
               filteredRepos.map((repo) => (
-              <Card key={repo.id} className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold truncate">{repo.name}</h3>
+              <Card key={repo.id} className="p-3 sm:p-4">
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-sm sm:text-base break-words">{repo.name}</h3>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
                       {repo.private ? (
-                        <Badge variant="secondary" className="shrink-0">
+                        <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0.5">
                           <Lock className="h-3 w-3 mr-1" />
                           Private
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="shrink-0">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5 py-0.5">
                           <Globe className="h-3 w-3 mr-1" />
                           Public
                         </Badge>
                       )}
-                    </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                      {repo.description || "No description"}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <GitBranch className="h-3 w-3" />
-                      {repo.default_branch}
+                      <Button size="sm" className="h-7 text-xs" onClick={() => importRepo(repo)} disabled={importing !== null}>
+                        {importing === repo.id ? (
+                          <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Importing</>
+                        ) : (
+                          "Import"
+                        )}
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Button size="sm" onClick={() => importRepo(repo)} disabled={importing !== null}>
-                      {importing === repo.id ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importing</>
-                      ) : (
-                        "Import"
-                      )}
-                    </Button>
+                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+                    {repo.description || "No description"}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <GitBranch className="h-3 w-3" />
+                    {repo.default_branch}
                   </div>
                 </div>
                 {importing === repo.id && (
