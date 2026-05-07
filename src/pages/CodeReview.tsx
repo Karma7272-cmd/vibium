@@ -70,6 +70,7 @@ const CodeReview: React.FC = () => {
 
   const [edits, setEdits] = useState<EditFile[]>([]);
   const [editSummary, setEditSummary] = useState('');
+  const [repoFiles, setRepoFiles] = useState<{ path: string; content: string }[]>([]);
   const [repoBranch, setRepoBranch] = useState<string>('main');
   const [canPush, setCanPush] = useState(false);
 
@@ -154,6 +155,8 @@ const CodeReview: React.FC = () => {
         15,
       );
       const cleaned = files.filter((f: { path: string; content: string } | null) => f && f.content !== null);
+
+      setRepoFiles(cleaned);
 
       setStageMsg('AI is analyzing and editing\u2026');
       const { data, error } = await supabase.functions.invoke('analyze-and-edit', {
@@ -243,14 +246,36 @@ const CodeReview: React.FC = () => {
     if (payload?.mode === 'generate') {
       return genFiles.map(f => ({ name: f.path, content: f.content, language: langFromPath(f.path) }));
     }
-    return edits.map(e => ({ name: e.path, content: e.after, language: langFromPath(e.path) }));
-  }, [payload?.mode, genFiles, edits]);
+    const editedPaths = new Set(edits.map(e => e.path));
+    const editedFiles = edits.map(e => ({ name: e.path, content: e.after, language: langFromPath(e.path) }));
+    const untouchedFiles = repoFiles
+      .filter(f => !editedPaths.has(f.path))
+      .map(f => ({ name: f.path, content: f.content, language: langFromPath(f.path) }));
+    return [...editedFiles, ...untouchedFiles];
+  }, [payload?.mode, genFiles, edits, repoFiles]);
 
   const handleFileUpdate = (fileName: string, newContent: string) => {
     if (payload?.mode === 'generate') {
-      setGenFiles(prev => prev.map(f => f.path === fileName ? { ...f, content: newContent } : f));
+      const exists = genFiles.some(f => f.path === fileName);
+      if (exists) {
+        setGenFiles(prev => prev.map(f => f.path === fileName ? { ...f, content: newContent } : f));
+      } else {
+        setGenFiles(prev => [...prev, { path: fileName, content: newContent }]);
+      }
     } else {
-      setEdits(prev => prev.map(e => e.path === fileName ? { ...e, after: newContent } : e));
+      const existing = edits.find(e => e.path === fileName);
+      if (existing) {
+        setEdits(prev => prev.map(e => e.path === fileName ? { ...e, after: newContent } : e));
+      } else {
+        const repoFile = repoFiles.find(f => f.path === fileName);
+        setEdits(prev => [...prev, {
+          path: fileName,
+          action: repoFile ? 'edit' : 'create',
+          before: repoFile?.content || '',
+          after: newContent,
+          note: 'Modified via AI chat',
+        }]);
+      }
     }
     toast({ title: 'File updated', description: fileName });
   };
@@ -259,7 +284,12 @@ const CodeReview: React.FC = () => {
     ? { name: activeGen.path, content: activeGen.content }
     : activeEdit
       ? { name: activeEdit.path, content: activeEdit.after }
-      : null;
+      : activePath
+        ? (() => {
+            const rf = repoFiles.find(f => f.path === activePath);
+            return rf ? { name: rf.path, content: rf.content } : null;
+          })()
+        : null;
 
   const filteredEdits = useMemo(() => {
     if (!filterText) return edits;
