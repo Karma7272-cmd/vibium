@@ -65,6 +65,110 @@ const SCHEMA = {
   required: ["project_name", "description", "stack", "files", "database_schema", "env_vars"],
 };
 
+const MAX_RETRIES = 2;
+const RETRY_DELAYS = [2000, 4000];
+
+async function callGemini(prompt: string, apiKey: string): Promise<Record<string, unknown>> {
+  const systemPrompt = `You are an expert full-stack engineer. Given a user request, generate a COMPLETE working project scaffold.
+
+Rules:
+- Infer the most appropriate language/framework from the user's prompt.
+- Produce both frontend AND backend when applicable.
+- Include README.md, package manifest, and .gitignore.
+- Each file's content must be complete and runnable — no placeholders.
+- Keep total files reasonable (5-20).
+- If persistence is needed, design a relational schema, emit database_schema and include a SQL migration file.
+- Always emit env_vars listing every env var used and include a .env.example file.
+- If no DB needed, return database_schema as { "tables": [] }.
+- Respond ONLY with a single JSON object matching the required schema. No prose, no markdown fences.`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+  let lastError: string = "Unknown error";
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt - 1]));
+      console.log(`Retry attempt ${attempt}/${MAX_RETRIES}`);
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: SCHEMA,
+            temperature: 0.4,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("Gemini error:", response.status, t);
+
+        if (response.status === 429) {
+          lastError = "Rate limit exceeded. Please wait a moment and try again.";
+          continue;
+        }
+        if (response.status === 503 || response.status === 500) {
+          lastError = "AI service temporarily unavailable. Retrying…";
+          continue;
+        }
+        lastError = `Gemini API error (${response.status})`;
+        break;
+      }
+
+      const data = await response.json();
+
+      const candidate = data.candidates?.[0];
+      if (!candidate) {
+        const blockReason = data.promptFeedback?.blockReason;
+        if (blockReason) {
+          lastError = `Request was blocked by safety filters (${blockReason}). Try rephrasing your prompt.`;
+          break;
+        }
+        lastError = "No response generated. Try rephrasing your prompt.";
+        continue;
+      }
+
+      const finishReason = candidate.finishReason;
+      if (finishReason === "SAFETY") {
+        lastError = "Response was blocked by safety filters. Try rephrasing your prompt.";
+        break;
+      }
+      if (finishReason === "RECITATION") {
+        lastError = "Response was blocked due to recitation policy. Try a different prompt.";
+        break;
+      }
+
+      const text = candidate.content?.parts?.[0]?.text;
+      if (!text || text.trim().length === 0) {
+        lastError = "Empty response from AI. Retrying…";
+        continue;
+      }
+
+      try {
+        return JSON.parse(text) as Record<string, unknown>;
+      } catch {
+        console.error("JSON parse failed, raw text:", text.slice(0, 500));
+        lastError = "AI returned malformed output. Retrying…";
+        continue;
+      }
+    } catch (e) {
+      console.error("Fetch error:", e);
+      lastError = e instanceof Error ? e.message : "Network error contacting AI service";
+      if (attempt < MAX_RETRIES) continue;
+    }
+  }
+
+  throw new Error(lastError);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -79,59 +183,19 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
-    const systemPrompt = `You are an expert full-stack engineer. Given a user request, generate a COMPLETE working project scaffold.
+    const result = await callGemini(prompt, GEMINI_API_KEY);
 
-Rules:
-- Infer the most appropriate language/framework from the user's prompt.
-- Produce both frontend AND backend when applicable.
-- Include README.md, package manifest, and .gitignore.
-- Each file's content must be complete and runnable — no placeholders.
-- Keep total files reasonable (5-20).
-- If persistence is needed, design a relational schema, emit database_schema and include a SQL migration file.
-- Always emit env_vars listing every env var used and include a .env.example file.
-- If no DB needed, return database_schema as { "tables": [] }.
-- Respond ONLY with a single JSON object matching the required schema. No prose, no markdown fences.`;
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: SCHEMA,
-          temperature: 0.4,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const t = await response.text();
-      console.error("Gemini error:", response.status, t);
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded on Gemini API." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: `Gemini API error: ${response.status}` }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!result.files || !Array.isArray(result.files) || result.files.length === 0) {
+      throw new Error("AI did not generate any files. Try a more specific prompt.");
     }
 
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error("Empty response from Gemini");
-    const args = JSON.parse(text);
-
-    return new Response(JSON.stringify(args), {
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("generate-project error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

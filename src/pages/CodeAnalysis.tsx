@@ -334,12 +334,23 @@ const CodeAnalysis: React.FC = () => {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-project', { body: { prompt: usedPrompt } });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error) {
+        let msg = 'Generation failed';
+        try {
+          const body = error.context ? await error.context.json() : null;
+          if (body?.error) msg = body.error;
+          else if (error.message) msg = error.message;
+        } catch {
+          if (error.message) msg = error.message;
+        }
+        throw new Error(msg);
+      }
+      if (!data) throw new Error('No response from server. Please try again.');
+      if (data.error) throw new Error(data.error);
       const files: CodeFile[] = (data.files || []).map((f: any) => ({
         name: f.path, content: f.content, language: getLanguageFromFilename(f.path),
       }));
-      if (files.length === 0) throw new Error('No files generated');
+      if (files.length === 0) throw new Error('No files were generated. Try a more specific prompt.');
       setCodeFiles(files);
       setSelectedFile(files[0]);
       setOpenTabs([files[0]]);
@@ -393,7 +404,7 @@ const CodeAnalysis: React.FC = () => {
         }
       }
     } catch (e: any) {
-      toast({ title: 'Generation failed', description: e.message || String(e), variant: 'destructive' });
+      toast({ title: 'Generation failed', description: e.message || 'Something went wrong. Please try again.', variant: 'destructive' });
     } finally { setIsGenerating(false); }
   };
 
