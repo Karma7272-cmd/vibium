@@ -111,7 +111,18 @@ const CodeReview: React.FC = () => {
     try {
       setStageMsg('Generating full-stack code\u2026');
       const { data, error } = await supabase.functions.invoke('generate-project', { body: { prompt } });
-      if (error) throw error;
+      if (error) {
+        let msg = 'Generation failed';
+        try {
+          const body = (error as any).context ? await (error as any).context.json() : null;
+          if (body?.error) msg = body.error;
+          else if (error.message) msg = error.message;
+        } catch {
+          if (error.message) msg = error.message;
+        }
+        throw new Error(msg);
+      }
+      if (!data) throw new Error('No response from server. Please try again.');
       if (data.error) throw new Error(data.error);
       setGenFiles(data.files);
       setGenMeta({ project_name: data.project_name, description: data.description, stack: data.stack });
@@ -120,7 +131,7 @@ const CodeReview: React.FC = () => {
       setNewRepoName(data.project_name);
       setActivePath(data.files[0]?.path || null);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Unknown error';
+      const msg = e instanceof Error ? e.message : 'Something went wrong. Please try again.';
       toast({ title: 'Generation failed', description: msg, variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -166,7 +177,18 @@ const CodeReview: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('analyze-and-edit', {
         body: { prompt, files: cleaned },
       });
-      if (error) throw error;
+      if (error) {
+        let msg = 'Analysis failed';
+        try {
+          const body = (error as any).context ? await (error as any).context.json() : null;
+          if (body?.error) msg = body.error;
+          else if (error.message) msg = error.message;
+        } catch {
+          if (error.message) msg = error.message;
+        }
+        throw new Error(msg);
+      }
+      if (!data) throw new Error('No response from server. Please try again.');
       if (data.error) throw new Error(data.error);
 
       const editsList: EditFile[] = data.edits || [];

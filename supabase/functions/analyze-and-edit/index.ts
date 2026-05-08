@@ -27,6 +27,9 @@ const SCHEMA = {
   required: ["summary", "edits"],
 };
 
+const MAX_RETRIES = 2;
+const RETRY_DELAYS = [2000, 4000];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -64,47 +67,105 @@ Repository contents:
 ${context}`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: SCHEMA,
-          temperature: 0.3,
-        },
-      }),
-    });
 
-    if (!response.ok) {
-      const t = await response.text();
-      console.error("Gemini error:", response.status, t);
-      return new Response(JSON.stringify({ error: `Gemini API error: ${response.status}` }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let lastError = "Unknown error";
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt - 1]));
+        console.log(`Retry attempt ${attempt}/${MAX_RETRIES}`);
+      }
+
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: "application/json",
+              responseSchema: SCHEMA,
+              temperature: 0.3,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          const t = await response.text();
+          console.error("Gemini error:", response.status, t);
+          if (response.status === 429) {
+            lastError = "Rate limit exceeded. Please wait a moment and try again.";
+            continue;
+          }
+          if (response.status === 503 || response.status === 500) {
+            lastError = "AI service temporarily unavailable. Retrying…";
+            continue;
+          }
+          lastError = `Gemini API error (${response.status})`;
+          break;
+        }
+
+        const data = await response.json();
+
+        const candidate = data.candidates?.[0];
+        if (!candidate) {
+          const blockReason = data.promptFeedback?.blockReason;
+          if (blockReason) {
+            lastError = `Request was blocked by safety filters (${blockReason}). Try rephrasing your prompt.`;
+            break;
+          }
+          lastError = "No response generated. Try rephrasing your prompt.";
+          continue;
+        }
+
+        const finishReason = candidate.finishReason;
+        if (finishReason === "SAFETY") {
+          lastError = "Response was blocked by safety filters. Try rephrasing your prompt.";
+          break;
+        }
+        if (finishReason === "RECITATION") {
+          lastError = "Response was blocked due to recitation policy. Try a different prompt.";
+          break;
+        }
+
+        const text = candidate.content?.parts?.[0]?.text;
+        if (!text || text.trim().length === 0) {
+          lastError = "Empty response from AI. Retrying…";
+          continue;
+        }
+
+        let args: Record<string, unknown>;
+        try {
+          args = JSON.parse(text);
+        } catch {
+          console.error("JSON parse failed, raw text:", text.slice(0, 500));
+          lastError = "AI returned malformed output. Retrying…";
+          continue;
+        }
+
+        const fileMap = new Map<string, string>();
+        for (const f of files) fileMap.set(f.path || f.name, f.content || "");
+        (args as any).edits = ((args as any).edits || []).map((e: any) => ({
+          ...e,
+          before: e.action === "create" ? "" : (fileMap.get(e.path) ?? e.before ?? ""),
+        }));
+
+        return new Response(JSON.stringify(args), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        console.error("Fetch error:", e);
+        lastError = e instanceof Error ? e.message : "Network error contacting AI service";
+        if (attempt < MAX_RETRIES) continue;
+      }
     }
 
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error("Empty response from Gemini");
-    const args = JSON.parse(text);
-
-    const fileMap = new Map<string, string>();
-    for (const f of files) fileMap.set(f.path || f.name, f.content || "");
-    args.edits = (args.edits || []).map((e: any) => ({
-      ...e,
-      before: e.action === "create" ? "" : (fileMap.get(e.path) ?? e.before ?? ""),
-    }));
-
-    return new Response(JSON.stringify(args), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    throw new Error(lastError);
   } catch (e) {
     console.error("analyze-and-edit error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
