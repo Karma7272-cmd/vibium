@@ -19,14 +19,15 @@ import {
   GitBranch,
   Upload,
   FilePlus,
-  FolderPlus, ArrowUp, GitPullRequest, Sparkles,
+  FolderPlus, ArrowUp, GitPullRequest, Sparkles, Lock, ExternalLink, CheckCircle2,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GitHubRepoSelector } from '@/components/code-analysis/GitHubRepoSelector';
 import { FileTreeView } from '@/components/code-analysis/FileTreeView';
 import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
-import { setGitHubToken, commitAndPush, createPullRequest, createBranch } from '@/services/githubService';
+import { setGitHubToken, commitAndPush, createPullRequest, createBranch, createRepo } from '@/services/githubService';
+import { Switch } from '@/components/ui/switch';
 import Editor from '@monaco-editor/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import JSZip from 'jszip';
@@ -73,6 +74,10 @@ const CodeAnalysis: React.FC = () => {
   const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'code'>('code');
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showPushGenDialog, setShowPushGenDialog] = useState(false);
+  const [newRepoName, setNewRepoName] = useState('');
+  const [isPrivateRepo, setIsPrivateRepo] = useState(false);
+  const [pushedRepoUrl, setPushedRepoUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const { actualTheme } = useTheme();
   const isGitHubAuthenticated = !!githubToken;
@@ -328,6 +333,34 @@ const CodeAnalysis: React.FC = () => {
     }
   };
 
+  const handlePushGeneratedFiles = async () => {
+    if (!codeFiles.length || !newRepoName.trim()) return;
+    const token = localStorage.getItem('github_access_token');
+    if (!token) {
+      toast({ title: 'GitHub not connected', description: 'Sign in with GitHub first.', variant: 'destructive' });
+      return;
+    }
+    setGitHubToken(token);
+    try {
+      setIsPushing(true);
+      const repo = await createRepo(newRepoName.trim(), '', isPrivateRepo);
+      await commitAndPush(
+        repo.owner, repo.name, repo.default_branch,
+        codeFiles.map(f => ({ path: f.name, content: f.content })),
+        `Initial commit via Vibium AI`,
+      );
+      setPushedRepoUrl(repo.html_url);
+      setShowPushGenDialog(false);
+      toast({ title: 'Repository created', description: `Pushed ${codeFiles.length} files to ${repo.owner}/${repo.name}` });
+      window.open(repo.html_url, '_blank');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Push failed';
+      toast({ title: 'Push failed', description: msg, variant: 'destructive' });
+    } finally {
+      setIsPushing(false);
+    }
+  };
+
   const handleAIGenerate = async (overridePrompt?: string, overrideRepo?: { owner: string; name: string } | null) => {
     const usedPrompt = (overridePrompt ?? aiPrompt).trim();
     if (!usedPrompt) return;
@@ -541,6 +574,29 @@ const CodeAnalysis: React.FC = () => {
                       {!isMobile && <span>Pull Request</span>}
                     </Button>
                   </div>
+                )}
+                {!repoInfo && codeFiles.length > 0 && isGitHubAuthenticated && (
+                  pushedRepoUrl ? (
+                    <Button
+                      size="sm"
+                      className="gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => window.open(pushedRepoUrl, '_blank')}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span className="text-xs">View Repo</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="gap-1.5 h-8"
+                      onClick={() => setShowPushGenDialog(true)}
+                      disabled={isPushing}
+                    >
+                      <Github className="h-3.5 w-3.5" />
+                      <span className="text-xs">Push to GitHub</span>
+                    </Button>
+                  )
                 )}
                 <Button
                   variant="ghost"
@@ -859,6 +915,37 @@ const CodeAnalysis: React.FC = () => {
             <Button variant="outline" onClick={() => setShowPRDialog(false)}>Cancel</Button>
             <Button onClick={handleCreatePR} disabled={isPushing || !prTitle.trim()}>
               {isPushing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</> : 'Create PR'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPushGenDialog} onOpenChange={setShowPushGenDialog}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Github className="h-5 w-5" />
+              Push to GitHub
+            </DialogTitle>
+            <DialogDescription>
+              Create a new repository and push {codeFiles.length} generated file(s).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="repo-name">Repository name</Label>
+              <Input id="repo-name" value={newRepoName} onChange={(e) => setNewRepoName(e.target.value)} placeholder="my-project" />
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Switch checked={isPrivateRepo} onCheckedChange={setIsPrivateRepo} className="h-4 w-7" />
+              <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Private repository</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPushGenDialog(false)}>Cancel</Button>
+            <Button onClick={handlePushGeneratedFiles} disabled={isPushing || !newRepoName.trim()} className="gap-1.5">
+              {isPushing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Pushing...</> : <><Upload className="h-4 w-4" />Create & Push</>}
             </Button>
           </DialogFooter>
         </DialogContent>
