@@ -10,6 +10,7 @@ import { BarChart3, Plus, Copy, Trash2, Eye, Globe, Activity, Users } from 'luci
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import Editor from '@monaco-editor/react';
 
 interface Site { id: string; tracking_id: string; name: string; domain: string; created_at: string; }
 interface Event { id: string; path: string | null; referrer: string | null; user_agent: string | null; created_at: string; }
@@ -161,7 +162,27 @@ const Analytics: React.FC = () => {
                       </CardHeader>
                       <CardContent>
                         <p className="text-xs text-muted-foreground mb-3">Paste this just before <code className="bg-muted px-1 rounded">&lt;/body&gt;</code> on every page of <strong>{selected.domain}</strong>.</p>
-                        <pre className="bg-muted/40 border rounded-lg p-3 overflow-auto text-[11px] font-mono max-h-64">{snippet}</pre>
+                        <div className="border rounded-lg overflow-hidden" style={{ height: 260 }}>
+                          <Editor
+                            height="260px"
+                            defaultLanguage="html"
+                            value={snippet}
+                            options={{
+                              readOnly: true,
+                              minimap: { enabled: false },
+                              scrollBeyondLastLine: false,
+                              wordWrap: 'on',
+                              fontSize: 12,
+                              lineNumbers: 'on',
+                              folding: false,
+                              renderLineHighlight: 'none',
+                              overviewRulerLanes: 0,
+                              hideCursorInOverviewRuler: true,
+                              scrollbar: { vertical: 'auto', horizontal: 'auto' },
+                            }}
+                            theme="vs-dark"
+                          />
+                        </div>
                       </CardContent>
                     </Card>
 
