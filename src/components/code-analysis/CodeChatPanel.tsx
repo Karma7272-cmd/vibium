@@ -119,6 +119,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
               : allFiles,
             scope,
             connectors: enabledConnectors,
+            provider,
           }),
         }
       );
