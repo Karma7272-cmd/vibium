@@ -46,6 +46,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
   const [connectors, setConnectors] = useState<Array<{ connector_id: string; status: string }>>([]);
   const [enabledConnectors, setEnabledConnectors] = useState<string[]>([]);
   const [autoApplied, setAutoApplied] = useState<string[]>([]);
+  const [provider, setProvider] = useState<'gemini' | 'openai' | 'anthropic'>('gemini');
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -54,6 +55,10 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
       if (data) setConnectors(data as any);
     });
   }, []);
+
+  const availableProviders = (['gemini', 'openai', 'anthropic'] as const).filter(p =>
+    p === 'gemini' || connectors.some(c => c.connector_id === p)
+  );
 
   const toggleConnector = (id: string) => {
     setEnabledConnectors(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
