@@ -296,6 +296,17 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
             <FileCode className="h-3 w-3" /> File
           </button>
         </div>
+        {/* Provider selector */}
+        <select
+          value={provider}
+          onChange={(e) => setProvider(e.target.value as any)}
+          className="text-[10px] rounded-full border border-border bg-muted/40 px-2 py-1 outline-none"
+          title="AI provider (uses your stored API key)"
+        >
+          {availableProviders.map(p => (
+            <option key={p} value={p}>{p === 'gemini' ? 'Gemini' : p === 'openai' ? 'OpenAI' : 'Anthropic'}</option>
+          ))}
+        </select>
         {/* Connector picker */}
         <Popover>
           <PopoverTrigger asChild>
