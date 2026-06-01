@@ -5,3 +5,7 @@ verify_jwt = false
 
 [functions.analytics-ingest]
 verify_jwt = false
+
+[functions.deploy-info]
+verify_jwt = false
+

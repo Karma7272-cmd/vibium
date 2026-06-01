@@ -31,6 +31,8 @@ import Auth from "./pages/Auth";
 import Security from "./pages/Security";
 import Pricing from "./pages/Pricing";
 import Connectors from "./pages/Connectors";
+import Deployments from "./pages/Deployments";
+import TerminalPage from "./pages/Terminal";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +52,8 @@ const App = () => (
                   <Route path="/security" element={<Security />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/connectors" element={<Connectors />} />
+                  <Route path="/deployments" element={<Deployments />} />
+                  <Route path="/terminal" element={<TerminalPage />} />
                   <Route path="/pending-request" element={<PendingRequest />} />
                   <Route path="/network" element={<Index />} />
                   <Route path="/operators" element={<Operators />} />
