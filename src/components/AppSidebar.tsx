@@ -19,6 +19,8 @@ import {
   Zap,
   Globe,
   Activity,
+  Rocket,
+  TerminalSquare,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -72,6 +74,8 @@ const menuGroups: MenuGroup[] = [
     items: [
       { id: 'security', label: 'Website Security', icon: Shield, isRoute: true },
       { id: 'connectors', label: 'Connectors', icon: Share2, isRoute: true },
+      { id: 'deployments', label: 'Deployments', icon: Rocket, isRoute: true },
+      { id: 'terminal', label: 'Web Terminal', icon: TerminalSquare, isRoute: true },
       { id: 'pricing', label: 'Pricing', icon: CreditCard, isRoute: true },
     ],
   },
@@ -104,6 +108,8 @@ const routeMap: Record<string, string> = {
   security: '/security',
   pricing: '/pricing',
   connectors: '/connectors',
+  deployments: '/deployments',
+  terminal: '/terminal',
   about: '/about',
   settings: '/settings',
 };
