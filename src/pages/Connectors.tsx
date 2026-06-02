@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '../components/Footer';
-import { Share2, Cloud, Zap, Triangle, Flame, Book, Mail, ListTodo, UserCheck, Server, CheckCircle2, Loader2, KeyRound, Trash2 } from 'lucide-react';
+import { Share2, Cloud, Zap, Triangle, Flame, Book, Mail, ListTodo, UserCheck, Server, CheckCircle2, Loader2, KeyRound, Trash2, Database } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,8 @@ const CONNECTORS = [
   { id: 'openai', name: 'OpenAI', description: 'GPT models, embeddings, and DALL·E.', icon: Zap, category: 'AI', help: 'platform.openai.com/api-keys' },
   { id: 'gemini', name: 'Google Gemini', description: 'Google Generative AI models.', icon: Zap, category: 'AI', help: 'aistudio.google.com/apikey' },
   { id: 'anthropic', name: 'Anthropic', description: 'Claude models for reasoning.', icon: Zap, category: 'AI', help: 'console.anthropic.com' },
+  { id: 'supabase', name: 'Supabase', description: 'Project URL + service role / anon key for generated projects.', icon: Database, category: 'Database', help: 'supabase.com/dashboard', placeholder: 'service_role or anon key' },
+  { id: 'neon', name: 'Neon', description: 'Serverless Postgres. Paste your Neon API key.', icon: Database, category: 'Database', help: 'console.neon.tech/app/settings/api-keys', placeholder: 'Neon API key' },
   { id: 'firecrawl', name: 'Firecrawl', description: 'AI-powered web scraping.', icon: Flame, category: 'Data', help: 'firecrawl.dev' },
   { id: 'resend', name: 'Resend', description: 'Email API for developers.', icon: Mail, category: 'Email', help: 'resend.com/api-keys' },
   { id: 'github', name: 'GitHub', description: 'Repos, issues, and pull requests.', icon: UserCheck, category: 'DevOps', help: 'github.com/settings/tokens' },

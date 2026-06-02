@@ -21,6 +21,7 @@ import {
   Activity,
   Rocket,
   TerminalSquare,
+  Workflow,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -76,6 +77,7 @@ const menuGroups: MenuGroup[] = [
       { id: 'connectors', label: 'Connectors', icon: Share2, isRoute: true },
       { id: 'deployments', label: 'Deployments', icon: Rocket, isRoute: true },
       { id: 'terminal', label: 'Web Terminal', icon: TerminalSquare, isRoute: true },
+      { id: 'pipelines', label: 'CI / CD Pipelines', icon: Workflow, isRoute: true },
       { id: 'pricing', label: 'Pricing', icon: CreditCard, isRoute: true },
     ],
   },
@@ -110,6 +112,7 @@ const routeMap: Record<string, string> = {
   connectors: '/connectors',
   deployments: '/deployments',
   terminal: '/terminal',
+  pipelines: '/pipelines',
   about: '/about',
   settings: '/settings',
 };
