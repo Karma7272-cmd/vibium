@@ -33,6 +33,7 @@ import Pricing from "./pages/Pricing";
 import Connectors from "./pages/Connectors";
 import Deployments from "./pages/Deployments";
 import TerminalPage from "./pages/Terminal";
+import Pipelines from "./pages/Pipelines";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ const App = () => (
                   <Route path="/connectors" element={<Connectors />} />
                   <Route path="/deployments" element={<Deployments />} />
                   <Route path="/terminal" element={<TerminalPage />} />
+                  <Route path="/pipelines" element={<Pipelines />} />
                   <Route path="/pending-request" element={<PendingRequest />} />
                   <Route path="/network" element={<Index />} />
                   <Route path="/operators" element={<Operators />} />

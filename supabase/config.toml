@@ -9,3 +9,7 @@ verify_jwt = false
 [functions.deploy-info]
 verify_jwt = false
 
+[functions.terminal-ai]
+verify_jwt = false
+
+

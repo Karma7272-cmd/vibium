@@ -4,10 +4,13 @@ import AppSidebar from '../components/AppSidebar';
 import Footer from '../components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Loader2, Play, Square, TerminalSquare, AlertTriangle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Play, Square, TerminalSquare, AlertTriangle, Sparkles, ChevronRight } from 'lucide-react';
 import { WebContainer } from '@webcontainer/api';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import '@xterm/xterm/css/xterm.css';
 
 const STARTER_FILES = {
@@ -40,6 +43,11 @@ const TerminalPage: React.FC = () => {
   const shellWriterRef = useRef<WritableStreamDefaultWriter<string> | null>(null);
   const [status, setStatus] = useState<'idle' | 'booting' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string>('');
+  const [aiGoal, setAiGoal] = useState('');
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiCommands, setAiCommands] = useState<string[]>([]);
+  const [aiExplanation, setAiExplanation] = useState('');
+  const { toast } = useToast();
 
   const isIsolated = typeof window !== 'undefined' && (window as any).crossOriginIsolated;
 
@@ -100,6 +108,33 @@ const TerminalPage: React.FC = () => {
     setStatus('idle');
   };
 
+  const askAI = async () => {
+    if (!aiGoal.trim()) return;
+    setAiBusy(true); setAiCommands([]); setAiExplanation('');
+    try {
+      let files: string[] = [];
+      try {
+        const ls = await wcRef.current?.fs.readdir('/');
+        if (ls) files = ls;
+      } catch { /* not booted */ }
+      const { data, error } = await supabase.functions.invoke('terminal-ai', { body: { goal: aiGoal, cwd_files: files } });
+      if (error) throw error;
+      setAiCommands(data?.commands || []);
+      setAiExplanation(data?.explanation || '');
+    } catch (e: any) {
+      toast({ title: 'AI error', description: e.message || String(e), variant: 'destructive' });
+    } finally { setAiBusy(false); }
+  };
+
+  const runCommand = async (cmd: string) => {
+    if (status !== 'ready' || !shellWriterRef.current) {
+      toast({ title: 'Terminal not running', description: 'Boot the terminal first.', variant: 'destructive' });
+      return;
+    }
+    await shellWriterRef.current.write(cmd + '\n');
+  };
+  const runAll = async () => { for (const c of aiCommands) await runCommand(c); };
+
   return (
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar activeSection="" onSectionChange={() => {}} />
@@ -143,6 +178,30 @@ const TerminalPage: React.FC = () => {
             </div>
 
             {error && <Card className="p-3 border-destructive/40 bg-destructive/5 text-xs text-destructive">{error}</Card>}
+
+            <Card className="p-3 space-y-2 border-primary/30 bg-primary/5">
+              <div className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="h-4 w-4 text-primary" /> AI command helper</div>
+              <div className="flex gap-2">
+                <Input placeholder="e.g. install express and write a hello-world server" value={aiGoal} onChange={e => setAiGoal(e.target.value)} onKeyDown={e => e.key === 'Enter' && askAI()} />
+                <Button onClick={askAI} disabled={aiBusy || !aiGoal.trim()} className="gap-2">
+                  {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Suggest
+                </Button>
+              </div>
+              {aiExplanation && <p className="text-xs text-muted-foreground">{aiExplanation}</p>}
+              {aiCommands.length > 0 && (
+                <div className="space-y-1">
+                  {aiCommands.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-background rounded px-2 py-1 border border-border/60">
+                      <code className="flex-1 text-xs font-mono">{c}</code>
+                      <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => runCommand(c)}><ChevronRight className="h-3 w-3" />Run</Button>
+                    </div>
+                  ))}
+                  <div className="flex justify-end pt-1">
+                    <Button size="sm" variant="outline" onClick={runAll} disabled={status !== 'ready'}>Run all</Button>
+                  </div>
+                </div>
+              )}
+            </Card>
 
             <Card className="p-2 bg-[#0a0a0a]">
               <div ref={containerRef} className="h-[500px] w-full" />
