@@ -140,7 +140,7 @@ const Connectors: React.FC = () => {
               <DialogDescription>Paste your API key. We'll verify it with a live call before saving.</DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2">
-              <Input type="password" placeholder="API key" value={apiKey} onChange={(e) => setApiKey(e.target.value)} autoFocus />
+              <Input type="password" placeholder={(active as any)?.placeholder || 'API key'} value={apiKey} onChange={(e) => setApiKey(e.target.value)} autoFocus />
               {active?.help && <p className="text-[11px] text-muted-foreground">Get your key at <a className="underline" href={`https://${active.help}`} target="_blank" rel="noreferrer">{active.help}</a></p>}
             </div>
             <DialogFooter>

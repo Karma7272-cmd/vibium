@@ -4,10 +4,13 @@ import AppSidebar from '../components/AppSidebar';
 import Footer from '../components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Loader2, Play, Square, TerminalSquare, AlertTriangle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Play, Square, TerminalSquare, AlertTriangle, Sparkles, ChevronRight } from 'lucide-react';
 import { WebContainer } from '@webcontainer/api';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import '@xterm/xterm/css/xterm.css';
 
 const STARTER_FILES = {
@@ -40,6 +43,11 @@ const TerminalPage: React.FC = () => {
   const shellWriterRef = useRef<WritableStreamDefaultWriter<string> | null>(null);
   const [status, setStatus] = useState<'idle' | 'booting' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string>('');
+  const [aiGoal, setAiGoal] = useState('');
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiCommands, setAiCommands] = useState<string[]>([]);
+  const [aiExplanation, setAiExplanation] = useState('');
+  const { toast } = useToast();
 
   const isIsolated = typeof window !== 'undefined' && (window as any).crossOriginIsolated;
 
@@ -99,6 +107,33 @@ const TerminalPage: React.FC = () => {
     shellWriterRef.current = null;
     setStatus('idle');
   };
+
+  const askAI = async () => {
+    if (!aiGoal.trim()) return;
+    setAiBusy(true); setAiCommands([]); setAiExplanation('');
+    try {
+      let files: string[] = [];
+      try {
+        const ls = await wcRef.current?.fs.readdir('/');
+        if (ls) files = ls;
+      } catch { /* not booted */ }
+      const { data, error } = await supabase.functions.invoke('terminal-ai', { body: { goal: aiGoal, cwd_files: files } });
+      if (error) throw error;
+      setAiCommands(data?.commands || []);
+      setAiExplanation(data?.explanation || '');
+    } catch (e: any) {
+      toast({ title: 'AI error', description: e.message || String(e), variant: 'destructive' });
+    } finally { setAiBusy(false); }
+  };
+
+  const runCommand = async (cmd: string) => {
+    if (status !== 'ready' || !shellWriterRef.current) {
+      toast({ title: 'Terminal not running', description: 'Boot the terminal first.', variant: 'destructive' });
+      return;
+    }
+    await shellWriterRef.current.write(cmd + '\n');
+  };
+  const runAll = async () => { for (const c of aiCommands) await runCommand(c); };
 
   return (
     <div className="min-h-screen flex w-full bg-background">
