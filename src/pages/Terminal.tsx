@@ -179,6 +179,30 @@ const TerminalPage: React.FC = () => {
 
             {error && <Card className="p-3 border-destructive/40 bg-destructive/5 text-xs text-destructive">{error}</Card>}
 
+            <Card className="p-3 space-y-2 border-primary/30 bg-primary/5">
+              <div className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="h-4 w-4 text-primary" /> AI command helper</div>
+              <div className="flex gap-2">
+                <Input placeholder="e.g. install express and write a hello-world server" value={aiGoal} onChange={e => setAiGoal(e.target.value)} onKeyDown={e => e.key === 'Enter' && askAI()} />
+                <Button onClick={askAI} disabled={aiBusy || !aiGoal.trim()} className="gap-2">
+                  {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Suggest
+                </Button>
+              </div>
+              {aiExplanation && <p className="text-xs text-muted-foreground">{aiExplanation}</p>}
+              {aiCommands.length > 0 && (
+                <div className="space-y-1">
+                  {aiCommands.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-background rounded px-2 py-1 border border-border/60">
+                      <code className="flex-1 text-xs font-mono">{c}</code>
+                      <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => runCommand(c)}><ChevronRight className="h-3 w-3" />Run</Button>
+                    </div>
+                  ))}
+                  <div className="flex justify-end pt-1">
+                    <Button size="sm" variant="outline" onClick={runAll} disabled={status !== 'ready'}>Run all</Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+
             <Card className="p-2 bg-[#0a0a0a]">
               <div ref={containerRef} className="h-[500px] w-full" />
             </Card>
