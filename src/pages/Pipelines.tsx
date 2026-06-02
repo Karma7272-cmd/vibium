@@ -54,7 +54,7 @@ const Pipelines: React.FC = () => {
     if (!user) { toast({ title: 'Sign in required', variant: 'destructive' }); return; }
     const steps = parseSteps(stepsText);
     if (!name.trim() || steps.length === 0) { toast({ title: 'Add a name and at least one step', variant: 'destructive' }); return; }
-    const { error } = await supabase.from('pipelines').insert({ user_id: user.id, name: name.trim(), repo_full_name: repo.trim() || null, steps });
+    const { error } = await supabase.from('pipelines').insert([{ user_id: user.id, name: name.trim(), repo_full_name: repo.trim() || null, steps: steps as any }]);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     setCreating(false); setName(''); setRepo(''); setStepsText(DEFAULT_STEPS); load();
   };
