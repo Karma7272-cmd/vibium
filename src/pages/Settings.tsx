@@ -74,13 +74,7 @@ const Settings: React.FC = () => {
 
         <footer className="mt-8 text-center py-4 border-t border-border bg-background/80 dark:bg-background/20 backdrop-blur-sm">
           <p className="text-xs text-muted-foreground">
-            created with{' '}
-            <a 
-              href="/operator/npub1huggins123456789abcdef0123456789abcdef0123456789abcdef0123456789"
-              className="text-primary hover:text-accent transition-colors underline"
-            >
-              hugs
-            </a>
+            AI-powered code platform · settings
           </p>
         </footer>
       </SidebarInset>
