@@ -16,13 +16,7 @@ const Footer: React.FC<FooterProps> = ({ variant = 'regular', className = '' }) 
   return (
     <footer className={`${baseClasses} ${variantClasses} ${className}`}>
       <p className="text-xs text-muted-foreground">
-        created with{' '}
-        <Link 
-          to="/operator/npub1huggins123456789abcdef0123456789abcdef0123456789abcdef0123456789"
-          className="text-primary hover:text-accent transition-colors underline"
-        >
-          hugs
-        </Link>
+        Built with love · AI-powered code platform
       </p>
     </footer>
   );
