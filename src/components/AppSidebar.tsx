@@ -166,10 +166,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold leading-tight text-sidebar-foreground truncate">
-                Vibium Network
+                Vibium
               </p>
               <p className="text-[10px] text-sidebar-foreground/50 leading-tight truncate">
-                Edit code &amp; Test Network
+                AI Code Platform
               </p>
             </div>
           )}
