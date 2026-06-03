@@ -63,29 +63,28 @@ type MenuGroup = {
 
 const menuGroups: MenuGroup[] = [
   {
-    label: 'Workspace',
+    label: 'Build',
     items: [
-      { id: 'new-check', label: 'New Check', icon: Plus, isRoute: true },
+      { id: 'new-check', label: 'Generate', icon: Plus, isRoute: true },
       { id: 'code-analysis', label: 'Code AI', icon: FileCode, isRoute: true },
-      { id: 'analytics', label: 'Analytics', icon: BarChart3, isRoute: true },
-    ],
-  },
-  {
-    label: 'Tools',
-    items: [
-      { id: 'security', label: 'Website Security', icon: Shield, isRoute: true },
-      { id: 'connectors', label: 'Connectors', icon: Share2, isRoute: true },
-      { id: 'deployments', label: 'Deployments', icon: Rocket, isRoute: true },
-      { id: 'terminal', label: 'Web Terminal', icon: TerminalSquare, isRoute: true },
-      { id: 'pipelines', label: 'CI / CD Pipelines', icon: Workflow, isRoute: true },
-      { id: 'pricing', label: 'Pricing', icon: CreditCard, isRoute: true },
-    ],
-  },
-  {
-    label: 'Organize',
-    items: [
       { id: 'projects', label: 'Projects', icon: FolderOpen, isRoute: true },
       { id: 'tasks', label: 'Tasks', icon: ListTodo, isRoute: true },
+    ],
+  },
+  {
+    label: 'Ship',
+    items: [
+      { id: 'pipelines', label: 'CI / CD Pipelines', icon: Workflow, isRoute: true },
+      { id: 'deployments', label: 'Deployments', icon: Rocket, isRoute: true },
+      { id: 'terminal', label: 'Web Terminal', icon: TerminalSquare, isRoute: true },
+      { id: 'connectors', label: 'Connectors', icon: Share2, isRoute: true },
+    ],
+  },
+  {
+    label: 'Monitor',
+    items: [
+      { id: 'analytics', label: 'Analytics', icon: BarChart3, isRoute: true },
+      { id: 'security', label: 'Security Scan', icon: Shield, isRoute: true },
       { id: 'history', label: 'History', icon: Clock, isRoute: true },
     ],
   },
@@ -93,7 +92,7 @@ const menuGroups: MenuGroup[] = [
     label: 'Account',
     items: [
       { id: 'team', label: 'Team', icon: Users, isRoute: true },
-      { id: 'about', label: 'About', icon: Info, isRoute: true },
+      { id: 'pricing', label: 'Pricing', icon: CreditCard, isRoute: true },
       { id: 'settings', label: 'Settings', icon: Settings, isRoute: true },
     ],
   },
@@ -113,7 +112,6 @@ const routeMap: Record<string, string> = {
   deployments: '/deployments',
   terminal: '/terminal',
   pipelines: '/pipelines',
-  about: '/about',
   settings: '/settings',
 };
 
@@ -127,14 +125,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
 
   const handleMenuClick = (item: MenuItem) => {
     const route = routeMap[item.id];
-    if (route) {
-      navigate(route);
-    } else {
-      navigate(`/network?section=${item.id}`, {
-        replace: location.pathname === '/network',
-      });
-      onSectionChange(item.id);
-    }
+    if (route) navigate(route);
     if (isMobile) setOpenMobile(false);
   };
 
