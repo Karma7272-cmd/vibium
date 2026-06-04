@@ -76,8 +76,16 @@ const Tasks: React.FC = () => {
   const createTask = async () => {
     if (!user) { navigate('/auth'); return; }
     if (!title.trim()) return;
+    if (kind === 'security_scan' && !targetUrl.trim()) {
+      toast({ title: 'URL required', description: 'Enter the site URL to scan.', variant: 'destructive' });
+      return;
+    }
     setSaving(true);
-    const scheduled = scheduledAt ? new Date(scheduledAt).toISOString() : null;
+    // Daily recurring defaults to "now + 1 minute" if no datetime provided
+    let scheduled: string | null = scheduledAt ? new Date(scheduledAt).toISOString() : null;
+    if (recurrence === 'daily' && !scheduled) {
+      scheduled = new Date(Date.now() + 60_000).toISOString();
+    }
     const status = scheduled ? 'scheduled' : 'pending';
     const { error } = await supabase.from('tasks').insert({
       user_id: user.id,
@@ -86,7 +94,10 @@ const Tasks: React.FC = () => {
       status,
       priority,
       scheduled_at: scheduled,
-    });
+      kind,
+      recurrence: recurrence === 'daily' ? 'daily' : null,
+      target_url: kind === 'security_scan' ? targetUrl.trim() : null,
+    } as any);
     setSaving(false);
     if (error) {
       toast({ title: 'Failed', description: error.message, variant: 'destructive' });
@@ -94,6 +105,7 @@ const Tasks: React.FC = () => {
     }
     setOpen(false);
     setTitle(''); setPromptText(''); setScheduledAt(''); setPriority('medium');
+    setKind('prompt'); setRecurrence('none'); setTargetUrl('');
     load();
   };
 
