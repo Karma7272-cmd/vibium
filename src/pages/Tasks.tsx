@@ -218,10 +218,37 @@ const Tasks: React.FC = () => {
           <DialogHeader><DialogTitle>New task</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <Textarea placeholder="Prompt or notes (optional)" value={promptText} onChange={(e) => setPromptText(e.target.value)} rows={3} />
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[11px] text-muted-foreground">Schedule (optional)</label>
+                <label className="text-[11px] text-muted-foreground">Task type</label>
+                <select value={kind} onChange={(e) => setKind(e.target.value as any)} className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm">
+                  <option value="prompt">Prompt (AI answer)</option>
+                  <option value="generate">Generate project</option>
+                  <option value="security_scan">Security scan</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground">Repeat</label>
+                <select value={recurrence} onChange={(e) => setRecurrence(e.target.value as any)} className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm">
+                  <option value="none">One-time</option>
+                  <option value="daily">Daily (auto-check)</option>
+                </select>
+              </div>
+            </div>
+            {kind === 'security_scan' && (
+              <div>
+                <label className="text-[11px] text-muted-foreground">Site URL</label>
+                <Input placeholder="https://example.com" value={targetUrl} onChange={(e) => setTargetUrl(e.target.value)} />
+              </div>
+            )}
+            {kind !== 'security_scan' && (
+              <Textarea placeholder="Prompt or notes (optional)" value={promptText} onChange={(e) => setPromptText(e.target.value)} rows={3} />
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[11px] text-muted-foreground">
+                  {recurrence === 'daily' ? 'First run (optional)' : 'Schedule (optional)'}
+                </label>
                 <Input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
               </div>
               <div>
@@ -233,6 +260,9 @@ const Tasks: React.FC = () => {
                 </select>
               </div>
             </div>
+            {recurrence === 'daily' && (
+              <p className="text-[11px] text-muted-foreground">Runs once every 24h automatically until you delete the task.</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
