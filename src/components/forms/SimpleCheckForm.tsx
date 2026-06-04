@@ -357,9 +357,10 @@ const SimpleCheckForm: React.FC = () => {
 
             <Button
               type="submit"
+              disabled={isGenerating}
               className="w-10 h-10 p-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full font-medium flex items-center justify-center transition-all shadow-md active:scale-95"
             >
-              <ArrowUp size={18} />
+              {isGenerating ? <Loader2 size={18} className="animate-spin" /> : <ArrowUp size={18} />}
             </Button>
           </div>
         </div>
