@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { GitBranch, Play, Plus, CheckCircle2, XCircle, Loader2, Trash2, Workflow, Clock } from 'lucide-react';
+import { GitBranch, Play, Plus, CheckCircle2, XCircle, Loader2, Trash2, Workflow, Clock, Sparkles, Wand2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Step { name: string; command: string; status?: string; log?: string }
@@ -30,6 +30,11 @@ const Pipelines: React.FC = () => {
   const [stepsText, setStepsText] = useState(DEFAULT_STEPS);
   const [running, setRunning] = useState<string | null>(null);
   const [selectedRun, setSelectedRun] = useState<Run | null>(null);
+  const [aiGoal, setAiGoal] = useState('');
+  const [aiStack, setAiStack] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [analysis, setAnalysis] = useState<string>('');
+  const [analyzing, setAnalyzing] = useState(false);
   const { toast } = useToast();
 
   const load = async () => {
@@ -75,6 +80,33 @@ const Pipelines: React.FC = () => {
     load();
   };
 
+  const generateWithAI = async () => {
+    if (!aiGoal.trim()) { toast({ title: 'Describe your pipeline goal', variant: 'destructive' }); return; }
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('pipeline-ai', {
+        body: { mode: 'generate', goal: aiGoal, repo, stack: aiStack },
+      });
+      if (error) throw error;
+      const steps = (data?.steps || []) as Step[];
+      if (!steps.length) throw new Error('AI returned no steps');
+      setStepsText(steps.map(s => `${s.name}: ${s.command}`).join('\n'));
+      if (!name) setName(aiGoal.slice(0, 40));
+      toast({ title: 'AI generated pipeline steps' });
+    } catch (e: any) { toast({ title: 'AI error', description: e.message, variant: 'destructive' }); }
+    finally { setGenerating(false); }
+  };
+
+  const analyzeRun = async (runId: string) => {
+    setAnalyzing(true); setAnalysis('');
+    try {
+      const { data, error } = await supabase.functions.invoke('pipeline-ai', { body: { mode: 'analyze', run_id: runId } });
+      if (error) throw error;
+      setAnalysis(data?.analysis || 'No analysis');
+    } catch (e: any) { toast({ title: 'AI error', description: e.message, variant: 'destructive' }); }
+    finally { setAnalyzing(false); }
+  };
+
   const runsByPipeline = (id: string) => runs.filter(r => r.pipeline_id === id).slice(0, 3);
 
   const statusBadge = (s: string) => {
@@ -99,9 +131,9 @@ const Pipelines: React.FC = () => {
               <div>
                 <div className="inline-flex p-2 bg-primary/10 rounded-full mb-2"><Workflow className="w-6 h-6 text-primary" /></div>
                 <h2 className="text-2xl font-bold">Pipelines</h2>
-                <p className="text-sm text-muted-foreground">Define build/test/deploy steps. AI runner executes them and records logs — CircleCI-style.</p>
+                <p className="text-sm text-muted-foreground">AI-powered CI/CD. Describe what to ship, AI drafts the pipeline, runs it, and analyzes failures.</p>
               </div>
-              <Button onClick={() => setCreating(true)} className="gap-2"><Plus className="h-4 w-4" />New pipeline</Button>
+              <Button onClick={() => setCreating(true)} className="gap-2"><Sparkles className="h-4 w-4" />New AI pipeline</Button>
             </div>
 
             {pipelines.length === 0 ? (
@@ -153,30 +185,50 @@ const Pipelines: React.FC = () => {
         </div>
         <Footer />
 
-        <Dialog open={creating} onOpenChange={setCreating}>
-          <DialogContent className="sm:max-w-[560px]">
+        <Dialog open={creating} onOpenChange={(o) => { setCreating(o); if (!o) { setAiGoal(''); setAiStack(''); } }}>
+          <DialogContent className="sm:max-w-[620px]">
             <DialogHeader>
-              <DialogTitle>New pipeline</DialogTitle>
-              <DialogDescription>Define steps as <code>name: command</code> on each line.</DialogDescription>
+              <DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />New AI pipeline</DialogTitle>
+              <DialogDescription>Describe what you want to ship — AI drafts the steps. Or write them manually below.</DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2">
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-primary"><Wand2 className="h-3 w-3" />AI assist</div>
+                <Textarea rows={2} placeholder="Ask to write… e.g. Lint, test, build a Vite React app, deploy to Vercel on main" value={aiGoal} onChange={e => setAiGoal(e.target.value)} />
+                <div className="flex gap-2">
+                  <Input placeholder="Stack hint (optional: node, python, go…)" value={aiStack} onChange={e => setAiStack(e.target.value)} />
+                  <Button onClick={generateWithAI} disabled={generating} className="gap-2 shrink-0">
+                    {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Generate
+                  </Button>
+                </div>
+              </div>
               <Input placeholder="Pipeline name (e.g. CI – main)" value={name} onChange={e => setName(e.target.value)} />
               <Input placeholder="GitHub repo (optional, owner/name)" value={repo} onChange={e => setRepo(e.target.value)} />
               <Textarea rows={8} className="font-mono text-xs" value={stepsText} onChange={e => setStepsText(e.target.value)} />
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setCreating(false)}>Cancel</Button>
-              <Button onClick={create}>Create</Button>
+              <Button onClick={create}>Create pipeline</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        <Dialog open={!!selectedRun} onOpenChange={(o) => !o && setSelectedRun(null)}>
-          <DialogContent className="sm:max-w-[760px]">
+        <Dialog open={!!selectedRun} onOpenChange={(o) => { if (!o) { setSelectedRun(null); setAnalysis(''); } }}>
+          <DialogContent className="sm:max-w-[780px]">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">Run logs {selectedRun && statusBadge(selectedRun.status)}</DialogTitle>
+              <DialogTitle className="flex items-center gap-2 justify-between">
+                <span className="flex items-center gap-2">Run logs {selectedRun && statusBadge(selectedRun.status)}</span>
+                {selectedRun && (
+                  <Button size="sm" variant="outline" onClick={() => analyzeRun(selectedRun.id)} disabled={analyzing} className="gap-2 mr-6">
+                    {analyzing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI analyze
+                  </Button>
+                )}
+              </DialogTitle>
             </DialogHeader>
-            <pre className="bg-[#0a0a0a] text-emerald-300 text-[11px] font-mono p-4 rounded max-h-[500px] overflow-auto whitespace-pre-wrap">{selectedRun?.logs || '(no logs)'}</pre>
+            {analysis && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs whitespace-pre-wrap mb-2">{analysis}</div>
+            )}
+            <pre className="bg-[#0a0a0a] text-emerald-300 text-[11px] font-mono p-4 rounded max-h-[460px] overflow-auto whitespace-pre-wrap">{selectedRun?.logs || '(no logs)'}</pre>
           </DialogContent>
         </Dialog>
       </SidebarInset>
