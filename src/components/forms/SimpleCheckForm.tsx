@@ -37,6 +37,8 @@ const SimpleCheckForm: React.FC = () => {
   const zipInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = prompt.trim();
@@ -45,14 +47,15 @@ const SimpleCheckForm: React.FC = () => {
       return;
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({ title: "Sign in required", description: "Sign in to generate.", variant: "destructive" });
+      navigate('/auth');
+      return;
+    }
+
     // If a future schedule is set, persist as a task and exit.
     if (scheduledDate && scheduledDate.getTime() > Date.now()) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({ title: "Sign in required", description: "Sign in to schedule tasks.", variant: "destructive" });
-        navigate('/auth');
-        return;
-      }
       const { error } = await supabase.from('tasks').insert({
         user_id: user.id,
         title: trimmed.slice(0, 120),
@@ -67,41 +70,56 @@ const SimpleCheckForm: React.FC = () => {
         return;
       }
       toast({ title: "Task scheduled", description: `Will run ${format(scheduledDate, "PPP p")}` });
-      setPrompt('');
-      setScheduledDate(undefined);
+      setPrompt(''); setScheduledDate(undefined);
       navigate('/tasks');
       return;
     }
 
-    // Auto-detect mode based on whether a repo is selected
-    if (selectedRepo) {
-      // Analyze mode requires GitHub auth (already implied since repo was picked)
-      if (!localStorage.getItem('github_access_token')) {
-        toast({ title: "GitHub not connected", description: "Reconnect to analyze this repo.", variant: "destructive" });
-        return;
-      }
+    // Analyze existing repo flow still goes to Code AI workspace
+    if (selectedRepo && localStorage.getItem('github_access_token')) {
       sessionStorage.setItem('pendingCodeRequest', JSON.stringify({
-        mode: 'analyze',
-        prompt: trimmed,
-        repo: selectedRepo,
+        mode: 'analyze', prompt: trimmed, repo: selectedRepo,
       }));
       navigate('/code-analysis');
       return;
     }
 
-    // Generate mode — full-stack code from prompt, then create new repo
-    if (!localStorage.getItem('github_access_token')) {
-      toast({
-        title: "Connect GitHub to push",
-        description: "We'll still generate the code — you can connect before pushing.",
+    // Generate mode — call AI directly, save as project, no GitHub required.
+    setIsGenerating(true);
+    try {
+      toast({ title: "Generating…", description: "AI is building your project." });
+      const { data, error } = await supabase.functions.invoke('generate-project', {
+        body: { prompt: trimmed },
       });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.files?.length) throw new Error('No files generated');
+
+      const { data: inserted, error: insErr } = await supabase
+        .from('generated_projects')
+        .insert({
+          user_id: user.id,
+          name: data.project_name || trimmed.slice(0, 60),
+          description: data.description ?? null,
+          prompt: trimmed,
+          stack: data.stack ?? null,
+          files: data.files,
+          env_vars: data.env_vars ?? [],
+          database_schema: data.database_schema ?? null,
+          repo_full_name: selectedRepo ? `${selectedRepo.owner}/${selectedRepo.name}` : null,
+        } as any)
+        .select('id')
+        .single();
+      if (insErr) throw insErr;
+
+      toast({ title: "Project ready", description: `${data.files.length} files generated. Download or push to GitHub.` });
+      setPrompt('');
+      navigate(`/projects?open=${(inserted as any).id}`);
+    } catch (err: any) {
+      toast({ title: "Generation failed", description: err.message || 'Try again', variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
     }
-    sessionStorage.setItem('pendingCodeRequest', JSON.stringify({
-      mode: 'generate',
-      prompt: trimmed,
-      repo: selectedRepo,
-    }));
-    navigate('/code-analysis');
   };
 
   const handleGithubConnect = async () => {
