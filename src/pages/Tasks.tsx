@@ -25,6 +25,9 @@ interface Task {
   completed_at: string | null;
   result: string | null;
   created_at: string;
+  kind?: string | null;
+  recurrence?: string | null;
+  target_url?: string | null;
 }
 
 const Tasks: React.FC = () => {
