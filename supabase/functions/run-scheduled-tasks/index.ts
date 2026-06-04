@@ -74,6 +74,34 @@ async function generateProject(prompt: string): Promise<any> {
   return JSON.parse(text);
 }
 
+async function runSecurityScan(url: string) {
+  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+  const findings: any[] = [];
+  let headersObj: Record<string, string> = {};
+  try {
+    const res = await fetch(url, { method: "GET", redirect: "follow" });
+    res.headers.forEach((v, k) => (headersObj[k.toLowerCase()] = v));
+    const required = [
+      { key: "strict-transport-security", title: "Missing HSTS", severity: "high" },
+      { key: "content-security-policy", title: "Missing CSP", severity: "high" },
+      { key: "x-frame-options", title: "Missing X-Frame-Options", severity: "medium" },
+      { key: "x-content-type-options", title: "Missing X-Content-Type-Options", severity: "medium" },
+      { key: "referrer-policy", title: "Missing Referrer-Policy", severity: "low" },
+    ];
+    for (const r of required) {
+      if (!headersObj[r.key]) findings.push({ severity: r.severity, title: r.title, description: `Missing ${r.key}` });
+    }
+    if (!url.startsWith("https://")) findings.push({ severity: "critical", title: "Not HTTPS", description: "Site not served over HTTPS" });
+  } catch (e) {
+    findings.push({ severity: "critical", title: "Cannot reach site", description: String(e) });
+  }
+  let score = 100;
+  for (const f of findings) score -= f.severity === "critical" ? 25 : f.severity === "high" ? 12 : f.severity === "medium" ? 6 : 3;
+  score = Math.max(0, score);
+  const grade = score >= 90 ? "A" : score >= 80 ? "B" : score >= 70 ? "C" : score >= 60 ? "D" : "F";
+  return { url, score, grade, findings, headers: headersObj, summary: `Auto-scan: ${findings.length} findings. Grade ${grade} (${score}/100).` };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
