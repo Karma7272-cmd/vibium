@@ -45,6 +45,7 @@ const Projects: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { actualTheme } = useTheme();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState<GenProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<GenProject | null>(null);
@@ -56,6 +57,19 @@ const Projects: React.FC = () => {
   const [repoName, setRepoName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [showPushForm, setShowPushForm] = useState(false);
+
+  const downloadZip = async (p: GenProject) => {
+    const zip = new JSZip();
+    for (const f of (p.files || [])) zip.file(f.path, f.content);
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(p.name || 'project').replace(/[^a-z0-9-_]+/gi, '-')}.zip`;
+    document.body.appendChild(a); a.click();
+    a.remove(); URL.revokeObjectURL(url);
+    toast({ title: 'Downloaded', description: `${(p.files || []).length} files in ZIP` });
+  };
 
   const load = async () => {
     if (!user) { setLoading(false); return; }
