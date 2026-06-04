@@ -41,6 +41,9 @@ const Tasks: React.FC = () => {
   const [promptText, setPromptText] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [priority, setPriority] = useState('medium');
+  const [kind, setKind] = useState<'prompt' | 'generate' | 'security_scan'>('prompt');
+  const [recurrence, setRecurrence] = useState<'none' | 'daily'>('none');
+  const [targetUrl, setTargetUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
