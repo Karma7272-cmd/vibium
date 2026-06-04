@@ -508,10 +508,12 @@ export type Database = {
           priority: string
           project_id: string | null
           prompt: string | null
+          recurrence: string | null
           repo_full_name: string | null
           result: string | null
           scheduled_at: string | null
           status: string
+          target_url: string | null
           title: string
           updated_at: string
           user_id: string
@@ -524,10 +526,12 @@ export type Database = {
           priority?: string
           project_id?: string | null
           prompt?: string | null
+          recurrence?: string | null
           repo_full_name?: string | null
           result?: string | null
           scheduled_at?: string | null
           status?: string
+          target_url?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -540,10 +544,12 @@ export type Database = {
           priority?: string
           project_id?: string | null
           prompt?: string | null
+          recurrence?: string | null
           repo_full_name?: string | null
           result?: string | null
           scheduled_at?: string | null
           status?: string
+          target_url?: string | null
           title?: string
           updated_at?: string
           user_id?: string
