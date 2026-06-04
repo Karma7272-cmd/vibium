@@ -114,7 +114,7 @@ serve(async (req) => {
     const nowIso = new Date().toISOString();
     const { data: due, error } = await supabase
       .from("tasks")
-      .select("id, title, prompt, kind, repo_full_name, user_id")
+      .select("id, title, prompt, kind, repo_full_name, user_id, recurrence, target_url, scheduled_at")
       .in("status", ["pending", "scheduled"])
       .lte("scheduled_at", nowIso)
       .not("scheduled_at", "is", null)
@@ -146,22 +146,53 @@ serve(async (req) => {
           if (ins.error) throw ins.error;
           projectId = ins.data.id;
           resultMsg = `Generated ${proj.files?.length || 0} files (${proj.project_name}).`;
+        } else if (t.kind === "security_scan" && t.target_url) {
+          const scan = await runSecurityScan(t.target_url);
+          await supabase.from("security_scans").insert({
+            user_id: t.user_id,
+            url: scan.url,
+            score: scan.score,
+            grade: scan.grade,
+            summary: scan.summary,
+            headers: scan.headers,
+            ssl: { https: scan.url.startsWith("https://") },
+            findings: scan.findings,
+            status: "complete",
+          });
+          resultMsg = scan.summary;
         } else if (promptText) {
           resultMsg = await runPromptWithGemini(promptText);
         }
 
         const truncated = resultMsg.length > 4000 ? resultMsg.slice(0, 4000) + "…" : resultMsg;
-        await supabase.from("tasks").update({
-          status: "completed",
-          completed_at: new Date().toISOString(),
-          result: truncated,
-          project_id: projectId,
-        }).eq("id", t.id);
+
+        // Recurrence: reschedule next day; otherwise mark completed.
+        if (t.recurrence === "daily") {
+          const next = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+          await supabase.from("tasks").update({
+            status: "scheduled",
+            scheduled_at: next,
+            completed_at: new Date().toISOString(),
+            result: truncated,
+            project_id: projectId,
+          }).eq("id", t.id);
+        } else {
+          await supabase.from("tasks").update({
+            status: "completed",
+            completed_at: new Date().toISOString(),
+            result: truncated,
+            project_id: projectId,
+          }).eq("id", t.id);
+        }
         results.push({ id: t.id, ok: true, project_id: projectId });
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Unknown error";
+        const next = t.recurrence === "daily"
+          ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          : null;
         await supabase.from("tasks").update({
-          status: "failed",
+          status: next ? "scheduled" : "failed",
+          scheduled_at: next ?? t.scheduled_at,
           completed_at: new Date().toISOString(),
           result: `Error: ${msg}`,
         }).eq("id", t.id);
