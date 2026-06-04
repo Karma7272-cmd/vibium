@@ -95,6 +95,19 @@ const Projects: React.FC = () => {
     // eslint-disable-next-line
   }, [user?.id]);
 
+  // Auto-open project if ?open=<id> is present
+  useEffect(() => {
+    const openId = searchParams.get('open');
+    if (!openId || !projects.length || active) return;
+    const target = projects.find(p => p.id === openId);
+    if (target) {
+      openProject(target);
+      searchParams.delete('open');
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line
+  }, [projects, searchParams]);
+
   const openProject = async (p: GenProject) => {
     setActive(p);
     setSelectedFile(p.files?.[0] || null);
