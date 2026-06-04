@@ -85,7 +85,7 @@ const SimpleCheckForm: React.FC = () => {
         prompt: trimmed,
         repo: selectedRepo,
       }));
-      navigate('/code-review');
+      navigate('/code-analysis');
       return;
     }
 
@@ -101,7 +101,7 @@ const SimpleCheckForm: React.FC = () => {
       prompt: trimmed,
       repo: selectedRepo,
     }));
-    navigate('/code-review');
+    navigate('/code-analysis');
   };
 
   const handleGithubConnect = async () => {
