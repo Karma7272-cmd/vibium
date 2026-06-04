@@ -276,6 +276,10 @@ const Projects: React.FC = () => {
             </Button>
             <span className="font-semibold truncate">{active.name}</span>
             <div className="ml-auto flex items-center gap-2 flex-wrap">
+              <Button size="sm" variant="outline" onClick={() => downloadZip(active)} className="gap-1.5 h-8">
+                <Download className="h-3.5 w-3.5" />
+                <span className="text-xs">Download ZIP</span>
+              </Button>
               {active.pr_url ? (
                 <Button size="sm" className="gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => window.open(active.pr_url!, '_blank')}>
                   <CheckCircle2 className="h-3.5 w-3.5" />
