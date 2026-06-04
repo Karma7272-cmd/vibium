@@ -25,6 +25,9 @@ interface Task {
   completed_at: string | null;
   result: string | null;
   created_at: string;
+  kind?: string | null;
+  recurrence?: string | null;
+  target_url?: string | null;
 }
 
 const Tasks: React.FC = () => {
@@ -38,6 +41,9 @@ const Tasks: React.FC = () => {
   const [promptText, setPromptText] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [priority, setPriority] = useState('medium');
+  const [kind, setKind] = useState<'prompt' | 'generate' | 'security_scan'>('prompt');
+  const [recurrence, setRecurrence] = useState<'none' | 'daily'>('none');
+  const [targetUrl, setTargetUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -70,8 +76,16 @@ const Tasks: React.FC = () => {
   const createTask = async () => {
     if (!user) { navigate('/auth'); return; }
     if (!title.trim()) return;
+    if (kind === 'security_scan' && !targetUrl.trim()) {
+      toast({ title: 'URL required', description: 'Enter the site URL to scan.', variant: 'destructive' });
+      return;
+    }
     setSaving(true);
-    const scheduled = scheduledAt ? new Date(scheduledAt).toISOString() : null;
+    // Daily recurring defaults to "now + 1 minute" if no datetime provided
+    let scheduled: string | null = scheduledAt ? new Date(scheduledAt).toISOString() : null;
+    if (recurrence === 'daily' && !scheduled) {
+      scheduled = new Date(Date.now() + 60_000).toISOString();
+    }
     const status = scheduled ? 'scheduled' : 'pending';
     const { error } = await supabase.from('tasks').insert({
       user_id: user.id,
@@ -80,7 +94,10 @@ const Tasks: React.FC = () => {
       status,
       priority,
       scheduled_at: scheduled,
-    });
+      kind,
+      recurrence: recurrence === 'daily' ? 'daily' : null,
+      target_url: kind === 'security_scan' ? targetUrl.trim() : null,
+    } as any);
     setSaving(false);
     if (error) {
       toast({ title: 'Failed', description: error.message, variant: 'destructive' });
@@ -88,6 +105,7 @@ const Tasks: React.FC = () => {
     }
     setOpen(false);
     setTitle(''); setPromptText(''); setScheduledAt(''); setPriority('medium');
+    setKind('prompt'); setRecurrence('none'); setTargetUrl('');
     load();
   };
 
@@ -200,10 +218,37 @@ const Tasks: React.FC = () => {
           <DialogHeader><DialogTitle>New task</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <Textarea placeholder="Prompt or notes (optional)" value={promptText} onChange={(e) => setPromptText(e.target.value)} rows={3} />
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[11px] text-muted-foreground">Schedule (optional)</label>
+                <label className="text-[11px] text-muted-foreground">Task type</label>
+                <select value={kind} onChange={(e) => setKind(e.target.value as any)} className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm">
+                  <option value="prompt">Prompt (AI answer)</option>
+                  <option value="generate">Generate project</option>
+                  <option value="security_scan">Security scan</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground">Repeat</label>
+                <select value={recurrence} onChange={(e) => setRecurrence(e.target.value as any)} className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm">
+                  <option value="none">One-time</option>
+                  <option value="daily">Daily (auto-check)</option>
+                </select>
+              </div>
+            </div>
+            {kind === 'security_scan' && (
+              <div>
+                <label className="text-[11px] text-muted-foreground">Site URL</label>
+                <Input placeholder="https://example.com" value={targetUrl} onChange={(e) => setTargetUrl(e.target.value)} />
+              </div>
+            )}
+            {kind !== 'security_scan' && (
+              <Textarea placeholder="Prompt or notes (optional)" value={promptText} onChange={(e) => setPromptText(e.target.value)} rows={3} />
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[11px] text-muted-foreground">
+                  {recurrence === 'daily' ? 'First run (optional)' : 'Schedule (optional)'}
+                </label>
                 <Input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
               </div>
               <div>
@@ -215,6 +260,9 @@ const Tasks: React.FC = () => {
                 </select>
               </div>
             </div>
+            {recurrence === 'daily' && (
+              <p className="text-[11px] text-muted-foreground">Runs once every 24h automatically until you delete the task.</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>

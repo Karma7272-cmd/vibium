@@ -3,7 +3,7 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { FolderOpen, Loader2, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock } from 'lucide-react';
+import { FolderOpen, Loader2, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '@/components/ThemeProvider';
+import JSZip from 'jszip';
+import { useSearchParams } from 'react-router-dom';
 
 interface ProjectFile { path: string; content: string; }
 interface EnvVar { name: string; description?: string; example?: string; required?: boolean; }
@@ -43,6 +45,7 @@ const Projects: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { actualTheme } = useTheme();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState<GenProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<GenProject | null>(null);
@@ -54,6 +57,19 @@ const Projects: React.FC = () => {
   const [repoName, setRepoName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [showPushForm, setShowPushForm] = useState(false);
+
+  const downloadZip = async (p: GenProject) => {
+    const zip = new JSZip();
+    for (const f of (p.files || [])) zip.file(f.path, f.content);
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(p.name || 'project').replace(/[^a-z0-9-_]+/gi, '-')}.zip`;
+    document.body.appendChild(a); a.click();
+    a.remove(); URL.revokeObjectURL(url);
+    toast({ title: 'Downloaded', description: `${(p.files || []).length} files in ZIP` });
+  };
 
   const load = async () => {
     if (!user) { setLoading(false); return; }
@@ -78,6 +94,19 @@ const Projects: React.FC = () => {
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line
   }, [user?.id]);
+
+  // Auto-open project if ?open=<id> is present
+  useEffect(() => {
+    const openId = searchParams.get('open');
+    if (!openId || !projects.length || active) return;
+    const target = projects.find(p => p.id === openId);
+    if (target) {
+      openProject(target);
+      searchParams.delete('open');
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line
+  }, [projects, searchParams]);
 
   const openProject = async (p: GenProject) => {
     setActive(p);
@@ -247,6 +276,10 @@ const Projects: React.FC = () => {
             </Button>
             <span className="font-semibold truncate">{active.name}</span>
             <div className="ml-auto flex items-center gap-2 flex-wrap">
+              <Button size="sm" variant="outline" onClick={() => downloadZip(active)} className="gap-1.5 h-8">
+                <Download className="h-3.5 w-3.5" />
+                <span className="text-xs">Download ZIP</span>
+              </Button>
               {active.pr_url ? (
                 <Button size="sm" className="gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => window.open(active.pr_url!, '_blank')}>
                   <CheckCircle2 className="h-3.5 w-3.5" />
