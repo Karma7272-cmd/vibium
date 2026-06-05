@@ -3,11 +3,13 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { FolderOpen, Loader2, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Download } from 'lucide-react';
+import { FolderOpen, Loader2, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Download, Sparkles, Send, FileEdit, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import {
   setGitHubToken, createRepo, commitAndPush, createBranch, createPullRequest,
@@ -19,6 +21,7 @@ import Editor from '@monaco-editor/react';
 import { useTheme } from '@/components/ThemeProvider';
 import JSZip from 'jszip';
 import { useSearchParams } from 'react-router-dom';
+import { ProjectFileTree } from '@/components/projects/ProjectFileTree';
 
 interface ProjectFile { path: string; content: string; }
 interface EnvVar { name: string; description?: string; example?: string; required?: boolean; }
@@ -57,6 +60,72 @@ const Projects: React.FC = () => {
   const [repoName, setRepoName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [showPushForm, setShowPushForm] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [aiBusy, setAiBusy] = useState(false);
+  const [worklog, setWorklog] = useState<{ role: 'user' | 'ai'; text: string; edits?: { path: string; action: string; note: string }[]; at: number }[]>([]);
+  const [tab, setTab] = useState<'code' | 'changes' | 'preview'>('code');
+  const [changedPaths, setChangedPaths] = useState<Set<string>>(new Set());
+
+  const previewHtml = React.useMemo(() => {
+    if (!active) return null;
+    const html = (active.files || []).find(f => /\bindex\.html?$/i.test(f.path) || /\bpublic\/index\.html?$/i.test(f.path));
+    if (!html) return null;
+    const cssFiles = (active.files || []).filter(f => /\.css$/i.test(f.path));
+    const cssTag = cssFiles.map(f => `<style>${f.content}</style>`).join('');
+    return html.content.replace(/<\/head>/i, `${cssTag}</head>`);
+  }, [active]);
+
+  const runAiEdit = async () => {
+    if (!active || !aiInput.trim() || !user) return;
+    const goal = aiInput.trim();
+    setAiInput('');
+    setWorklog(w => [...w, { role: 'user', text: goal, at: Date.now() }]);
+    setAiBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-and-edit', {
+        body: { prompt: goal, files: (active.files || []).map(f => ({ path: f.path, content: f.content })) },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const edits: { path: string; action: string; after: string; note: string }[] = data?.edits || [];
+      if (!edits.length) {
+        setWorklog(w => [...w, { role: 'ai', text: data?.summary || 'No changes proposed.', at: Date.now() }]);
+        return;
+      }
+      const map = new Map((active.files || []).map(f => [f.path, f.content] as const));
+      for (const e of edits) map.set(e.path, e.after);
+      const nextFiles = Array.from(map.entries()).map(([path, content]) => ({ path, content }));
+      const { error: upErr } = await supabase
+        .from('generated_projects' as any)
+        .update({ files: nextFiles } as any)
+        .eq('id', active.id);
+      if (upErr) throw upErr;
+      setActive({ ...active, files: nextFiles });
+      setChangedPaths(prev => {
+        const n = new Set(prev); edits.forEach(e => n.add(e.path)); return n;
+      });
+      if (selectedFile) {
+        const updated = nextFiles.find(f => f.path === selectedFile.path);
+        if (updated) setSelectedFile(updated);
+      }
+      setWorklog(w => [...w, { role: 'ai', text: data?.summary || `Updated ${edits.length} file(s).`, edits: edits.map(e => ({ path: e.path, action: e.action, note: e.note })), at: Date.now() }]);
+      toast({ title: 'Files updated', description: `${edits.length} change(s) applied.` });
+    } catch (e: any) {
+      setWorklog(w => [...w, { role: 'ai', text: `Error: ${e.message || 'failed'}`, at: Date.now() }]);
+      toast({ title: 'Edit failed', description: e.message || 'Try again', variant: 'destructive' });
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  const updateFileLocally = async (path: string, content: string) => {
+    if (!active) return;
+    const nextFiles = (active.files || []).map(f => f.path === path ? { ...f, content } : f);
+    setActive({ ...active, files: nextFiles });
+    setSelectedFile(prev => prev && prev.path === path ? { ...prev, content } : prev);
+    setChangedPaths(prev => { const n = new Set(prev); n.add(path); return n; });
+    await supabase.from('generated_projects' as any).update({ files: nextFiles } as any).eq('id', active.id);
+  };
 
   const downloadZip = async (p: GenProject) => {
     const zip = new JSZip();
@@ -331,19 +400,67 @@ const Projects: React.FC = () => {
             </div>
           )}
           <div className="flex-1 grid grid-cols-12 overflow-hidden">
-            <aside className="col-span-3 border-r border-border overflow-y-auto bg-muted/20">
-              <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase">Files</div>
-              {(active.files || []).map(f => (
-                <button
-                  key={f.path}
-                  onClick={() => setSelectedFile(f)}
-                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-muted truncate flex items-center gap-1.5 ${selectedFile?.path === f.path ? 'bg-primary/10 text-primary' : ''}`}
-                >
-                  <FileCode className="h-3 w-3 shrink-0" />
-                  {f.path}
-                </button>
-              ))}
-              <div className="px-3 py-2 mt-3 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+            {/* Worklog / chat */}
+            <aside className="col-span-3 border-r border-border flex flex-col bg-muted/10 min-h-0">
+              <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 border-b border-border">
+                <Sparkles className="h-3 w-3 text-primary" /> Worklog
+              </div>
+              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                {worklog.length === 0 && (
+                  <div className="text-[11px] text-muted-foreground">
+                    Ask the AI to fix bugs, add features, or rewrite files. Edits are applied to the project.
+                  </div>
+                )}
+                {worklog.map((m, i) => (
+                  <div key={i} className={`text-xs ${m.role === 'user' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Badge variant={m.role === 'user' ? 'default' : 'secondary'} className="text-[9px] h-4 px-1.5">
+                        {m.role === 'user' ? 'You' : 'AI'}
+                      </Badge>
+                      <span className="text-[9px] opacity-60">{formatDistanceToNow(new Date(m.at), { addSuffix: true })}</span>
+                    </div>
+                    <div className="whitespace-pre-wrap leading-relaxed">{m.text}</div>
+                    {m.edits && m.edits.length > 0 && (
+                      <div className="mt-1.5 space-y-0.5 border-l-2 border-primary/40 pl-2">
+                        {m.edits.map((e, j) => (
+                          <div key={j} className="flex items-center gap-1.5 text-[10px]">
+                            <FileEdit className="h-2.5 w-2.5" />
+                            <code className="truncate">{e.path}</code>
+                            <Badge variant="outline" className="h-3 px-1 text-[9px]">{e.action}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="p-2 border-t border-border space-y-2">
+                <Textarea
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  placeholder="Ask AI to edit files…"
+                  className="min-h-[60px] text-xs resize-none"
+                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); runAiEdit(); } }}
+                />
+                <Button size="sm" className="w-full h-7 text-xs gap-1.5" onClick={runAiEdit} disabled={aiBusy || !aiInput.trim()}>
+                  {aiBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                  {aiBusy ? 'Working…' : 'Send (⌘↵)'}
+                </Button>
+              </div>
+            </aside>
+
+            {/* File tree + env */}
+            <aside className="col-span-3 border-r border-border overflow-y-auto bg-muted/5 min-h-0">
+              <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase border-b border-border flex items-center justify-between">
+                <span>Files ({(active.files || []).length})</span>
+                {changedPaths.size > 0 && <Badge variant="secondary" className="text-[9px] h-4 px-1.5">{changedPaths.size} changed</Badge>}
+              </div>
+              <ProjectFileTree
+                files={active.files || []}
+                selectedPath={selectedFile?.path}
+                onSelect={setSelectedFile}
+              />
+              <div className="px-3 py-2 mt-3 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-border">
                 <KeyRound className="h-3 w-3" /> Env Variables
               </div>
               <div className="px-3 space-y-1.5 pb-4">
@@ -374,18 +491,68 @@ const Projects: React.FC = () => {
                 </div>
               </div>
             </aside>
-            <main className="col-span-9 overflow-hidden">
-              {selectedFile ? (
-                <Editor
-                  height="100%"
-                  language={langFromPath(selectedFile.path)}
-                  value={selectedFile.content}
-                  theme={actualTheme === 'dark' ? 'vs-dark' : 'vs-light'}
-                  options={{ readOnly: true, minimap: { enabled: false }, fontSize: 13 }}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Select a file</div>
-              )}
+
+            {/* Code / Changes / Preview tabs */}
+            <main className="col-span-6 flex flex-col overflow-hidden min-h-0">
+              <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex-1 flex flex-col min-h-0">
+                <div className="border-b border-border px-2 py-1 flex items-center justify-between">
+                  <TabsList className="h-8">
+                    <TabsTrigger value="code" className="text-xs gap-1.5 h-7"><FileCode className="h-3 w-3" />Code</TabsTrigger>
+                    <TabsTrigger value="changes" className="text-xs gap-1.5 h-7"><FileEdit className="h-3 w-3" />Changes {changedPaths.size > 0 && <Badge variant="secondary" className="ml-1 h-4 text-[9px] px-1">{changedPaths.size}</Badge>}</TabsTrigger>
+                    <TabsTrigger value="preview" className="text-xs gap-1.5 h-7"><Eye className="h-3 w-3" />Preview</TabsTrigger>
+                  </TabsList>
+                  {selectedFile && tab === 'code' && (
+                    <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[50%]">{selectedFile.path}</span>
+                  )}
+                </div>
+                <TabsContent value="code" className="flex-1 m-0 min-h-0">
+                  {selectedFile ? (
+                    <Editor
+                      height="100%"
+                      language={langFromPath(selectedFile.path)}
+                      value={selectedFile.content}
+                      theme={actualTheme === 'dark' ? 'vs-dark' : 'vs-light'}
+                      onChange={(val) => { if (val !== undefined && selectedFile) updateFileLocally(selectedFile.path, val); }}
+                      options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: 'on' }}
+                    />
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Select a file</div>
+                  )}
+                </TabsContent>
+                <TabsContent value="changes" className="flex-1 m-0 overflow-auto p-3">
+                  {changedPaths.size === 0 ? (
+                    <div className="text-xs text-muted-foreground">No files changed yet. Use AI or edit manually.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {Array.from(changedPaths).map(p => (
+                        <button
+                          key={p}
+                          onClick={() => { const f = (active.files || []).find(x => x.path === p); if (f) { setSelectedFile(f); setTab('code'); } }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded border border-border hover:bg-muted text-left"
+                        >
+                          <FileEdit className="h-3 w-3 text-primary" />
+                          <span className="font-mono truncate">{p}</span>
+                          <Badge variant="secondary" className="ml-auto h-4 text-[9px] px-1.5">modified</Badge>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+                <TabsContent value="preview" className="flex-1 m-0 min-h-0 bg-white">
+                  {previewHtml ? (
+                    <iframe
+                      title="Preview"
+                      sandbox="allow-scripts"
+                      srcDoc={previewHtml}
+                      className="w-full h-full border-0"
+                    />
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-sm text-muted-foreground p-6 text-center">
+                      No <code className="mx-1">index.html</code> in this project. Preview is only available for static projects.
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </main>
           </div>
           <Footer />

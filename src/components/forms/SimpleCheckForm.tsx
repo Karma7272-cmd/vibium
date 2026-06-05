@@ -75,21 +75,16 @@ const SimpleCheckForm: React.FC = () => {
       return;
     }
 
-    // Analyze existing repo flow still goes to Code AI workspace
-    if (selectedRepo && localStorage.getItem('github_access_token')) {
-      sessionStorage.setItem('pendingCodeRequest', JSON.stringify({
-        mode: 'analyze', prompt: trimmed, repo: selectedRepo,
-      }));
-      navigate('/code-analysis');
-      return;
-    }
+    // Repo selected: stay in Projects workspace; repo is linked for later push/PR
+
 
     // Generate mode — call AI directly, save as project, no GitHub required.
     setIsGenerating(true);
     try {
       toast({ title: "Generating…", description: "AI is building your project." });
+      const repoContext = selectedRepo ? `\n\nTarget repository: ${selectedRepo.owner}/${selectedRepo.name}. Generate files compatible with this repo's stack.` : '';
       const { data, error } = await supabase.functions.invoke('generate-project', {
-        body: { prompt: trimmed },
+        body: { prompt: trimmed + repoContext },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
