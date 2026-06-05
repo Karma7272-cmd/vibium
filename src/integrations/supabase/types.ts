@@ -315,6 +315,86 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_runs: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          id: string
+          logs: string
+          pipeline_id: string
+          started_at: string | null
+          status: string
+          steps: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          logs?: string
+          pipeline_id: string
+          started_at?: string | null
+          status?: string
+          steps?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          logs?: string
+          pipeline_id?: string
+          started_at?: string | null
+          status?: string
+          steps?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_runs_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipelines: {
+        Row: {
+          created_at: string
+          env: Json
+          id: string
+          name: string
+          repo_full_name: string | null
+          steps: Json
+          trigger: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          env?: Json
+          id?: string
+          name: string
+          repo_full_name?: string | null
+          steps?: Json
+          trigger?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          env?: Json
+          id?: string
+          name?: string
+          repo_full_name?: string | null
+          steps?: Json
+          trigger?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -428,10 +508,12 @@ export type Database = {
           priority: string
           project_id: string | null
           prompt: string | null
+          recurrence: string | null
           repo_full_name: string | null
           result: string | null
           scheduled_at: string | null
           status: string
+          target_url: string | null
           title: string
           updated_at: string
           user_id: string
@@ -444,10 +526,12 @@ export type Database = {
           priority?: string
           project_id?: string | null
           prompt?: string | null
+          recurrence?: string | null
           repo_full_name?: string | null
           result?: string | null
           scheduled_at?: string | null
           status?: string
+          target_url?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -460,10 +544,12 @@ export type Database = {
           priority?: string
           project_id?: string | null
           prompt?: string | null
+          recurrence?: string | null
           repo_full_name?: string | null
           result?: string | null
           scheduled_at?: string | null
           status?: string
+          target_url?: string | null
           title?: string
           updated_at?: string
           user_id?: string
