@@ -86,8 +86,6 @@ const SimpleCheckForm: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('generate-project', {
         body: { prompt: trimmed + repoContext },
       });
-        body: { prompt: trimmed },
-      });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (!data?.files?.length) throw new Error('No files generated');
