@@ -4,37 +4,34 @@ import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, Shield, Workflow, FolderOpen } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, Shield, Activity } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { realCheckService } from '@/services/realCheckService';
+import { Check } from '@/types/check';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 
 interface TaskRow { id: string; title: string; status: string; created_at: string; completed_at: string | null; }
 interface ScanRow { id: string; url: string; grade: string | null; score: number | null; status: string; created_at: string; }
-interface RunRow { id: string; status: string; created_at: string; finished_at: string | null; pipeline_id: string; }
-interface ProjectRow { id: string; name: string; created_at: string; pr_url: string | null; }
 
 const History: React.FC = () => {
+  const [checks, setChecks] = useState<Check[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [scans, setScans] = useState<ScanRow[]>([]);
-  const [runs, setRuns] = useState<RunRow[]>([]);
-  const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [t, s, r, p] = await Promise.all([
+      const [c, t, s] = await Promise.all([
+        realCheckService.getChecks(),
         supabase.from('tasks').select('id,title,status,created_at,completed_at').order('created_at', { ascending: false }).limit(100),
         supabase.from('security_scans').select('id,url,grade,score,status,created_at').order('created_at', { ascending: false }).limit(100),
-        supabase.from('pipeline_runs').select('id,status,created_at,finished_at,pipeline_id').order('created_at', { ascending: false }).limit(100),
-        supabase.from('generated_projects').select('id,name,created_at,pr_url').order('created_at', { ascending: false }).limit(100),
       ]);
       if (cancelled) return;
+      setChecks(c);
       setTasks((t.data as any) || []);
       setScans((s.data as any) || []);
-      setRuns((r.data as any) || []);
-      setProjects((p.data as any) || []);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -62,19 +59,33 @@ const History: React.FC = () => {
           <div className="max-w-4xl mx-auto space-y-6">
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold mb-1">Activity History</h2>
-              <p className="text-sm text-muted-foreground">Generations, projects, pipeline runs, and security scans.</p>
+              <p className="text-sm text-muted-foreground">All your checks, AI generations, and security scans.</p>
             </div>
 
             {loading ? (
               <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
             ) : (
-              <Tabs defaultValue="generations">
+              <Tabs defaultValue="checks">
                 <TabsList>
-                  <TabsTrigger value="generations" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />Generations ({tasks.length})</TabsTrigger>
-                  <TabsTrigger value="projects" className="gap-1.5"><FolderOpen className="h-3.5 w-3.5" />Projects ({projects.length})</TabsTrigger>
-                  <TabsTrigger value="pipelines" className="gap-1.5"><Workflow className="h-3.5 w-3.5" />Pipeline Runs ({runs.length})</TabsTrigger>
-                  <TabsTrigger value="scans" className="gap-1.5"><Shield className="h-3.5 w-3.5" />Security ({scans.length})</TabsTrigger>
+                  <TabsTrigger value="checks" className="gap-1.5"><Activity className="h-3.5 w-3.5" />Checks ({checks.length})</TabsTrigger>
+                  <TabsTrigger value="generations" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />AI Generations ({tasks.length})</TabsTrigger>
+                  <TabsTrigger value="scans" className="gap-1.5"><Shield className="h-3.5 w-3.5" />Security Scans ({scans.length})</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="checks" className="space-y-3 mt-4">
+                  {checks.length === 0 ? (
+                    <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No checks yet.</CardContent></Card>
+                  ) : checks.map(item => (
+                    <Card key={item.id}><CardContent className="p-4 flex items-center gap-3">
+                      {statusIcon(item.status)}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{item.url}</p>
+                        <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}{item.statusCode ? ` · ${item.statusCode}` : ''}</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">{item.status}</Badge>
+                    </CardContent></Card>
+                  ))}
+                </TabsContent>
 
                 <TabsContent value="generations" className="space-y-3 mt-4">
                   {tasks.length === 0 ? (
@@ -87,36 +98,6 @@ const History: React.FC = () => {
                         <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}</p>
                       </div>
                       <Badge variant="outline" className="text-xs">{t.status}</Badge>
-                    </CardContent></Card>
-                  ))}
-                </TabsContent>
-
-                <TabsContent value="projects" className="space-y-3 mt-4">
-                  {projects.length === 0 ? (
-                    <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No generated projects yet.</CardContent></Card>
-                  ) : projects.map(p => (
-                    <Card key={p.id}><CardContent className="p-4 flex items-center gap-3">
-                      <FolderOpen className="h-4 w-4 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{p.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}</p>
-                      </div>
-                      {p.pr_url && <a href={p.pr_url} target="_blank" rel="noreferrer" className="text-xs text-primary underline">PR</a>}
-                    </CardContent></Card>
-                  ))}
-                </TabsContent>
-
-                <TabsContent value="pipelines" className="space-y-3 mt-4">
-                  {runs.length === 0 ? (
-                    <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No pipeline runs yet.</CardContent></Card>
-                  ) : runs.map(r => (
-                    <Card key={r.id}><CardContent className="p-4 flex items-center gap-3">
-                      {statusIcon(r.status)}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">Run {r.id.slice(0, 8)}</p>
-                        <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</p>
-                      </div>
-                      <Badge variant="outline" className="text-xs">{r.status}</Badge>
                     </CardContent></Card>
                   ))}
                 </TabsContent>

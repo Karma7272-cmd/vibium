@@ -37,8 +37,6 @@ const SimpleCheckForm: React.FC = () => {
   const zipInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  const [isGenerating, setIsGenerating] = useState(false);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = prompt.trim();
@@ -47,15 +45,14 @@ const SimpleCheckForm: React.FC = () => {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast({ title: "Sign in required", description: "Sign in to generate.", variant: "destructive" });
-      navigate('/auth');
-      return;
-    }
-
     // If a future schedule is set, persist as a task and exit.
     if (scheduledDate && scheduledDate.getTime() > Date.now()) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Sign in required", description: "Sign in to schedule tasks.", variant: "destructive" });
+        navigate('/auth');
+        return;
+      }
       const { error } = await supabase.from('tasks').insert({
         user_id: user.id,
         title: trimmed.slice(0, 120),
@@ -70,51 +67,41 @@ const SimpleCheckForm: React.FC = () => {
         return;
       }
       toast({ title: "Task scheduled", description: `Will run ${format(scheduledDate, "PPP p")}` });
-      setPrompt(''); setScheduledDate(undefined);
+      setPrompt('');
+      setScheduledDate(undefined);
       navigate('/tasks');
       return;
     }
 
-    // Repo selected: stay in Projects workspace; repo is linked for later push/PR
-
-
-    // Generate mode — call AI directly, save as project, no GitHub required.
-    setIsGenerating(true);
-    try {
-      toast({ title: "Generating…", description: "AI is building your project." });
-      const repoContext = selectedRepo ? `\n\nTarget repository: ${selectedRepo.owner}/${selectedRepo.name}. Generate files compatible with this repo's stack.` : '';
-      const { data, error } = await supabase.functions.invoke('generate-project', {
-        body: { prompt: trimmed + repoContext },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (!data?.files?.length) throw new Error('No files generated');
-
-      const { data: inserted, error: insErr } = await supabase
-        .from('generated_projects')
-        .insert({
-          user_id: user.id,
-          name: data.project_name || trimmed.slice(0, 60),
-          description: data.description ?? null,
-          prompt: trimmed,
-          stack: data.stack ?? null,
-          files: data.files,
-          env_vars: data.env_vars ?? [],
-          database_schema: data.database_schema ?? null,
-          repo_full_name: selectedRepo ? `${selectedRepo.owner}/${selectedRepo.name}` : null,
-        } as any)
-        .select('id')
-        .single();
-      if (insErr) throw insErr;
-
-      toast({ title: "Project ready", description: `${data.files.length} files generated. Download or push to GitHub.` });
-      setPrompt('');
-      navigate(`/projects?open=${(inserted as any).id}`);
-    } catch (err: any) {
-      toast({ title: "Generation failed", description: err.message || 'Try again', variant: "destructive" });
-    } finally {
-      setIsGenerating(false);
+    // Auto-detect mode based on whether a repo is selected
+    if (selectedRepo) {
+      // Analyze mode requires GitHub auth (already implied since repo was picked)
+      if (!localStorage.getItem('github_access_token')) {
+        toast({ title: "GitHub not connected", description: "Reconnect to analyze this repo.", variant: "destructive" });
+        return;
+      }
+      sessionStorage.setItem('pendingCodeRequest', JSON.stringify({
+        mode: 'analyze',
+        prompt: trimmed,
+        repo: selectedRepo,
+      }));
+      navigate('/code-review');
+      return;
     }
+
+    // Generate mode — full-stack code from prompt, then create new repo
+    if (!localStorage.getItem('github_access_token')) {
+      toast({
+        title: "Connect GitHub to push",
+        description: "We'll still generate the code — you can connect before pushing.",
+      });
+    }
+    sessionStorage.setItem('pendingCodeRequest', JSON.stringify({
+      mode: 'generate',
+      prompt: trimmed,
+      repo: selectedRepo,
+    }));
+    navigate('/code-review');
   };
 
   const handleGithubConnect = async () => {
@@ -352,10 +339,9 @@ const SimpleCheckForm: React.FC = () => {
 
             <Button
               type="submit"
-              disabled={isGenerating}
               className="w-10 h-10 p-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full font-medium flex items-center justify-center transition-all shadow-md active:scale-95"
             >
-              {isGenerating ? <Loader2 size={18} className="animate-spin" /> : <ArrowUp size={18} />}
+              <ArrowUp size={18} />
             </Button>
           </div>
         </div>

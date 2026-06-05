@@ -1,1 +1,0 @@
-ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS recurrence TEXT, ADD COLUMN IF NOT EXISTS target_url TEXT;

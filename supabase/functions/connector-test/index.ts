@@ -22,10 +22,6 @@ const TESTS: Record<string, TestSpec> = {
   notion: { url: "https://api.notion.com/v1/users/me", authHeader: (k) => ({ Authorization: `Bearer ${k}`, "Notion-Version": "2022-06-28" }) },
   slack: { url: "https://slack.com/api/auth.test", authHeader: (k) => ({ Authorization: `Bearer ${k}` }) },
   elevenlabs: { url: "https://api.elevenlabs.io/v1/user", authHeader: (k) => ({ "xi-api-key": k }) },
-  netlify: { url: "https://api.netlify.com/api/v1/sites?per_page=1", authHeader: (k) => ({ Authorization: `Bearer ${k}` }) },
-  vercel: { url: "https://api.vercel.com/v2/user", authHeader: (k) => ({ Authorization: `Bearer ${k}` }) },
-  neon: { url: "https://console.neon.tech/api/v2/projects", authHeader: (k) => ({ Authorization: `Bearer ${k}`, Accept: "application/json" }) },
-  // supabase: no live test (user pastes their own project's service_role/anon key – we don't know the project URL)
 };
 
 serve(async (req) => {

@@ -7,22 +7,30 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import Index from "./pages/Index";
 import NewCheck from "./pages/NewCheck";
+import PendingRequest from "./pages/PendingRequest";
+import NodeProfile from "./pages/NodeProfile";
+import OperatorProfile from "./pages/OperatorProfile";
+import CheckProfile from "./pages/CheckProfile";
+import Agents from "./pages/Agents";
 import Analytics from "./pages/Analytics";
 import History from "./pages/History";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
 import Team from "./pages/Team";
+import About from "./pages/About";
+import Nodes from "./pages/Nodes";
+import Operators from "./pages/Operators";
+import Checks from "./pages/Checks";
 import Settings from "./pages/Settings";
 import CodeAnalysis from "./pages/CodeAnalysis";
+import CodeReview from "./pages/CodeReview";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Security from "./pages/Security";
 import Pricing from "./pages/Pricing";
 import Connectors from "./pages/Connectors";
-import Deployments from "./pages/Deployments";
-import TerminalPage from "./pages/Terminal";
-import Pipelines from "./pages/Pipelines";
 
 const queryClient = new QueryClient();
 
@@ -39,19 +47,28 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<NewCheck />} />
                   <Route path="/auth" element={<Auth />} />
-                  <Route path="/code-analysis" element={<CodeAnalysis />} />
+                  <Route path="/security" element={<Security />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/connectors" element={<Connectors />} />
+                  <Route path="/pending-request" element={<PendingRequest />} />
+                  <Route path="/network" element={<Index />} />
+                  <Route path="/operators" element={<Operators />} />
+                  <Route path="/nodes" element={<Nodes />} />
+                  <Route path="/agents" element={<Agents />} />
+                  <Route path="/checks" element={<Checks />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/history" element={<History />} />
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/tasks" element={<Tasks />} />
-                  <Route path="/history" element={<History />} />
-                  <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/security" element={<Security />} />
-                  <Route path="/connectors" element={<Connectors />} />
-                  <Route path="/deployments" element={<Deployments />} />
-                  <Route path="/terminal" element={<TerminalPage />} />
-                  <Route path="/pipelines" element={<Pipelines />} />
                   <Route path="/team" element={<Team />} />
-                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/code-analysis" element={<CodeAnalysis />} />
+                  <Route path="/code-review" element={<CodeReview />} />
+                  <Route path="/about" element={<About />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/node/:npub" element={<NodeProfile />} />
+                  <Route path="/operator/:npub" element={<OperatorProfile />} />
+                  <Route path="/check/:checkId" element={<CheckProfile />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
