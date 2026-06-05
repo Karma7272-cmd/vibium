@@ -3,11 +3,13 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { FolderOpen, Loader2, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Download } from 'lucide-react';
+import { FolderOpen, Loader2, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Download, Sparkles, Send, FileEdit, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import {
   setGitHubToken, createRepo, commitAndPush, createBranch, createPullRequest,
@@ -19,6 +21,7 @@ import Editor from '@monaco-editor/react';
 import { useTheme } from '@/components/ThemeProvider';
 import JSZip from 'jszip';
 import { useSearchParams } from 'react-router-dom';
+import { ProjectFileTree } from '@/components/projects/ProjectFileTree';
 
 interface ProjectFile { path: string; content: string; }
 interface EnvVar { name: string; description?: string; example?: string; required?: boolean; }
