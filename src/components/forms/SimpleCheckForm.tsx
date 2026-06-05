@@ -82,7 +82,10 @@ const SimpleCheckForm: React.FC = () => {
     setIsGenerating(true);
     try {
       toast({ title: "Generating…", description: "AI is building your project." });
+      const repoContext = selectedRepo ? `\n\nTarget repository: ${selectedRepo.owner}/${selectedRepo.name}. Generate files compatible with this repo's stack.` : '';
       const { data, error } = await supabase.functions.invoke('generate-project', {
+        body: { prompt: trimmed + repoContext },
+      });
         body: { prompt: trimmed },
       });
       if (error) throw error;
