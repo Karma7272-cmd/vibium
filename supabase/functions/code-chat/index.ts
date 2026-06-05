@@ -1,8 +1,45 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Per-connector integration recipes the AI can follow when authorized
+const CONNECTOR_RECIPES: Record<string, { env: string; hint: string }> = {
+  openai: {
+    env: "OPENAI_API_KEY",
+    hint: "Use `fetch('https://api.openai.com/v1/chat/completions', { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } })` or the official `openai` npm SDK.",
+  },
+  anthropic: {
+    env: "ANTHROPIC_API_KEY",
+    hint: "Call https://api.anthropic.com/v1/messages with header `x-api-key: ${process.env.ANTHROPIC_API_KEY}` and `anthropic-version: 2023-06-01`.",
+  },
+  gemini: {
+    env: "GEMINI_API_KEY",
+    hint: "Call https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}.",
+  },
+  stripe: {
+    env: "STRIPE_SECRET_KEY",
+    hint: "Use the `stripe` npm SDK: `new Stripe(process.env.STRIPE_SECRET_KEY)`. Never expose this on the client.",
+  },
+  resend: {
+    env: "RESEND_API_KEY",
+    hint: "POST to https://api.resend.com/emails with header `Authorization: Bearer ${process.env.RESEND_API_KEY}`.",
+  },
+  github: {
+    env: "GITHUB_TOKEN",
+    hint: "Call https://api.github.com with header `Authorization: Bearer ${process.env.GITHUB_TOKEN}`.",
+  },
+  firecrawl: {
+    env: "FIRECRAWL_API_KEY",
+    hint: "POST to https://api.firecrawl.dev/v1/scrape with header `Authorization: Bearer ${process.env.FIRECRAWL_API_KEY}`.",
+  },
+  supabase: {
+    env: "SUPABASE_SERVICE_ROLE_KEY",
+    hint: "Use `createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)` on the server only.",
+  },
 };
 
 serve(async (req) => {
@@ -14,6 +51,39 @@ serve(async (req) => {
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
     const effectiveScope: 'project' | 'file' = scope === 'file' ? 'file' : 'project';
+
+    // Fetch authorized connector credentials for the calling user
+    let authorizedConnectors: Array<{ id: string; envVar: string; hint: string; hasConfig: boolean }> = [];
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader && Array.isArray(connectors) && connectors.length) {
+      try {
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } },
+        );
+        const { data: creds } = await supabase
+          .from("connector_credentials")
+          .select("connector_id, status, config")
+          .in("connector_id", connectors)
+          .eq("status", "connected");
+
+        authorizedConnectors = (creds || []).map((c: any) => {
+          const recipe = CONNECTOR_RECIPES[c.connector_id] || {
+            env: `${c.connector_id.toUpperCase()}_API_KEY`,
+            hint: `Read the API key from process.env.${c.connector_id.toUpperCase()}_API_KEY and call the ${c.connector_id} REST API.`,
+          };
+          return {
+            id: c.connector_id,
+            envVar: recipe.env,
+            hint: recipe.hint,
+            hasConfig: c.config && Object.keys(c.config).length > 0,
+          };
+        });
+      } catch (e) {
+        console.error("Failed to load connector credentials:", e);
+      }
+    }
 
     let filesContext = "";
     if (files?.length) {
@@ -30,11 +100,16 @@ serve(async (req) => {
       ? `SCOPE: SINGLE FILE. You MUST only modify the one file shown above. Do NOT propose changes to any other file. Always reference it as "File: <its exact path>".`
       : `SCOPE: WHOLE PROJECT. You may edit/create across multiple files. For each changed file, output a separate code block prefixed with "File: <path>".`;
 
-    const connectorContext = (connectors && connectors.length)
-      ? `\n\nUser has authorized these connectors with stored API keys: ${connectors.join(", ")}. When relevant, generate integration code that reads keys from environment variables (e.g. process.env.OPENAI_API_KEY) and uses these services.`
-      : "";
+    let connectorContext = "";
+    if (authorizedConnectors.length) {
+      connectorContext = `\n\nAUTHORIZED CONNECTORS (the user has stored credentials for these — you MAY write, edit, and fix code that uses them):\n` +
+        authorizedConnectors.map(c =>
+          `- ${c.id}: read the key from \`process.env.${c.envVar}\` (server-side only). ${c.hint}`
+        ).join("\n") +
+        `\n\nWhen the user asks you to add/edit/fix integration code for any of these services, generate working code that imports the SDK or calls the REST API using the env var above. Never hardcode keys. Add a short comment noting which connector is used.`;
+    }
 
-    const systemPrompt = `You are an expert code assistant.
+    const systemPrompt = `You are an expert code assistant that writes, edits, and fixes code.
 ${scopeRule}${connectorContext}
 ${filesContext || "No files provided yet."}
 
@@ -43,7 +118,6 @@ Guidelines:
 - Return COMPLETE fixed code in fenced code blocks
 - Be concise but thorough`;
 
-    // Convert OpenAI-style messages to Gemini contents
     const contents = (messages || []).map((m: any) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
@@ -72,7 +146,6 @@ Guidelines:
       });
     }
 
-    // Re-emit as OpenAI-style SSE so the existing frontend parser keeps working
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
     const reader = upstream.body.getReader();
