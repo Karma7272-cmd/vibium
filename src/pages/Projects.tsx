@@ -60,6 +60,72 @@ const Projects: React.FC = () => {
   const [repoName, setRepoName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [showPushForm, setShowPushForm] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [aiBusy, setAiBusy] = useState(false);
+  const [worklog, setWorklog] = useState<{ role: 'user' | 'ai'; text: string; edits?: { path: string; action: string; note: string }[]; at: number }[]>([]);
+  const [tab, setTab] = useState<'code' | 'changes' | 'preview'>('code');
+  const [changedPaths, setChangedPaths] = useState<Set<string>>(new Set());
+
+  const previewHtml = React.useMemo(() => {
+    if (!active) return null;
+    const html = (active.files || []).find(f => /\bindex\.html?$/i.test(f.path) || /\bpublic\/index\.html?$/i.test(f.path));
+    if (!html) return null;
+    const cssFiles = (active.files || []).filter(f => /\.css$/i.test(f.path));
+    const cssTag = cssFiles.map(f => `<style>${f.content}</style>`).join('');
+    return html.content.replace(/<\/head>/i, `${cssTag}</head>`);
+  }, [active]);
+
+  const runAiEdit = async () => {
+    if (!active || !aiInput.trim() || !user) return;
+    const goal = aiInput.trim();
+    setAiInput('');
+    setWorklog(w => [...w, { role: 'user', text: goal, at: Date.now() }]);
+    setAiBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-and-edit', {
+        body: { prompt: goal, files: (active.files || []).map(f => ({ path: f.path, content: f.content })) },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const edits: { path: string; action: string; after: string; note: string }[] = data?.edits || [];
+      if (!edits.length) {
+        setWorklog(w => [...w, { role: 'ai', text: data?.summary || 'No changes proposed.', at: Date.now() }]);
+        return;
+      }
+      const map = new Map((active.files || []).map(f => [f.path, f.content] as const));
+      for (const e of edits) map.set(e.path, e.after);
+      const nextFiles = Array.from(map.entries()).map(([path, content]) => ({ path, content }));
+      const { error: upErr } = await supabase
+        .from('generated_projects' as any)
+        .update({ files: nextFiles } as any)
+        .eq('id', active.id);
+      if (upErr) throw upErr;
+      setActive({ ...active, files: nextFiles });
+      setChangedPaths(prev => {
+        const n = new Set(prev); edits.forEach(e => n.add(e.path)); return n;
+      });
+      if (selectedFile) {
+        const updated = nextFiles.find(f => f.path === selectedFile.path);
+        if (updated) setSelectedFile(updated);
+      }
+      setWorklog(w => [...w, { role: 'ai', text: data?.summary || `Updated ${edits.length} file(s).`, edits: edits.map(e => ({ path: e.path, action: e.action, note: e.note })), at: Date.now() }]);
+      toast({ title: 'Files updated', description: `${edits.length} change(s) applied.` });
+    } catch (e: any) {
+      setWorklog(w => [...w, { role: 'ai', text: `Error: ${e.message || 'failed'}`, at: Date.now() }]);
+      toast({ title: 'Edit failed', description: e.message || 'Try again', variant: 'destructive' });
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  const updateFileLocally = async (path: string, content: string) => {
+    if (!active) return;
+    const nextFiles = (active.files || []).map(f => f.path === path ? { ...f, content } : f);
+    setActive({ ...active, files: nextFiles });
+    setSelectedFile(prev => prev && prev.path === path ? { ...prev, content } : prev);
+    setChangedPaths(prev => { const n = new Set(prev); n.add(path); return n; });
+    await supabase.from('generated_projects' as any).update({ files: nextFiles } as any).eq('id', active.id);
+  };
 
   const downloadZip = async (p: GenProject) => {
     const zip = new JSZip();
