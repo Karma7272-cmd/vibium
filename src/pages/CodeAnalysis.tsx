@@ -78,6 +78,8 @@ const CodeAnalysis: React.FC = () => {
   const [newRepoName, setNewRepoName] = useState('');
   const [isPrivateRepo, setIsPrivateRepo] = useState(false);
   const [pushedRepoUrl, setPushedRepoUrl] = useState<string | null>(null);
+  const [openPR, setOpenPR] = useState<{ number: number; url: string; title: string; owner: string; repo: string } | null>(null);
+  const [isMerging, setIsMerging] = useState(false);
   const { toast } = useToast();
   const { actualTheme } = useTheme();
   const isGitHubAuthenticated = !!githubToken;
