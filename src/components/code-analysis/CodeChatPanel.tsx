@@ -45,6 +45,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
   const [scope, setScope] = useState<Scope>('project');
   const [connectors, setConnectors] = useState<Array<{ connector_id: string; status: string }>>([]);
   const [enabledConnectors, setEnabledConnectors] = useState<string[]>([]);
+  const [aiProvider, setAiProvider] = useState<'default' | 'openai' | 'anthropic' | 'gemini'>('default');
   const [autoApplied, setAutoApplied] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
