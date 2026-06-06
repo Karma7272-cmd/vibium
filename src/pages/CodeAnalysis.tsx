@@ -601,6 +601,18 @@ const CodeAnalysis: React.FC = () => {
                       <GitPullRequest className="h-3.5 w-3.5" />
                       {!isMobile && <span>Pull Request</span>}
                     </Button>
+                    {openPR && openPR.owner === repoInfo.owner && openPR.repo === repoInfo.repo && (
+                      <Button
+                        size={isMobile ? "icon" : "sm"}
+                        className="h-8 px-2 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={handleMergePR}
+                        disabled={isMerging}
+                        title={`Merge PR #${openPR.number}`}
+                      >
+                        {isMerging ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GitMerge className="h-3.5 w-3.5" />}
+                        {!isMobile && <span>Merge #{openPR.number}</span>}
+                      </Button>
+                    )}
                   </div>
                 )}
                 {!repoInfo && codeFiles.length > 0 && isGitHubAuthenticated && (
