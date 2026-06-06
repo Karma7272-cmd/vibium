@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { GitHubRepoSelector } from '@/components/code-analysis/GitHubRepoSelector';
 import { FileTreeView } from '@/components/code-analysis/FileTreeView';
 import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
-import { setGitHubToken, commitAndPush, createPullRequest, createBranch, createRepo } from '@/services/githubService';
+import { setGitHubToken, commitAndPush, createPullRequest, createBranch, createRepo, mergePullRequest } from '@/services/githubService';
 import { Switch } from '@/components/ui/switch';
 import Editor from '@monaco-editor/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
