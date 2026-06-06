@@ -325,6 +325,7 @@ const CodeAnalysis: React.FC = () => {
       });
       await commitAndPush(repoInfo.owner, repoInfo.repo, branchName, filesToCommit, prTitle);
       const pr = await createPullRequest(repoInfo.owner, repoInfo.repo, prTitle, prBody || `Updated ${modifiedFiles.length} file(s)`, branchName, repoInfo.branch);
+      setOpenPR({ number: pr.number, url: pr.html_url, title: prTitle, owner: repoInfo.owner, repo: repoInfo.repo });
       setModifiedFiles([]);
       setShowPRDialog(false);
       toast({ title: "PR Created", description: `Successfully created PR #${pr.number}` });
