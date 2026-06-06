@@ -46,23 +46,25 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, files, scope, connectors } = await req.json();
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
-
+    const { messages, files, scope, connectors, aiProvider } = await req.json();
     const effectiveScope: 'project' | 'file' = scope === 'file' ? 'file' : 'project';
 
     // Fetch authorized connector credentials for the calling user
     let authorizedConnectors: Array<{ id: string; envVar: string; hint: string; hasConfig: boolean }> = [];
+    let userProviderKey: string | null = null;
     const authHeader = req.headers.get("Authorization");
-    if (authHeader && Array.isArray(connectors) && connectors.length) {
-      try {
-        const supabase = createClient(
+
+    const supabaseClient = authHeader
+      ? createClient(
           Deno.env.get("SUPABASE_URL")!,
           Deno.env.get("SUPABASE_ANON_KEY")!,
           { global: { headers: { Authorization: authHeader } } },
-        );
-        const { data: creds } = await supabase
+        )
+      : null;
+
+    if (supabaseClient && Array.isArray(connectors) && connectors.length) {
+      try {
+        const { data: creds } = await supabaseClient
           .from("connector_credentials")
           .select("connector_id, status, config")
           .in("connector_id", connectors)
@@ -83,6 +85,16 @@ serve(async (req) => {
       } catch (e) {
         console.error("Failed to load connector credentials:", e);
       }
+    }
+
+    // If the user picked a model provider with their own key, fetch it
+    if (supabaseClient && (aiProvider === 'openai' || aiProvider === 'anthropic' || aiProvider === 'gemini')) {
+      const { data: cred } = await supabaseClient
+        .from("connector_credentials")
+        .select("api_key")
+        .eq("connector_id", aiProvider)
+        .maybeSingle();
+      if (cred?.api_key) userProviderKey = cred.api_key;
     }
 
     let filesContext = "";
