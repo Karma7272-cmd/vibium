@@ -615,6 +615,18 @@ const CodeAnalysis: React.FC = () => {
                     )}
                   </div>
                 )}
+                {!repoInfo && openPR && (
+                  <Button
+                    size="sm"
+                    className="h-8 px-2 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={handleMergePR}
+                    disabled={isMerging}
+                    title={`Merge PR #${openPR.number} in ${openPR.repo}`}
+                  >
+                    {isMerging ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GitMerge className="h-3.5 w-3.5" />}
+                    <span>Merge #{openPR.number}</span>
+                  </Button>
+                )}
                 {!repoInfo && codeFiles.length > 0 && isGitHubAuthenticated && (
                   pushedRepoUrl ? (
                     <Button
