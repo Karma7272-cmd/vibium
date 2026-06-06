@@ -336,6 +336,30 @@ const CodeAnalysis: React.FC = () => {
     }
   };
 
+  const handleMergePR = async () => {
+    if (!openPR) return;
+    const token = localStorage.getItem('github_access_token');
+    if (!token) { toast({ title: 'GitHub not connected', variant: 'destructive' }); return; }
+    setGitHubToken(token);
+    setIsMerging(true);
+    try {
+      const res = await mergePullRequest(openPR.owner, openPR.repo, openPR.number, {
+        commit_title: `Merge PR #${openPR.number}: ${openPR.title}`,
+        merge_method: 'squash',
+      });
+      if (res.merged) {
+        toast({ title: 'PR merged', description: `#${openPR.number} merged into ${openPR.repo}` });
+        setOpenPR(null);
+      } else {
+        toast({ title: 'Merge blocked', description: res.message || 'PR could not be merged.', variant: 'destructive' });
+      }
+    } catch (e: any) {
+      toast({ title: 'Merge failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setIsMerging(false);
+    }
+  };
+
   const handlePushGeneratedFiles = async () => {
     if (!codeFiles.length || !newRepoName.trim()) return;
     const token = localStorage.getItem('github_access_token');
