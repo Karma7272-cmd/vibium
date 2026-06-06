@@ -431,6 +431,7 @@ const CodeAnalysis: React.FC = () => {
             `Generated from prompt:\n\n> ${usedPrompt}\n\n${data.description || ''}`,
             branchName, baseBranch,
           );
+          setOpenPR({ number: pr.number, url: pr.html_url, title: `AI generated: ${(data.project_name || usedPrompt).slice(0, 60)}`, owner: overrideRepo.owner, repo: overrideRepo.name });
           if (projectId) {
             await supabase.from('generated_projects' as any).update({ pr_url: pr.html_url }).eq('id', projectId);
           }
