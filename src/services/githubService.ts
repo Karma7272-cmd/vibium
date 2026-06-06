@@ -310,6 +310,37 @@ export async function createBranch(owner: string, repo: string, newBranch: strin
   }
 }
 
+// Merge a pull request
+export async function mergePullRequest(
+  owner: string,
+  repo: string,
+  pull_number: number,
+  options?: { commit_title?: string; commit_message?: string; merge_method?: 'merge' | 'squash' | 'rebase' }
+): Promise<{ merged: boolean; sha?: string; message?: string }> {
+  const token = getGitHubToken();
+  if (!token) throw new Error("Not authenticated with GitHub");
+
+  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pull_number}/merge`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      commit_title: options?.commit_title,
+      commit_message: options?.commit_message,
+      merge_method: options?.merge_method || 'merge',
+    }),
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to merge PR: ${response.statusText}`);
+  }
+  return response.json();
+}
+
 // Check repo permissions for current user
 export async function getRepoPermissions(owner: string, repo: string): Promise<{ push: boolean; pull: boolean; admin: boolean }> {
   const token = getGitHubToken();
