@@ -19,14 +19,14 @@ import {
   GitBranch,
   Upload,
   FilePlus,
-  FolderPlus, ArrowUp, GitPullRequest, Sparkles, Lock, ExternalLink, CheckCircle2,
+  FolderPlus, ArrowUp, GitPullRequest, Sparkles, Lock, ExternalLink, CheckCircle2, GitMerge,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GitHubRepoSelector } from '@/components/code-analysis/GitHubRepoSelector';
 import { FileTreeView } from '@/components/code-analysis/FileTreeView';
 import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
-import { setGitHubToken, commitAndPush, createPullRequest, createBranch, createRepo } from '@/services/githubService';
+import { setGitHubToken, commitAndPush, createPullRequest, createBranch, createRepo, mergePullRequest } from '@/services/githubService';
 import { Switch } from '@/components/ui/switch';
 import Editor from '@monaco-editor/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -78,6 +78,8 @@ const CodeAnalysis: React.FC = () => {
   const [newRepoName, setNewRepoName] = useState('');
   const [isPrivateRepo, setIsPrivateRepo] = useState(false);
   const [pushedRepoUrl, setPushedRepoUrl] = useState<string | null>(null);
+  const [openPR, setOpenPR] = useState<{ number: number; url: string; title: string; owner: string; repo: string } | null>(null);
+  const [isMerging, setIsMerging] = useState(false);
   const { toast } = useToast();
   const { actualTheme } = useTheme();
   const isGitHubAuthenticated = !!githubToken;
@@ -323,6 +325,7 @@ const CodeAnalysis: React.FC = () => {
       });
       await commitAndPush(repoInfo.owner, repoInfo.repo, branchName, filesToCommit, prTitle);
       const pr = await createPullRequest(repoInfo.owner, repoInfo.repo, prTitle, prBody || `Updated ${modifiedFiles.length} file(s)`, branchName, repoInfo.branch);
+      setOpenPR({ number: pr.number, url: pr.html_url, title: prTitle, owner: repoInfo.owner, repo: repoInfo.repo });
       setModifiedFiles([]);
       setShowPRDialog(false);
       toast({ title: "PR Created", description: `Successfully created PR #${pr.number}` });
@@ -330,6 +333,30 @@ const CodeAnalysis: React.FC = () => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsPushing(false);
+    }
+  };
+
+  const handleMergePR = async () => {
+    if (!openPR) return;
+    const token = localStorage.getItem('github_access_token');
+    if (!token) { toast({ title: 'GitHub not connected', variant: 'destructive' }); return; }
+    setGitHubToken(token);
+    setIsMerging(true);
+    try {
+      const res = await mergePullRequest(openPR.owner, openPR.repo, openPR.number, {
+        commit_title: `Merge PR #${openPR.number}: ${openPR.title}`,
+        merge_method: 'squash',
+      });
+      if (res.merged) {
+        toast({ title: 'PR merged', description: `#${openPR.number} merged into ${openPR.repo}` });
+        setOpenPR(null);
+      } else {
+        toast({ title: 'Merge blocked', description: res.message || 'PR could not be merged.', variant: 'destructive' });
+      }
+    } catch (e: any) {
+      toast({ title: 'Merge failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setIsMerging(false);
     }
   };
 
@@ -428,6 +455,7 @@ const CodeAnalysis: React.FC = () => {
             `Generated from prompt:\n\n> ${usedPrompt}\n\n${data.description || ''}`,
             branchName, baseBranch,
           );
+          setOpenPR({ number: pr.number, url: pr.html_url, title: `AI generated: ${(data.project_name || usedPrompt).slice(0, 60)}`, owner: overrideRepo.owner, repo: overrideRepo.name });
           if (projectId) {
             await supabase.from('generated_projects' as any).update({ pr_url: pr.html_url }).eq('id', projectId);
           }
@@ -573,7 +601,31 @@ const CodeAnalysis: React.FC = () => {
                       <GitPullRequest className="h-3.5 w-3.5" />
                       {!isMobile && <span>Pull Request</span>}
                     </Button>
+                    {openPR && openPR.owner === repoInfo.owner && openPR.repo === repoInfo.repo && (
+                      <Button
+                        size={isMobile ? "icon" : "sm"}
+                        className="h-8 px-2 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={handleMergePR}
+                        disabled={isMerging}
+                        title={`Merge PR #${openPR.number}`}
+                      >
+                        {isMerging ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GitMerge className="h-3.5 w-3.5" />}
+                        {!isMobile && <span>Merge #{openPR.number}</span>}
+                      </Button>
+                    )}
                   </div>
+                )}
+                {!repoInfo && openPR && (
+                  <Button
+                    size="sm"
+                    className="h-8 px-2 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={handleMergePR}
+                    disabled={isMerging}
+                    title={`Merge PR #${openPR.number} in ${openPR.repo}`}
+                  >
+                    {isMerging ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GitMerge className="h-3.5 w-3.5" />}
+                    <span>Merge #{openPR.number}</span>
+                  </Button>
                 )}
                 {!repoInfo && codeFiles.length > 0 && isGitHubAuthenticated && (
                   pushedRepoUrl ? (

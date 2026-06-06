@@ -46,23 +46,25 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, files, scope, connectors } = await req.json();
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
-
+    const { messages, files, scope, connectors, aiProvider } = await req.json();
     const effectiveScope: 'project' | 'file' = scope === 'file' ? 'file' : 'project';
 
     // Fetch authorized connector credentials for the calling user
     let authorizedConnectors: Array<{ id: string; envVar: string; hint: string; hasConfig: boolean }> = [];
+    let userProviderKey: string | null = null;
     const authHeader = req.headers.get("Authorization");
-    if (authHeader && Array.isArray(connectors) && connectors.length) {
-      try {
-        const supabase = createClient(
+
+    const supabaseClient = authHeader
+      ? createClient(
           Deno.env.get("SUPABASE_URL")!,
           Deno.env.get("SUPABASE_ANON_KEY")!,
           { global: { headers: { Authorization: authHeader } } },
-        );
-        const { data: creds } = await supabase
+        )
+      : null;
+
+    if (supabaseClient && Array.isArray(connectors) && connectors.length) {
+      try {
+        const { data: creds } = await supabaseClient
           .from("connector_credentials")
           .select("connector_id, status, config")
           .in("connector_id", connectors)
@@ -83,6 +85,16 @@ serve(async (req) => {
       } catch (e) {
         console.error("Failed to load connector credentials:", e);
       }
+    }
+
+    // If the user picked a model provider with their own key, fetch it
+    if (supabaseClient && (aiProvider === 'openai' || aiProvider === 'anthropic' || aiProvider === 'gemini')) {
+      const { data: cred } = await supabaseClient
+        .from("connector_credentials")
+        .select("api_key")
+        .eq("connector_id", aiProvider)
+        .maybeSingle();
+      if (cred?.api_key) userProviderKey = cred.api_key;
     }
 
     let filesContext = "";
@@ -118,30 +130,88 @@ Guidelines:
 - Return COMPLETE fixed code in fenced code blocks
 - Be concise but thorough`;
 
-    const contents = (messages || []).map((m: any) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
+    // ---- Resolve provider + key ----
+    // If user picked a provider with their key, use that. Else default to built-in Gemini.
+    const provider: 'openai' | 'anthropic' | 'gemini' =
+      (aiProvider === 'openai' || aiProvider === 'anthropic' || aiProvider === 'gemini') && userProviderKey
+        ? aiProvider
+        : 'gemini';
+    const apiKey = userProviderKey || Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "No AI key available. Connect a provider on the Connectors page." }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
-    const upstream = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents,
-      }),
-    });
+    let upstream: Response;
+    let upstreamKind: 'gemini' | 'openai' | 'anthropic';
+
+    if (provider === 'gemini') {
+      upstreamKind = 'gemini';
+      const contents = (messages || []).map((m: any) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      }));
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
+      upstream = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents,
+        }),
+      });
+    } else if (provider === 'openai') {
+      upstreamKind = 'openai';
+      const msgs = [
+        { role: 'system', content: systemPrompt },
+        ...(messages || []).map((m: any) => ({ role: m.role, content: m.content })),
+      ];
+      upstream = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: msgs,
+          stream: true,
+        }),
+      });
+    } else {
+      // anthropic
+      upstreamKind = 'anthropic';
+      const msgs = (messages || []).map((m: any) => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content,
+      }));
+      upstream = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-sonnet-latest',
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: msgs,
+          stream: true,
+        }),
+      });
+    }
 
     if (!upstream.ok || !upstream.body) {
       const t = await upstream.text().catch(() => "");
-      console.error("Gemini stream error:", upstream.status, t);
+      console.error(`${provider} stream error:`, upstream.status, t);
       if (upstream.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ error: `Gemini API error: ${upstream.status}` }), {
+      return new Response(JSON.stringify({ error: `${provider} API error: ${upstream.status}` }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -164,11 +234,20 @@ Guidelines:
               buf = buf.slice(idx + 1);
               if (!line.startsWith("data:")) continue;
               const json = line.slice(5).trim();
-              if (!json) continue;
+              if (!json || json === '[DONE]') continue;
               try {
                 const parsed = JSON.parse(json);
-                const text = parsed.candidates?.[0]?.content?.parts
-                  ?.map((p: any) => p.text || "").join("") || "";
+                let text = "";
+                if (upstreamKind === 'gemini') {
+                  text = parsed.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
+                } else if (upstreamKind === 'openai') {
+                  text = parsed.choices?.[0]?.delta?.content || "";
+                } else {
+                  // anthropic SSE: content_block_delta with delta.text
+                  if (parsed.type === 'content_block_delta') {
+                    text = parsed.delta?.text || "";
+                  }
+                }
                 if (text) {
                   const chunk = { choices: [{ delta: { content: text } }] };
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));

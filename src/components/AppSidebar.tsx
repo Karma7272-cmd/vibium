@@ -207,7 +207,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
             <SidebarGroupLabel
               className={cn(
                 'px-2 mb-0.5 text-[10px] font-semibold uppercase tracking-widest',
-                'text-sidebar-foreground/40'
+                'text-sidebar-foreground/40',
+                'group-data-[collapsible=icon]:hidden'
               )}
             >
               {group.label}
