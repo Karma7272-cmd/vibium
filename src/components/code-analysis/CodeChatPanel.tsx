@@ -295,6 +295,43 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
             <FileCode className="h-3 w-3" /> File
           </button>
         </div>
+        {/* AI Model picker */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1 px-2 py-1 rounded-full border border-border bg-muted/40 text-[10px] text-muted-foreground hover:text-foreground"
+              title="Choose AI model (use your own key)"
+            >
+              <Bot className="h-3 w-3" />
+              {aiProvider === 'default' ? 'Model' : aiProvider === 'openai' ? 'GPT' : aiProvider === 'anthropic' ? 'Claude' : 'Gemini'}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-2">
+            <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 px-1">AI model</p>
+            {[
+              { id: 'default' as const, label: 'Default (Vibium AI)', needsKey: null },
+              { id: 'openai' as const, label: 'ChatGPT (your key)', needsKey: 'openai' },
+              { id: 'anthropic' as const, label: 'Claude (your key)', needsKey: 'anthropic' },
+              { id: 'gemini' as const, label: 'Gemini (your key)', needsKey: 'gemini' },
+            ].map(opt => {
+              const connected = !opt.needsKey || connectors.some(c => c.connector_id === opt.needsKey && c.status === 'connected');
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => connected && setAiProvider(opt.id)}
+                  disabled={!connected}
+                  className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={connected ? '' : `Connect ${opt.needsKey} on Connectors page first`}
+                >
+                  <span>{opt.label}</span>
+                  {aiProvider === opt.id && <CheckIcon className="h-3 w-3 text-primary" />}
+                </button>
+              );
+            })}
+            <p className="text-[10px] text-muted-foreground/70 px-1 pt-1.5 mt-1 border-t border-border">Add API keys on the Connectors page to enable.</p>
+          </PopoverContent>
+        </Popover>
         {/* Connector picker */}
         <Popover>
           <PopoverTrigger asChild>
