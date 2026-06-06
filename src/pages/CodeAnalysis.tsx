@@ -19,7 +19,7 @@ import {
   GitBranch,
   Upload,
   FilePlus,
-  FolderPlus, ArrowUp, GitPullRequest, Sparkles, Lock, ExternalLink, CheckCircle2,
+  FolderPlus, ArrowUp, GitPullRequest, Sparkles, Lock, ExternalLink, CheckCircle2, GitMerge,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
