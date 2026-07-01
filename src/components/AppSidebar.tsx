@@ -101,6 +101,7 @@ const routeMap: Record<string, string> = {
   history: '/history',
   projects: '/projects',
   tasks: '/tasks',
+  agents: '/agents',
   team: '/team',
   security: '/security',
   pricing: '/pricing',
