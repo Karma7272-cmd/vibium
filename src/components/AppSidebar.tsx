@@ -60,26 +60,26 @@ type MenuGroup = {
 
 const menuGroups: MenuGroup[] = [
   {
-    label: 'Workspace',
+    label: 'Build',
     items: [
-      { id: 'new-check', label: 'New Check', icon: Plus, isRoute: true },
+      { id: 'new-check', label: 'Generate', icon: Plus, isRoute: true },
       { id: 'code-analysis', label: 'Code AI', icon: FileCode, isRoute: true },
-      { id: 'analytics', label: 'Analytics', icon: BarChart3, isRoute: true },
-    ],
-  },
-  {
-    label: 'Tools',
-    items: [
-      { id: 'security', label: 'Website Security', icon: Shield, isRoute: true },
-      { id: 'connectors', label: 'Connectors', icon: Share2, isRoute: true },
-      { id: 'pricing', label: 'Pricing', icon: CreditCard, isRoute: true },
-    ],
-  },
-  {
-    label: 'Organize',
-    items: [
       { id: 'projects', label: 'Projects', icon: FolderOpen, isRoute: true },
       { id: 'tasks', label: 'Tasks', icon: ListTodo, isRoute: true },
+      { id: 'agents', label: 'Agents', icon: Bot, isRoute: true },
+    ],
+  },
+  {
+    label: 'Ship',
+    items: [
+      { id: 'connectors', label: 'Connectors', icon: Share2, isRoute: true },
+    ],
+  },
+  {
+    label: 'Monitor',
+    items: [
+      { id: 'analytics', label: 'Analytics', icon: BarChart3, isRoute: true },
+      { id: 'security', label: 'Security', icon: Shield, isRoute: true },
       { id: 'history', label: 'History', icon: Clock, isRoute: true },
     ],
   },
@@ -87,8 +87,9 @@ const menuGroups: MenuGroup[] = [
     label: 'Account',
     items: [
       { id: 'team', label: 'Team', icon: Users, isRoute: true },
-      { id: 'about', label: 'About', icon: Info, isRoute: true },
+      { id: 'pricing', label: 'Pricing', icon: CreditCard, isRoute: true },
       { id: 'settings', label: 'Settings', icon: Settings, isRoute: true },
+      { id: 'about', label: 'About', icon: Info, isRoute: true },
     ],
   },
 ];
