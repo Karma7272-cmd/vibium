@@ -653,6 +653,15 @@ const CodeAnalysis: React.FC = () => {
                   )
                 )}
                 <Button
+                  variant={showTerminal ? "default" : "ghost"}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setShowTerminal(v => !v)}
+                  title="Toggle terminal"
+                >
+                  <TerminalSquare className="h-4 w-4" />
+                </Button>
+                <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
