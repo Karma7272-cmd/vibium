@@ -801,8 +801,8 @@ const CodeAnalysis: React.FC = () => {
                   </ScrollArea>
                 </div>
 
-                {/* Editor Content */}
-                <div className="flex-1 overflow-hidden bg-background">
+                {/* Editor Content (stacked with terminal on desktop when shown) */}
+                <div className="flex-1 overflow-hidden bg-background min-h-0">
                   {selectedFile ? (
                     <Editor
                       height="100%"
@@ -835,6 +835,20 @@ const CodeAnalysis: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Desktop inline terminal (bottom split) */}
+                {!isMobile && showTerminal && (
+                  <div className="h-64 border-t border-border shrink-0">
+                    <WebContainerTerminal files={codeFiles} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Panel 4: Terminal (Mobile full-screen) */}
+            {isMobile && mobilePanel === 'terminal' && (
+              <div className="absolute inset-0 z-40 w-full h-full bg-background flex flex-col overflow-hidden">
+                <WebContainerTerminal files={codeFiles} />
               </div>
             )}
           </div>
