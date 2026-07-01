@@ -72,7 +72,8 @@ const CodeAnalysis: React.FC = () => {
   const [showPRDialog, setShowPRDialog] = useState(false);
   const [prTitle, setPrTitle] = useState("");
   const [prBody, setPrBody] = useState("");
-  const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'code'>('code');
+  const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'code' | 'terminal'>('code');
+  const [showTerminal, setShowTerminal] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPushGenDialog, setShowPushGenDialog] = useState(false);
