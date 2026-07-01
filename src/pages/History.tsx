@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, Shield, Activity } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, Shield, Activity, FileCode, FolderOpen, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { realCheckService } from '@/services/realCheckService';
 import { Check } from '@/types/check';
 import { formatDistanceToNow } from 'date-fns';
@@ -13,25 +15,30 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface TaskRow { id: string; title: string; status: string; created_at: string; completed_at: string | null; }
 interface ScanRow { id: string; url: string; grade: string | null; score: number | null; status: string; created_at: string; }
+interface GenRow { id: string; name: string; description: string | null; stack: string | null; files: unknown; created_at: string; repo_full_name: string | null; }
 
 const History: React.FC = () => {
+  const navigate = useNavigate();
   const [checks, setChecks] = useState<Check[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [scans, setScans] = useState<ScanRow[]>([]);
+  const [gens, setGens] = useState<GenRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [c, t, s] = await Promise.all([
+      const [c, t, s, g] = await Promise.all([
         realCheckService.getChecks(),
         supabase.from('tasks').select('id,title,status,created_at,completed_at').order('created_at', { ascending: false }).limit(100),
         supabase.from('security_scans').select('id,url,grade,score,status,created_at').order('created_at', { ascending: false }).limit(100),
+        supabase.from('generated_projects' as any).select('id,name,description,stack,files,created_at,repo_full_name').order('created_at', { ascending: false }).limit(100),
       ]);
       if (cancelled) return;
       setChecks(c);
       setTasks((t.data as any) || []);
       setScans((s.data as any) || []);
+      setGens((g.data as any) || []);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -47,6 +54,8 @@ const History: React.FC = () => {
     }
   };
 
+  const fileCount = (files: unknown): number => Array.isArray(files) ? files.length : 0;
+
   return (
     <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
       <AppSidebar activeSection="history" onSectionChange={() => {}} />
@@ -59,18 +68,67 @@ const History: React.FC = () => {
           <div className="max-w-4xl mx-auto space-y-6">
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold mb-1">Activity History</h2>
-              <p className="text-sm text-muted-foreground">All your checks, AI generations, and security scans.</p>
+              <p className="text-sm text-muted-foreground">Home-page generations, checks, tasks and security scans.</p>
             </div>
 
             {loading ? (
               <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
             ) : (
-              <Tabs defaultValue="checks">
-                <TabsList>
+              <Tabs defaultValue="generations">
+                <TabsList className="flex-wrap h-auto">
+                  <TabsTrigger value="generations" className="gap-1.5"><FolderOpen className="h-3.5 w-3.5" />Generations ({gens.length})</TabsTrigger>
+                  <TabsTrigger value="tasks" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />Tasks ({tasks.length})</TabsTrigger>
                   <TabsTrigger value="checks" className="gap-1.5"><Activity className="h-3.5 w-3.5" />Checks ({checks.length})</TabsTrigger>
-                  <TabsTrigger value="generations" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />AI Generations ({tasks.length})</TabsTrigger>
-                  <TabsTrigger value="scans" className="gap-1.5"><Shield className="h-3.5 w-3.5" />Security Scans ({scans.length})</TabsTrigger>
+                  <TabsTrigger value="scans" className="gap-1.5"><Shield className="h-3.5 w-3.5" />Scans ({scans.length})</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="generations" className="space-y-3 mt-4">
+                  {gens.length === 0 ? (
+                    <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No generations yet. Type a prompt on the home page to create one.</CardContent></Card>
+                  ) : gens.map(g => (
+                    <Card key={g.id} className="hover:border-primary/40 transition-colors">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <FileCode className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">{g.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {formatDistanceToNow(new Date(g.created_at), { addSuffix: true })}
+                            {g.stack ? ` · ${g.stack}` : ''}
+                            {` · ${fileCount(g.files)} files`}
+                          </p>
+                        </div>
+                        {g.repo_full_name && (
+                          <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">{g.repo_full_name}</Badge>
+                        )}
+                        <Button
+                          size="sm"
+                          className="gap-1.5 h-8 shrink-0"
+                          onClick={() => navigate(`/projects?open=${g.id}`)}
+                        >
+                          <span className="text-xs">Open</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="tasks" className="space-y-3 mt-4">
+                  {tasks.length === 0 ? (
+                    <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No scheduled tasks yet.</CardContent></Card>
+                  ) : tasks.map(t => (
+                    <Card key={t.id}><CardContent className="p-4 flex items-center gap-3">
+                      {statusIcon(t.status)}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{t.title}</p>
+                        <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">{t.status}</Badge>
+                    </CardContent></Card>
+                  ))}
+                </TabsContent>
 
                 <TabsContent value="checks" className="space-y-3 mt-4">
                   {checks.length === 0 ? (
@@ -83,21 +141,6 @@ const History: React.FC = () => {
                         <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}{item.statusCode ? ` · ${item.statusCode}` : ''}</p>
                       </div>
                       <Badge variant="outline" className="text-xs">{item.status}</Badge>
-                    </CardContent></Card>
-                  ))}
-                </TabsContent>
-
-                <TabsContent value="generations" className="space-y-3 mt-4">
-                  {tasks.length === 0 ? (
-                    <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No AI generations yet. Try the Code AI page.</CardContent></Card>
-                  ) : tasks.map(t => (
-                    <Card key={t.id}><CardContent className="p-4 flex items-center gap-3">
-                      {statusIcon(t.status)}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{t.title}</p>
-                        <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}</p>
-                      </div>
-                      <Badge variant="outline" className="text-xs">{t.status}</Badge>
                     </CardContent></Card>
                   ))}
                 </TabsContent>
@@ -127,3 +170,4 @@ const History: React.FC = () => {
 };
 
 export default History;
+

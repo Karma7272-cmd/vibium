@@ -19,13 +19,14 @@ import {
   GitBranch,
   Upload,
   FilePlus,
-  FolderPlus, ArrowUp, GitPullRequest, Sparkles, Lock, ExternalLink, CheckCircle2, GitMerge,
+  FolderPlus, ArrowUp, GitPullRequest, Sparkles, Lock, ExternalLink, CheckCircle2, GitMerge, TerminalSquare,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GitHubRepoSelector } from '@/components/code-analysis/GitHubRepoSelector';
 import { FileTreeView } from '@/components/code-analysis/FileTreeView';
 import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
+import { WebContainerTerminal } from '@/components/code-analysis/WebContainerTerminal';
 import { setGitHubToken, commitAndPush, createPullRequest, createBranch, createRepo, mergePullRequest } from '@/services/githubService';
 import { Switch } from '@/components/ui/switch';
 import Editor from '@monaco-editor/react';
@@ -71,7 +72,8 @@ const CodeAnalysis: React.FC = () => {
   const [showPRDialog, setShowPRDialog] = useState(false);
   const [prTitle, setPrTitle] = useState("");
   const [prBody, setPrBody] = useState("");
-  const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'code'>('code');
+  const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'code' | 'terminal'>('code');
+  const [showTerminal, setShowTerminal] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPushGenDialog, setShowPushGenDialog] = useState(false);
@@ -651,6 +653,15 @@ const CodeAnalysis: React.FC = () => {
                   )
                 )}
                 <Button
+                  variant={showTerminal ? "default" : "ghost"}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setShowTerminal(v => !v)}
+                  title="Toggle terminal"
+                >
+                  <TerminalSquare className="h-4 w-4" />
+                </Button>
+                <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
@@ -790,8 +801,8 @@ const CodeAnalysis: React.FC = () => {
                   </ScrollArea>
                 </div>
 
-                {/* Editor Content */}
-                <div className="flex-1 overflow-hidden bg-background">
+                {/* Editor Content (stacked with terminal on desktop when shown) */}
+                <div className="flex-1 overflow-hidden bg-background min-h-0">
                   {selectedFile ? (
                     <Editor
                       height="100%"
@@ -824,6 +835,20 @@ const CodeAnalysis: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Desktop inline terminal (bottom split) */}
+                {!isMobile && showTerminal && (
+                  <div className="h-64 border-t border-border shrink-0">
+                    <WebContainerTerminal files={codeFiles} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Panel 4: Terminal (Mobile full-screen) */}
+            {isMobile && mobilePanel === 'terminal' && (
+              <div className="absolute inset-0 z-40 w-full h-full bg-background flex flex-col overflow-hidden">
+                <WebContainerTerminal files={codeFiles} />
               </div>
             )}
           </div>
@@ -908,7 +933,7 @@ const CodeAnalysis: React.FC = () => {
         {/* Mobile Navigation Tabs */}
         {isMobile && codeFiles.length > 0 && (
           <div className="h-12 flex items-center justify-center border-t border-border bg-background px-4 shrink-0 z-30">
-            <div className="flex items-center bg-muted/50 rounded-full p-1 w-full max-w-[300px]">
+            <div className="flex items-center bg-muted/50 rounded-full p-1 w-full max-w-[380px]">
               <button
                 onClick={() => setMobilePanel('chat')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-xs font-medium transition-all ${
@@ -935,6 +960,15 @@ const CodeAnalysis: React.FC = () => {
               >
                 <Code2 className="h-3.5 w-3.5" />
                 Code
+              </button>
+              <button
+                onClick={() => setMobilePanel('terminal')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  mobilePanel === 'terminal' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                <TerminalSquare className="h-3.5 w-3.5" />
+                Term
               </button>
             </div>
           </div>
