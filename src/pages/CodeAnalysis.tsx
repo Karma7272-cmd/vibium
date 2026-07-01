@@ -933,7 +933,7 @@ const CodeAnalysis: React.FC = () => {
         {/* Mobile Navigation Tabs */}
         {isMobile && codeFiles.length > 0 && (
           <div className="h-12 flex items-center justify-center border-t border-border bg-background px-4 shrink-0 z-30">
-            <div className="flex items-center bg-muted/50 rounded-full p-1 w-full max-w-[300px]">
+            <div className="flex items-center bg-muted/50 rounded-full p-1 w-full max-w-[380px]">
               <button
                 onClick={() => setMobilePanel('chat')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-xs font-medium transition-all ${
@@ -960,6 +960,15 @@ const CodeAnalysis: React.FC = () => {
               >
                 <Code2 className="h-3.5 w-3.5" />
                 Code
+              </button>
+              <button
+                onClick={() => setMobilePanel('terminal')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  mobilePanel === 'terminal' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                <TerminalSquare className="h-3.5 w-3.5" />
+                Term
               </button>
             </div>
           </div>
