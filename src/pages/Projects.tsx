@@ -70,6 +70,20 @@ const Projects: React.FC = () => {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user?.id]);
 
+  // Auto-open project from ?open=<id> (e.g. from History page).
+  useEffect(() => {
+    const id = searchParams.get('open');
+    if (!id || active || projects.length === 0) return;
+    const target = projects.find(p => p.id === id);
+    if (target) {
+      openProject(target);
+      // Clear the param so a manual "back" doesn't re-open.
+      searchParams.delete('open');
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, searchParams]);
+
   // Realtime
   useEffect(() => {
     if (!user) return;
