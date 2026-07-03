@@ -49,6 +49,11 @@ const Connectors: React.FC = () => {
   const [openId, setOpenId] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [testing, setTesting] = useState(false);
+  const [tryId, setTryId] = useState<string | null>(null);
+  const [tryAction, setTryAction] = useState<string>('');
+  const [tryInput, setTryInput] = useState<Record<string, string>>({});
+  const [tryResult, setTryResult] = useState<any>(null);
+  const [tryLoading, setTryLoading] = useState(false);
   const { toast } = useToast();
 
   const load = async () => {
@@ -59,6 +64,9 @@ const Connectors: React.FC = () => {
 
   const isConnected = (id: string) => saved.find(s => s.connector_id === id);
   const active = openId ? CONNECTORS.find(c => c.id === openId) : null;
+  const tryConn = tryId ? CONNECTORS.find(c => c.id === tryId) : null;
+  const tryActions = tryId ? (ACTIONS[tryId] || []) : [];
+  const currentAction = tryActions.find(a => a.id === tryAction);
 
   const save = async () => {
     if (!openId || !apiKey.trim()) return;
