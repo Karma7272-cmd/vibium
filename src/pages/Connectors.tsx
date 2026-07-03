@@ -101,6 +101,31 @@ const Connectors: React.FC = () => {
     } finally { setTesting(false); }
   };
 
+  const openTry = (id: string) => {
+    const actions = ACTIONS[id] || [];
+    setTryId(id);
+    setTryAction(actions[0]?.id || '');
+    setTryInput({});
+    setTryResult(null);
+  };
+
+  const runAction = async () => {
+    if (!tryId || !tryAction) return;
+    setTryLoading(true); setTryResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('connector-invoke', {
+        body: { connector_id: tryId, action: tryAction, input: tryInput },
+      });
+      if (error) throw error;
+      setTryResult(data);
+      if (!data.ok) toast({ title: 'Action failed', description: (data.error || `HTTP ${data.status}`).slice(0, 160), variant: 'destructive' });
+      else toast({ title: 'Success', description: `HTTP ${data.status}` });
+      load();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message || String(e), variant: 'destructive' });
+    } finally { setTryLoading(false); }
+  };
+
   return (
     <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
       <AppSidebar activeSection="" onSectionChange={() => {}} />
