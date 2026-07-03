@@ -8,7 +8,6 @@ import {
   Clock,
   Settings,
   Users,
-  Bot,
   BarChart3,
   FolderOpen,
   ListTodo,
@@ -66,7 +65,7 @@ const menuGroups: MenuGroup[] = [
       { id: 'code-analysis', label: 'Code AI', icon: FileCode, isRoute: true },
       { id: 'projects', label: 'Projects', icon: FolderOpen, isRoute: true },
       { id: 'tasks', label: 'Tasks', icon: ListTodo, isRoute: true },
-      { id: 'agents', label: 'Agents', icon: Bot, isRoute: true },
+      
     ],
   },
   {
@@ -101,7 +100,7 @@ const routeMap: Record<string, string> = {
   history: '/history',
   projects: '/projects',
   tasks: '/tasks',
-  agents: '/agents',
+  
   team: '/team',
   security: '/security',
   pricing: '/pricing',
