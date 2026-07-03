@@ -161,12 +161,17 @@ const Connectors: React.FC = () => {
                       <CardTitle className="text-lg">{c.name}</CardTitle>
                       <CardDescription className="line-clamp-2 min-h-[40px]">{c.description}</CardDescription>
                     </CardHeader>
-                    <CardContent className="mt-auto pt-2 flex gap-2">
-                      <Button className="flex-1 gap-2" variant={conn ? 'outline' : 'default'} onClick={() => { setOpenId(c.id); setApiKey(''); }}>
+                    <CardContent className="mt-auto pt-2 flex flex-wrap gap-2">
+                      <Button className="flex-1 min-w-[110px] gap-2" variant={conn ? 'outline' : 'default'} onClick={() => { setOpenId(c.id); setApiKey(''); }}>
                         <KeyRound className="h-3.5 w-3.5" />{conn ? 'Update key' : 'Connect'}
                       </Button>
                       {conn && (
                         <>
+                          {ACTIONS[c.id] && (
+                            <Button variant="secondary" size="sm" className="gap-1" onClick={() => openTry(c.id)}>
+                              <Play className="h-3.5 w-3.5" />Use
+                            </Button>
+                          )}
                           <Button variant="outline" size="sm" onClick={() => retest(c.id)} disabled={testing}>Test</Button>
                           <Button variant="ghost" size="icon" onClick={() => disconnect(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </>
