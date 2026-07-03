@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '../components/Footer';
-import { Share2, Cloud, Zap, Triangle, Flame, Book, Mail, ListTodo, UserCheck, Server, CheckCircle2, Loader2, KeyRound, Trash2 } from 'lucide-react';
+import { Share2, Cloud, Zap, Triangle, Flame, Book, Mail, ListTodo, UserCheck, Server, CheckCircle2, Loader2, KeyRound, Trash2, Play } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,22 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+
+// Quick actions per connector — proxied server-side via `connector-invoke`.
+const ACTIONS: Record<string, Array<{ id: string; label: string; needs?: Array<{ key: string; placeholder: string }> }>> = {
+  openai: [{ id: 'list_models', label: 'List models' }, { id: 'chat', label: 'Chat', needs: [{ key: 'prompt', placeholder: 'Prompt' }] }],
+  gemini: [{ id: 'list_models', label: 'List models' }, { id: 'generate', label: 'Generate', needs: [{ key: 'prompt', placeholder: 'Prompt' }] }],
+  anthropic: [{ id: 'list_models', label: 'List models' }],
+  github: [{ id: 'me', label: 'Whoami' }, { id: 'list_repos', label: 'List repos' }],
+  stripe: [{ id: 'balance', label: 'Balance' }, { id: 'list_customers', label: 'Customers' }],
+  resend: [{ id: 'list_domains', label: 'Domains' }, { id: 'send_email', label: 'Send email', needs: [{ key: 'to', placeholder: 'to@example.com' }, { key: 'subject', placeholder: 'Subject' }] }],
+  notion: [{ id: 'me', label: 'Whoami' }, { id: 'search', label: 'Search', needs: [{ key: 'query', placeholder: 'Query' }] }],
+  slack: [{ id: 'auth_test', label: 'Auth test' }, { id: 'post_message', label: 'Post message', needs: [{ key: 'channel', placeholder: '#channel-id' }, { key: 'text', placeholder: 'Message' }] }],
+  firecrawl: [{ id: 'credit', label: 'Credits' }, { id: 'scrape', label: 'Scrape URL', needs: [{ key: 'url', placeholder: 'https://…' }] }],
+  elevenlabs: [{ id: 'voices', label: 'Voices' }],
+  netlify: [{ id: 'sites', label: 'Sites' }],
+  vercel: [{ id: 'projects', label: 'Projects' }],
+};
 
 const CONNECTORS = [
   { id: 'openai', name: 'OpenAI', description: 'GPT models, embeddings, and DALL·E.', icon: Zap, category: 'AI', help: 'platform.openai.com/api-keys' },
