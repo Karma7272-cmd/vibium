@@ -13,7 +13,7 @@ import PendingRequest from "./pages/PendingRequest";
 import NodeProfile from "./pages/NodeProfile";
 import OperatorProfile from "./pages/OperatorProfile";
 import CheckProfile from "./pages/CheckProfile";
-import Agents from "./pages/Agents";
+
 import Analytics from "./pages/Analytics";
 import History from "./pages/History";
 import Projects from "./pages/Projects";
@@ -54,7 +54,7 @@ const App = () => (
                   <Route path="/network" element={<Index />} />
                   <Route path="/operators" element={<Operators />} />
                   <Route path="/nodes" element={<Nodes />} />
-                  <Route path="/agents" element={<Agents />} />
+                  
                   <Route path="/checks" element={<Checks />} />
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/history" element={<History />} />
