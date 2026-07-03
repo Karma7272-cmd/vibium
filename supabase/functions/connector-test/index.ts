@@ -22,6 +22,8 @@ const TESTS: Record<string, TestSpec> = {
   notion: { url: "https://api.notion.com/v1/users/me", authHeader: (k) => ({ Authorization: `Bearer ${k}`, "Notion-Version": "2022-06-28" }) },
   slack: { url: "https://slack.com/api/auth.test", authHeader: (k) => ({ Authorization: `Bearer ${k}` }) },
   elevenlabs: { url: "https://api.elevenlabs.io/v1/user", authHeader: (k) => ({ "xi-api-key": k }) },
+  netlify: { url: "https://api.netlify.com/api/v1/user", authHeader: (k) => ({ Authorization: `Bearer ${k}` }) },
+  vercel: { url: "https://api.vercel.com/v2/user", authHeader: (k) => ({ Authorization: `Bearer ${k}` }) },
 };
 
 serve(async (req) => {

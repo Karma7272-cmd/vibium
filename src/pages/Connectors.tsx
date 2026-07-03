@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '../components/Footer';
-import { Share2, Cloud, Zap, Triangle, Flame, Book, Mail, ListTodo, UserCheck, Server, CheckCircle2, Loader2, KeyRound, Trash2 } from 'lucide-react';
+import { Share2, Cloud, Zap, Triangle, Flame, Book, Mail, ListTodo, UserCheck, Server, CheckCircle2, Loader2, KeyRound, Trash2, Play } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,22 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+
+// Quick actions per connector — proxied server-side via `connector-invoke`.
+const ACTIONS: Record<string, Array<{ id: string; label: string; needs?: Array<{ key: string; placeholder: string }> }>> = {
+  openai: [{ id: 'list_models', label: 'List models' }, { id: 'chat', label: 'Chat', needs: [{ key: 'prompt', placeholder: 'Prompt' }] }],
+  gemini: [{ id: 'list_models', label: 'List models' }, { id: 'generate', label: 'Generate', needs: [{ key: 'prompt', placeholder: 'Prompt' }] }],
+  anthropic: [{ id: 'list_models', label: 'List models' }],
+  github: [{ id: 'me', label: 'Whoami' }, { id: 'list_repos', label: 'List repos' }],
+  stripe: [{ id: 'balance', label: 'Balance' }, { id: 'list_customers', label: 'Customers' }],
+  resend: [{ id: 'list_domains', label: 'Domains' }, { id: 'send_email', label: 'Send email', needs: [{ key: 'to', placeholder: 'to@example.com' }, { key: 'subject', placeholder: 'Subject' }] }],
+  notion: [{ id: 'me', label: 'Whoami' }, { id: 'search', label: 'Search', needs: [{ key: 'query', placeholder: 'Query' }] }],
+  slack: [{ id: 'auth_test', label: 'Auth test' }, { id: 'post_message', label: 'Post message', needs: [{ key: 'channel', placeholder: '#channel-id' }, { key: 'text', placeholder: 'Message' }] }],
+  firecrawl: [{ id: 'credit', label: 'Credits' }, { id: 'scrape', label: 'Scrape URL', needs: [{ key: 'url', placeholder: 'https://…' }] }],
+  elevenlabs: [{ id: 'voices', label: 'Voices' }],
+  netlify: [{ id: 'sites', label: 'Sites' }],
+  vercel: [{ id: 'projects', label: 'Projects' }],
+};
 
 const CONNECTORS = [
   { id: 'openai', name: 'OpenAI', description: 'GPT models, embeddings, and DALL·E.', icon: Zap, category: 'AI', help: 'platform.openai.com/api-keys' },
@@ -33,6 +49,11 @@ const Connectors: React.FC = () => {
   const [openId, setOpenId] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [testing, setTesting] = useState(false);
+  const [tryId, setTryId] = useState<string | null>(null);
+  const [tryAction, setTryAction] = useState<string>('');
+  const [tryInput, setTryInput] = useState<Record<string, string>>({});
+  const [tryResult, setTryResult] = useState<any>(null);
+  const [tryLoading, setTryLoading] = useState(false);
   const { toast } = useToast();
 
   const load = async () => {
@@ -43,6 +64,9 @@ const Connectors: React.FC = () => {
 
   const isConnected = (id: string) => saved.find(s => s.connector_id === id);
   const active = openId ? CONNECTORS.find(c => c.id === openId) : null;
+  const tryConn = tryId ? CONNECTORS.find(c => c.id === tryId) : null;
+  const tryActions = tryId ? (ACTIONS[tryId] || []) : [];
+  const currentAction = tryActions.find(a => a.id === tryAction);
 
   const save = async () => {
     if (!openId || !apiKey.trim()) return;
@@ -75,6 +99,31 @@ const Connectors: React.FC = () => {
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     } finally { setTesting(false); }
+  };
+
+  const openTry = (id: string) => {
+    const actions = ACTIONS[id] || [];
+    setTryId(id);
+    setTryAction(actions[0]?.id || '');
+    setTryInput({});
+    setTryResult(null);
+  };
+
+  const runAction = async () => {
+    if (!tryId || !tryAction) return;
+    setTryLoading(true); setTryResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('connector-invoke', {
+        body: { connector_id: tryId, action: tryAction, input: tryInput },
+      });
+      if (error) throw error;
+      setTryResult(data);
+      if (!data.ok) toast({ title: 'Action failed', description: (data.error || `HTTP ${data.status}`).slice(0, 160), variant: 'destructive' });
+      else toast({ title: 'Success', description: `HTTP ${data.status}` });
+      load();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message || String(e), variant: 'destructive' });
+    } finally { setTryLoading(false); }
   };
 
   return (
@@ -112,12 +161,17 @@ const Connectors: React.FC = () => {
                       <CardTitle className="text-lg">{c.name}</CardTitle>
                       <CardDescription className="line-clamp-2 min-h-[40px]">{c.description}</CardDescription>
                     </CardHeader>
-                    <CardContent className="mt-auto pt-2 flex gap-2">
-                      <Button className="flex-1 gap-2" variant={conn ? 'outline' : 'default'} onClick={() => { setOpenId(c.id); setApiKey(''); }}>
+                    <CardContent className="mt-auto pt-2 flex flex-wrap gap-2">
+                      <Button className="flex-1 min-w-[110px] gap-2" variant={conn ? 'outline' : 'default'} onClick={() => { setOpenId(c.id); setApiKey(''); }}>
                         <KeyRound className="h-3.5 w-3.5" />{conn ? 'Update key' : 'Connect'}
                       </Button>
                       {conn && (
                         <>
+                          {ACTIONS[c.id] && (
+                            <Button variant="secondary" size="sm" className="gap-1" onClick={() => openTry(c.id)}>
+                              <Play className="h-3.5 w-3.5" />Use
+                            </Button>
+                          )}
                           <Button variant="outline" size="sm" onClick={() => retest(c.id)} disabled={testing}>Test</Button>
                           <Button variant="ghost" size="icon" onClick={() => disconnect(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </>
@@ -145,6 +199,36 @@ const Connectors: React.FC = () => {
               <Button variant="outline" onClick={() => setOpenId(null)}>Cancel</Button>
               <Button onClick={save} disabled={testing || !apiKey.trim()} className="gap-2">
                 {testing && <Loader2 className="h-4 w-4 animate-spin" />}{testing ? 'Verifying…' : 'Verify & Save'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!tryId} onOpenChange={(o) => !o && setTryId(null)}>
+          <DialogContent className="sm:max-w-[560px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">{tryConn && <tryConn.icon className="h-5 w-5 text-primary" />}Use {tryConn?.name}</DialogTitle>
+              <DialogDescription>Runs the action server-side using your stored key. The key never leaves the backend.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="flex flex-wrap gap-2">
+                {tryActions.map(a => (
+                  <Button key={a.id} size="sm" variant={tryAction === a.id ? 'default' : 'outline'} onClick={() => { setTryAction(a.id); setTryInput({}); setTryResult(null); }}>{a.label}</Button>
+                ))}
+              </div>
+              {currentAction?.needs?.map(n => (
+                <Input key={n.key} placeholder={n.placeholder} value={tryInput[n.key] || ''} onChange={(e) => setTryInput(v => ({ ...v, [n.key]: e.target.value }))} />
+              ))}
+              {tryResult && (
+                <pre className="text-[11px] bg-muted/50 border rounded-md p-3 max-h-64 overflow-auto">
+{JSON.stringify(tryResult, null, 2)}
+                </pre>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setTryId(null)}>Close</Button>
+              <Button onClick={runAction} disabled={tryLoading || !tryAction} className="gap-2">
+                {tryLoading && <Loader2 className="h-4 w-4 animate-spin" />}{tryLoading ? 'Running…' : 'Run action'}
               </Button>
             </DialogFooter>
           </DialogContent>
