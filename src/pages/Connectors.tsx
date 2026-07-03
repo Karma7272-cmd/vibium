@@ -203,6 +203,36 @@ const Connectors: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={!!tryId} onOpenChange={(o) => !o && setTryId(null)}>
+          <DialogContent className="sm:max-w-[560px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">{tryConn && <tryConn.icon className="h-5 w-5 text-primary" />}Use {tryConn?.name}</DialogTitle>
+              <DialogDescription>Runs the action server-side using your stored key. The key never leaves the backend.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="flex flex-wrap gap-2">
+                {tryActions.map(a => (
+                  <Button key={a.id} size="sm" variant={tryAction === a.id ? 'default' : 'outline'} onClick={() => { setTryAction(a.id); setTryInput({}); setTryResult(null); }}>{a.label}</Button>
+                ))}
+              </div>
+              {currentAction?.needs?.map(n => (
+                <Input key={n.key} placeholder={n.placeholder} value={tryInput[n.key] || ''} onChange={(e) => setTryInput(v => ({ ...v, [n.key]: e.target.value }))} />
+              ))}
+              {tryResult && (
+                <pre className="text-[11px] bg-muted/50 border rounded-md p-3 max-h-64 overflow-auto">
+{JSON.stringify(tryResult, null, 2)}
+                </pre>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setTryId(null)}>Close</Button>
+              <Button onClick={runAction} disabled={tryLoading || !tryAction} className="gap-2">
+                {tryLoading && <Loader2 className="h-4 w-4 animate-spin" />}{tryLoading ? 'Running…' : 'Run action'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </SidebarInset>
     </div>
   );
