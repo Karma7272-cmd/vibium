@@ -66,25 +66,48 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
     }
   }, [messages]);
 
-  const extractAndApplyCode = useCallback((assistantContent: string): string[] => {
+  // Extract code blocks (including still-open ones during streaming) and write
+  // them incrementally to the target file so users see line-by-line output.
+  const extractAndApplyCode = useCallback((assistantContent: string, streaming = false): string[] => {
     const updatedFileNames: string[] = [];
+    if (!assistantContent.includes("```")) return updatedFileNames;
 
-    if (assistantContent.includes("```")) {
-      const filePattern = /(?:File:\s*|filename:\s*|File name:\s*|---\s*)([^\n]+?)\s*(?:---\s*)?\n```[\w]*\n([\s\S]*?)\n```/gi;
-      let match;
+    const pool = scope === 'file' && selectedFile
+      ? allFiles.filter(f => f.name === selectedFile.name)
+      : allFiles;
 
-      while ((match = filePattern.exec(assistantContent)) !== null) {
-        const fileName = match[1].trim();
-        const codeContent = match[2];
+    // Closed blocks: File: <name>\n```lang\n...\n```
+    const closedPattern = /(?:File:\s*|filename:\s*|File name:\s*|---\s*)([^\n]+?)\s*(?:---\s*)?\n```[\w]*\n([\s\S]*?)\n```/gi;
+    const seenRanges: Array<[number, number]> = [];
+    let match: RegExpExecArray | null;
+    while ((match = closedPattern.exec(assistantContent)) !== null) {
+      const fileName = match[1].trim();
+      const codeContent = match[2];
+      seenRanges.push([match.index, match.index + match[0].length]);
+      const minLen = streaming ? 1 : 50;
+      if (codeContent.length >= minLen) {
+        const target = pool.find(f => f.name.includes(fileName) || fileName.includes(f.name));
+        if (target) {
+          onFileUpdate(target.name, codeContent);
+          if (!updatedFileNames.includes(target.name)) updatedFileNames.push(target.name);
+        }
+      }
+    }
 
-        if (codeContent.length > 50) {
-          const pool = scope === 'file' && selectedFile
-            ? allFiles.filter(f => f.name === selectedFile.name)
-            : allFiles;
-          const matchingFile = pool.find(f => f.name.includes(fileName) || fileName.includes(f.name));
-          if (matchingFile) {
-            onFileUpdate(matchingFile.name, codeContent);
-            updatedFileNames.push(matchingFile.name);
+    // Open (still-streaming) block: File: <name>\n```lang\n...  (no closing fence yet)
+    if (streaming) {
+      const openPattern = /(?:File:\s*|filename:\s*|File name:\s*|---\s*)([^\n]+?)\s*(?:---\s*)?\n```[\w]*\n([\s\S]*)$/i;
+      const openMatch = assistantContent.match(openPattern);
+      if (openMatch && openMatch.index !== undefined) {
+        const inClosed = seenRanges.some(([s, e]) => openMatch!.index! >= s && openMatch!.index! < e);
+        const partial = openMatch[2];
+        // Only treat as open if there's no closing ``` after this position
+        if (!inClosed && !partial.includes("\n```")) {
+          const fileName = openMatch[1].trim();
+          const target = pool.find(f => f.name.includes(fileName) || fileName.includes(f.name));
+          if (target && partial.length > 0) {
+            onFileUpdate(target.name, partial);
+            if (!updatedFileNames.includes(target.name)) updatedFileNames.push(target.name);
           }
         }
       }
@@ -146,6 +169,14 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
         });
       };
 
+      let lastApplyAt = 0;
+      const streamingApply = () => {
+        const now = Date.now();
+        if (now - lastApplyAt < 80) return; // throttle to ~12 fps
+        lastApplyAt = now;
+        try { extractAndApplyCode(assistantContent, true); } catch { /* noop */ }
+      };
+
       while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -169,7 +200,10 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
-            if (content) updateAssistantMessage(assistantContent + content);
+            if (content) {
+              updateAssistantMessage(assistantContent + content);
+              streamingApply();
+            }
           } catch {
             textBuffer = line + "\n" + textBuffer;
             break;
@@ -180,7 +214,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
       const updatedFileNames = extractAndApplyCode(assistantContent);
 
       if (updatedFileNames.length > 0) {
-        setAutoApplied(prev => [...prev, ...updatedFileNames]);
+        setAutoApplied(prev => Array.from(new Set([...prev, ...updatedFileNames])));
         toast({
           title: "Files auto-updated",
           description: `Applied changes to ${updatedFileNames.length} file${updatedFileNames.length > 1 ? 's' : ''}.`,
