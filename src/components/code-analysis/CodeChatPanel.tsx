@@ -169,12 +169,6 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
         });
       };
 
-      while (!streamDone) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
       let lastApplyAt = 0;
       const streamingApply = () => {
         const now = Date.now();
