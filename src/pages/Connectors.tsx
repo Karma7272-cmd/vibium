@@ -33,6 +33,8 @@ const CONNECTORS = [
   { id: 'openai', name: 'OpenAI', description: 'GPT models, embeddings, and DALL·E.', icon: Zap, category: 'AI', help: 'platform.openai.com/api-keys' },
   { id: 'gemini', name: 'Google Gemini', description: 'Google Generative AI models.', icon: Zap, category: 'AI', help: 'aistudio.google.com/apikey' },
   { id: 'anthropic', name: 'Anthropic', description: 'Claude models for reasoning.', icon: Zap, category: 'AI', help: 'console.anthropic.com' },
+  { id: 'xai', name: 'xAI Grok', description: 'Grok models from xAI.', icon: Zap, category: 'AI', help: 'console.x.ai' },
+  { id: 'mistral', name: 'Mistral AI', description: 'Open & premier Mistral models.', icon: Zap, category: 'AI', help: 'console.mistral.ai/api-keys' },
   { id: 'firecrawl', name: 'Firecrawl', description: 'AI-powered web scraping.', icon: Flame, category: 'Data', help: 'firecrawl.dev' },
   { id: 'resend', name: 'Resend', description: 'Email API for developers.', icon: Mail, category: 'Email', help: 'resend.com/api-keys' },
   { id: 'github', name: 'GitHub', description: 'Repos, issues, and pull requests.', icon: UserCheck, category: 'DevOps', help: 'github.com/settings/tokens' },
