@@ -234,7 +234,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
                       >
                         <div
                           className={cn(
-                            'flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md transition-all duration-150',
+                            'flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-none transition-all duration-150',
                             isActive
                               ? 'text-primary'
                               : 'text-sidebar-foreground/50 group-hover:text-sidebar-foreground'
