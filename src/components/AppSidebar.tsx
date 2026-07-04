@@ -221,15 +221,15 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
                   const isActive = isItemActive(item);
                   return (
                     <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
+                        <SidebarMenuButton
                         onClick={() => handleMenuClick(item)}
                         isActive={isActive}
                         tooltip={isCollapsed ? item.label : undefined}
                         className={cn(
-                          'h-9 rounded-lg text-sm font-medium gap-2.5 transition-all duration-150',
+                          'h-9 rounded-lg text-sm font-medium gap-2.5 transition-all duration-150 border',
                           isActive
-                            ? 'bg-gradient-to-r from-primary/20 to-primary/10 text-primary border border-primary/20 shadow-sm'
-                            : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60'
+                            ? 'bg-gradient-to-r from-primary/20 to-primary/10 text-primary border-primary/25 shadow-sm'
+                            : 'text-sidebar-foreground/70 border-sidebar-border/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 hover:border-sidebar-border'
                         )}
                       >
                         <div
