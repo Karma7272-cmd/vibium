@@ -14,6 +14,8 @@ interface TestSpec {
 const TESTS: Record<string, TestSpec> = {
   openai: { url: "https://api.openai.com/v1/models", authHeader: (k) => ({ Authorization: `Bearer ${k}` }) },
   anthropic: { url: "https://api.anthropic.com/v1/models", authHeader: (k) => ({ "x-api-key": k, "anthropic-version": "2023-06-01" }) },
+  xai: { url: "https://api.x.ai/v1/models", authHeader: (k) => ({ Authorization: `Bearer ${k}` }) },
+  mistral: { url: "https://api.mistral.ai/v1/models", authHeader: (k) => ({ Authorization: `Bearer ${k}` }) },
   gemini: { url: "https://generativelanguage.googleapis.com/v1beta/models", authHeader: () => ({}) },
   firecrawl: { url: "https://api.firecrawl.dev/v2/team/credit-usage", authHeader: (k) => ({ Authorization: `Bearer ${k}` }) },
   resend: { url: "https://api.resend.com/domains", authHeader: (k) => ({ Authorization: `Bearer ${k}` }) },
