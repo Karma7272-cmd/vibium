@@ -16,6 +16,8 @@ const ACTIONS: Record<string, Array<{ id: string; label: string; needs?: Array<{
   openai: [{ id: 'list_models', label: 'List models' }, { id: 'chat', label: 'Chat', needs: [{ key: 'prompt', placeholder: 'Prompt' }] }],
   gemini: [{ id: 'list_models', label: 'List models' }, { id: 'generate', label: 'Generate', needs: [{ key: 'prompt', placeholder: 'Prompt' }] }],
   anthropic: [{ id: 'list_models', label: 'List models' }],
+  xai: [{ id: 'list_models', label: 'List models' }, { id: 'chat', label: 'Chat', needs: [{ key: 'prompt', placeholder: 'Prompt' }] }],
+  mistral: [{ id: 'list_models', label: 'List models' }, { id: 'chat', label: 'Chat', needs: [{ key: 'prompt', placeholder: 'Prompt' }] }],
   github: [{ id: 'me', label: 'Whoami' }, { id: 'list_repos', label: 'List repos' }],
   stripe: [{ id: 'balance', label: 'Balance' }, { id: 'list_customers', label: 'Customers' }],
   resend: [{ id: 'list_domains', label: 'Domains' }, { id: 'send_email', label: 'Send email', needs: [{ key: 'to', placeholder: 'to@example.com' }, { key: 'subject', placeholder: 'Subject' }] }],
