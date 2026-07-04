@@ -226,7 +226,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
                         isActive={isActive}
                         tooltip={isCollapsed ? item.label : undefined}
                         className={cn(
-                          'h-9 rounded-lg text-sm font-medium gap-2.5 transition-all duration-150 border',
+                          'h-9 rounded-none text-sm font-medium gap-2.5 transition-all duration-150 border',
                           isActive
                             ? 'bg-gradient-to-r from-primary/20 to-primary/10 text-primary border-primary/25 shadow-sm'
                             : 'text-sidebar-foreground/70 border-sidebar-border/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 hover:border-sidebar-border'
