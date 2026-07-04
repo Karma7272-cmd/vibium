@@ -59,7 +59,7 @@ const Pricing: React.FC = () => {
                   <p className="flex gap-2"><Check className="w-4 h-4 text-primary" />Community support</p>
                   <p className="flex gap-2"><Check className="w-4 h-4 text-primary" />Basic checks & analytics</p>
                   <p className="flex gap-2"><Check className="w-4 h-4 text-primary" />1 project</p>
-                  <p className="flex gap-2"><HardDrive className="w-4 h-4 text-primary" />1 GB storage</p>
+                  <p className="flex gap-2"><HardDrive className="w-4 h-4 text-primary" />10 MB storage</p>
                 </CardContent>
                 <CardFooter><Button variant="outline" className="w-full">Get Started</Button></CardFooter>
               </Card>

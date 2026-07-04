@@ -30,6 +30,14 @@ const RUNNERS: Record<string, Record<string, Runner>> = {
   anthropic: {
     list_models: (k) => jsonFetch("https://api.anthropic.com/v1/models", { headers: { "x-api-key": k, "anthropic-version": "2023-06-01" } }),
   },
+  xai: {
+    list_models: (k) => jsonFetch("https://api.x.ai/v1/models", { headers: { Authorization: `Bearer ${k}` } }),
+    chat: (k, i) => jsonFetch("https://api.x.ai/v1/chat/completions", { method: "POST", headers: { Authorization: `Bearer ${k}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: i.model || "grok-2-latest", messages: [{ role: "user", content: i.prompt || "Say hi" }] }) }),
+  },
+  mistral: {
+    list_models: (k) => jsonFetch("https://api.mistral.ai/v1/models", { headers: { Authorization: `Bearer ${k}` } }),
+    chat: (k, i) => jsonFetch("https://api.mistral.ai/v1/chat/completions", { method: "POST", headers: { Authorization: `Bearer ${k}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: i.model || "mistral-small-latest", messages: [{ role: "user", content: i.prompt || "Say hi" }] }) }),
+  },
   github: {
     me: (k) => jsonFetch("https://api.github.com/user", { headers: { Authorization: `Bearer ${k}`, Accept: "application/vnd.github+json" } }),
     list_repos: (k) => jsonFetch("https://api.github.com/user/repos?per_page=10&sort=updated", { headers: { Authorization: `Bearer ${k}`, Accept: "application/vnd.github+json" } }),
