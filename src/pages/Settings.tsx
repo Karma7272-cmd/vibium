@@ -1,5 +1,5 @@
 import React from 'react';
-import { Palette, Database, Share2, ShieldCheck } from 'lucide-react';
+import { Palette, Share2, ShieldCheck } from 'lucide-react';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppSidebar from '../components/AppSidebar';
