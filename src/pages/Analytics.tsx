@@ -62,7 +62,7 @@ const Analytics: React.FC = () => {
 
   const snippet = useMemo(() => {
     if (!selected) return '';
-    return `<!-- Vibium Analytics -->
+    return `<!-- nuvic ai Analytics -->
 <script>
 (function(){
   var t='${selected.tracking_id}';

@@ -40,7 +40,7 @@ function filesToTree(files: CodeFile[]): FileSystemTree {
     tree['package.json'] = {
       file: {
         contents: JSON.stringify(
-          { name: 'vibium-sandbox', private: true, type: 'module', scripts: { start: 'node index.js' } },
+          { name: 'nuvic ai-sandbox', private: true, type: 'module', scripts: { start: 'node index.js' } },
           null, 2,
         ),
       },

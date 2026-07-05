@@ -376,7 +376,7 @@ const CodeAnalysis: React.FC = () => {
       await commitAndPush(
         repo.owner, repo.name, repo.default_branch,
         codeFiles.map(f => ({ path: f.name, content: f.content })),
-        `Initial commit via Vibium AI`,
+        `Initial commit via nuvic ai AI`,
       );
       setPushedRepoUrl(repo.html_url);
       setShowPushGenDialog(false);
@@ -859,7 +859,7 @@ const CodeAnalysis: React.FC = () => {
                 <TextareaUI
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
-                  placeholder="Ask Vibium to build features, fix bugs, or work on your code"
+                  placeholder="Ask nuvic ai to build features, fix bugs, or work on your code"
                   rows={2}
                   className="resize-none text-sm bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground/80 placeholder:text-muted-foreground/60 px-5 pt-4 pb-2"
                   onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAIGenerate(); }}

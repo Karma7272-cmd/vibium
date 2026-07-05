@@ -8,7 +8,7 @@ const RunNodeSteps: React.FC = () => {
     {
       step: 1,
       title: "Choose Your Setup",
-      description: "Download Vibium Studio or order Valet Hardware from Tapster Robotics"
+      description: "Download nuvic ai Studio or order Valet Hardware from Tapster Robotics"
     },
     {
       step: 2,
@@ -32,7 +32,7 @@ const RunNodeSteps: React.FC = () => {
       <CardHeader>
         <CardTitle className="text-2xl dark:text-foreground">Getting Started</CardTitle>
         <CardDescription className="dark:text-muted-foreground">
-          Follow these steps to become an active operator on the Vibium Network
+          Follow these steps to become an active operator on the nuvic ai
         </CardDescription>
       </CardHeader>
       <CardContent>
