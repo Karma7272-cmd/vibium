@@ -510,8 +510,8 @@ const CodeAnalysis: React.FC = () => {
     }
   };
 
-  const handleGithubDisconnect = () => {
-    localStorage.removeItem('github_access_token');
+  const handleGithubDisconnect = async () => {
+    await clearGithubToken();
     setGithubTokenState(null);
     setGitHubToken(null);
     setGithubUser(null);
