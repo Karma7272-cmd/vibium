@@ -25,6 +25,7 @@ import {
   setGitHubToken, createRepo, commitAndPush, getRepoTree, getBlobContent,
   fetchFilesInParallel, getRepoPermissions, createBranch, createPullRequest,
 } from '@/services/githubService';
+import { hydrateGithubToken } from '@/lib/githubToken';
 
 type Mode = 'generate' | 'analyze';
 type ViewMode = 'stacked' | 'editor';
