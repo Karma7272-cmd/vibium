@@ -93,20 +93,25 @@ const CodeReview: React.FC = () => {
   const [prNumber, setPrNumber] = useState<number | null>(null);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem('pendingCodeRequest');
-    if (!raw) {
-      navigate('/');
-      return;
-    }
-    const data: PendingPayload = JSON.parse(raw);
-    setPayload(data);
-    if (data.mode === 'generate') {
-      runGenerate(data.prompt);
-    } else if (data.repo) {
-      runAnalyze(data.prompt, data.repo);
-    }
+    (async () => {
+      // Ensure the GitHub token is loaded from the database on any device.
+      await hydrateGithubToken().catch(() => {});
+      const raw = sessionStorage.getItem('pendingCodeRequest');
+      if (!raw) {
+        navigate('/');
+        return;
+      }
+      const data: PendingPayload = JSON.parse(raw);
+      setPayload(data);
+      if (data.mode === 'generate') {
+        runGenerate(data.prompt);
+      } else if (data.repo) {
+        runAnalyze(data.prompt, data.repo);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const runGenerate = async (prompt: string) => {
     try {
