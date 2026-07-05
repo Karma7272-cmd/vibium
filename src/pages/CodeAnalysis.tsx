@@ -173,6 +173,9 @@ const CodeAnalysis: React.FC = () => {
     if (code && state === 'github_oauth') {
       window.history.replaceState({}, '', window.location.pathname);
       exchangeGitHubCode(code);
+    } else {
+      // Pull the token from the database so it works across devices.
+      hydrateGithubToken().then((tk) => { if (tk) setGithubTokenState(tk); }).catch(() => {});
     }
   }, []);
 
