@@ -28,6 +28,7 @@ import { FileTreeView } from '@/components/code-analysis/FileTreeView';
 import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
 import { WebContainerTerminal } from '@/components/code-analysis/WebContainerTerminal';
 import { setGitHubToken, commitAndPush, createPullRequest, createBranch, createRepo, mergePullRequest } from '@/services/githubService';
+import { hydrateGithubToken, persistGithubToken, clearGithubToken, getGithubTokenSync } from '@/lib/githubToken';
 import { Switch } from '@/components/ui/switch';
 import Editor from '@monaco-editor/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
