@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GitHubRepo, listUserRepos, getRepoTree, getBlobContent, setGitHubToken, fetchFilesInParallel, getRepoPermissions } from "@/services/githubService";
+import { hydrateGithubToken } from "@/lib/githubToken";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, GitBranch, Lock, Globe, Shield, ShieldCheck, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
