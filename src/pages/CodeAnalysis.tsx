@@ -68,7 +68,7 @@ const CodeAnalysis: React.FC = () => {
   const [newItemType, setNewItemType] = useState<"file" | "folder">("file");
   const [parentPath, setParentPath] = useState("");
   const [modifiedFiles, setModifiedFiles] = useState<string[]>([]);
-  const [githubToken, setGithubTokenState] = useState<string | null>(localStorage.getItem('github_access_token'));
+  const [githubToken, setGithubTokenState] = useState<string | null>(getGithubTokenSync());
   const [githubUser, setGithubUser] = useState<{ login: string; avatar_url: string; name: string } | null>(null);
   const [showPRDialog, setShowPRDialog] = useState(false);
   const [prTitle, setPrTitle] = useState("");
