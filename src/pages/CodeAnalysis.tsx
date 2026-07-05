@@ -197,7 +197,7 @@ const CodeAnalysis: React.FC = () => {
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-      localStorage.setItem('github_access_token', data.access_token);
+      await persistGithubToken(data.access_token);
       setGithubTokenState(data.access_token);
       setGitHubToken(data.access_token);
       setGithubUser(data.github_user);
