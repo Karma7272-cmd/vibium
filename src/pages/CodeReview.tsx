@@ -200,7 +200,7 @@ const CodeReview: React.FC = () => {
       if (autoPR && editsList.length > 0) {
         try {
           setStageMsg('Creating pull request\u2026');
-          const branchName = `vibium-ai-${Date.now()}`;
+          const branchName = `nuvic ai-ai-${Date.now()}`;
           const filesToCommit = editsList.map(e => ({ path: e.path, content: e.after }));
           const message = summary || `AI edits to ${editsList.length} file(s)`;
           await createBranch(repo.owner, repo.name, branchName, branch);
@@ -241,7 +241,7 @@ const CodeReview: React.FC = () => {
       await commitAndPush(
         repo.owner, repo.name, repo.default_branch,
         genFiles.map(f => ({ path: f.path, content: f.content })),
-        `Initial generated commit via Vibium AI`,
+        `Initial generated commit via nuvic ai AI`,
       );
       toast({ title: 'Repo created', description: `Pushed ${genFiles.length} files.` });
       window.open(repo.html_url, '_blank');
@@ -265,7 +265,7 @@ const CodeReview: React.FC = () => {
       const filesToCommit = edits.map(e => ({ path: e.path, content: e.after }));
       const message = editSummary || `AI edits to ${edits.length} file(s)`;
       if (asPR) {
-        const branchName = `vibium-ai-${Date.now()}`;
+        const branchName = `nuvic ai-ai-${Date.now()}`;
         await createBranch(payload.repo.owner, payload.repo.name, branchName, repoBranch);
         await commitAndPush(payload.repo.owner, payload.repo.name, branchName, filesToCommit, message);
         const pr = await createPullRequest(

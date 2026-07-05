@@ -9,7 +9,7 @@ const RunNodeHeader: React.FC = () => {
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-foreground mb-2">Run a Node</h1>
         <p className="text-lg text-gray-600 dark:text-muted-foreground">
-          Join the Vibium Network as an Operator and help provide global testing services
+          Join the nuvic ai as an Operator and help provide global testing services
         </p>
       </div>
 

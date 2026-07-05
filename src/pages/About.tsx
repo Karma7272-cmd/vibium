@@ -16,7 +16,7 @@ const About: React.FC = () => {
         <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-2 sm:px-4 bg-background/80 dark:bg-background/20 backdrop-blur-sm">
           <SidebarTrigger className="-ml-1" />
           <div className="ml-auto">
-            <h1 className="text-lg sm:text-xl font-semibold text-foreground">About Vibium Network</h1>
+            <h1 className="text-lg sm:text-xl font-semibold text-foreground">About nuvic ai</h1>
           </div>
         </header>
         
@@ -25,7 +25,7 @@ const About: React.FC = () => {
             {/* Hero Section */}
             <div className="text-center mb-12">
               <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-foreground mb-6">
-                Welcome to Vibium Network
+                Welcome to nuvic ai
               </h1>
               <p className="text-xl text-gray-600 dark:text-muted-foreground max-w-3xl mx-auto leading-relaxed">
                 A decentralized global testing network that puts the power of website monitoring 
@@ -35,10 +35,10 @@ const About: React.FC = () => {
 
             {/* What is Valet Network */}
             <div className="mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-6">What is Vibium Network?</h2>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-6">What is nuvic ai?</h2>
               <div className="prose prose-lg max-w-none text-gray-700 dark:text-muted-foreground">
                 <p className="mb-4">
-                  Vibium Network is a new approach to website testing and monitoring. Instead of 
+                  nuvic ai is a new approach to website testing and monitoring. Instead of 
                   relying on centralized servers in data centers, we harness the collective power of real 
                   devices operated by real people across the globe.
                 </p>
@@ -85,7 +85,7 @@ const About: React.FC = () => {
 
             {/* Why Valet Network */}
             <div className="mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-8">Why Vibium Network?</h2>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-8">Why nuvic ai?</h2>
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <div className="flex items-start space-x-4">
@@ -138,11 +138,11 @@ const About: React.FC = () => {
               <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-6">From the Creator of Selenium</h2>
               <div className="prose prose-lg max-w-none text-gray-700 dark:text-muted-foreground">
                 <p className="mb-4">
-                  Vibium Network is a new project from Jason Huggins, who started the Selenium and Appium 
+                  nuvic ai is a new project from Jason Huggins, who started the Selenium and Appium 
                   projects and co-founded Sauce Labs—tools that helped shape modern test automation. 
                   He has spent the past decade building real-device testing robots at Tapster, and was part 
                   of the White House tech surge that rescued HealthCare.gov for President Obama. 
-                  With Vibium, he's rethinking test infrastructure from the ground up—decentralized, 
+                  With nuvic ai, he's rethinking test infrastructure from the ground up—decentralized, 
                   user-powered, and built for the next web.
                 </p>
               </div>

@@ -76,7 +76,7 @@ const PendingRequest: React.FC = () => {
         <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-2 sm:px-4 bg-background/80 dark:bg-background/20 backdrop-blur-sm">
           <SidebarTrigger className="-ml-1" />
           <div className="ml-auto">
-            <h1 className="text-lg sm:text-xl font-semibold text-foreground">Vibium Network</h1>
+            <h1 className="text-lg sm:text-xl font-semibold text-foreground">nuvic ai</h1>
           </div>
         </header>
         <div className="flex-1 flex items-center justify-center p-4 bg-gray-50 dark:bg-transparent">

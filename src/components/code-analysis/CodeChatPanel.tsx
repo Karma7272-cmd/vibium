@@ -344,7 +344,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
           <PopoverContent align="end" className="w-56 p-2">
             <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 px-1">AI model</p>
             {[
-              { id: 'default' as const, label: 'Default (Vibium AI)', needsKey: null },
+              { id: 'default' as const, label: 'Default (nuvic ai AI)', needsKey: null },
               { id: 'openai' as const, label: 'ChatGPT (your key)', needsKey: 'openai' },
               { id: 'anthropic' as const, label: 'Claude (your key)', needsKey: 'anthropic' },
               { id: 'gemini' as const, label: 'Gemini (your key)', needsKey: 'gemini' },

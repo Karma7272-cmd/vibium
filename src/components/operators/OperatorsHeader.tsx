@@ -10,7 +10,7 @@ const OperatorsHeader: React.FC = () => {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-foreground">Network Operators</h1>
       </div>
       <p className="text-sm sm:text-base text-gray-600 dark:text-muted-foreground">
-        Manage and monitor operators running nodes in the Vibium Network
+        Manage and monitor operators running nodes in the nuvic ai
       </p>
     </div>
   );

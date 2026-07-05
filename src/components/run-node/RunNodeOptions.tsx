@@ -21,7 +21,7 @@ const RunNodeOptions: React.FC = () => {
           <div className="flex items-center space-x-3">
             <Download className="h-8 w-8 text-gray-400 dark:text-muted-foreground" />
             <div>
-              <CardTitle className="text-xl text-gray-500 dark:text-muted-foreground">Vibium Studio</CardTitle>
+              <CardTitle className="text-xl text-gray-500 dark:text-muted-foreground">nuvic ai Studio</CardTitle>
               <CardDescription className="text-gray-400 dark:text-muted-foreground/80">Software Solution</CardDescription>
             </div>
           </div>
