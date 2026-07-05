@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GitHubRepo, listUserRepos, getRepoTree, getBlobContent, setGitHubToken, fetchFilesInParallel, getRepoPermissions } from "@/services/githubService";
+import { hydrateGithubToken } from "@/lib/githubToken";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, GitBranch, Lock, Globe, Shield, ShieldCheck, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -29,8 +30,10 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
   const [importStatus, setImportStatus] = useState("");
   const { toast } = useToast();
 
-  const setupGitHubToken = useCallback(() => {
-    const token = localStorage.getItem('github_access_token');
+  const setupGitHubToken = useCallback(async () => {
+    // Prefer the DB-backed token so this works on any device.
+    let token = localStorage.getItem('github_access_token');
+    if (!token) token = await hydrateGithubToken();
     if (token) {
       setGitHubToken(token);
       return true;
@@ -39,17 +42,19 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
   }, []);
 
   useEffect(() => {
-    const hasToken = setupGitHubToken();
-    if (hasToken) {
-      loadRepos();
-    } else {
-      setLoading(false);
-      toast({
-        title: "GitHub not connected",
-        description: "Please sign in with GitHub to access your repositories.",
-        variant: "destructive",
-      });
-    }
+    (async () => {
+      const hasToken = await setupGitHubToken();
+      if (hasToken) {
+        loadRepos();
+      } else {
+        setLoading(false);
+        toast({
+          title: "GitHub not connected",
+          description: "Please sign in with GitHub to access your repositories.",
+          variant: "destructive",
+        });
+      }
+    })();
   }, [setupGitHubToken]);
 
   const loadRepos = async () => {

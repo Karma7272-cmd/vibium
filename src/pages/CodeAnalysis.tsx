@@ -28,6 +28,7 @@ import { FileTreeView } from '@/components/code-analysis/FileTreeView';
 import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
 import { WebContainerTerminal } from '@/components/code-analysis/WebContainerTerminal';
 import { setGitHubToken, commitAndPush, createPullRequest, createBranch, createRepo, mergePullRequest } from '@/services/githubService';
+import { hydrateGithubToken, persistGithubToken, clearGithubToken, getGithubTokenSync } from '@/lib/githubToken';
 import { Switch } from '@/components/ui/switch';
 import Editor from '@monaco-editor/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -67,7 +68,7 @@ const CodeAnalysis: React.FC = () => {
   const [newItemType, setNewItemType] = useState<"file" | "folder">("file");
   const [parentPath, setParentPath] = useState("");
   const [modifiedFiles, setModifiedFiles] = useState<string[]>([]);
-  const [githubToken, setGithubTokenState] = useState<string | null>(localStorage.getItem('github_access_token'));
+  const [githubToken, setGithubTokenState] = useState<string | null>(getGithubTokenSync());
   const [githubUser, setGithubUser] = useState<{ login: string; avatar_url: string; name: string } | null>(null);
   const [showPRDialog, setShowPRDialog] = useState(false);
   const [prTitle, setPrTitle] = useState("");
@@ -172,6 +173,9 @@ const CodeAnalysis: React.FC = () => {
     if (code && state === 'github_oauth') {
       window.history.replaceState({}, '', window.location.pathname);
       exchangeGitHubCode(code);
+    } else {
+      // Pull the token from the database so it works across devices.
+      hydrateGithubToken().then((tk) => { if (tk) setGithubTokenState(tk); }).catch(() => {});
     }
   }, []);
 
@@ -193,7 +197,7 @@ const CodeAnalysis: React.FC = () => {
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-      localStorage.setItem('github_access_token', data.access_token);
+      await persistGithubToken(data.access_token);
       setGithubTokenState(data.access_token);
       setGitHubToken(data.access_token);
       setGithubUser(data.github_user);
@@ -506,8 +510,8 @@ const CodeAnalysis: React.FC = () => {
     }
   };
 
-  const handleGithubDisconnect = () => {
-    localStorage.removeItem('github_access_token');
+  const handleGithubDisconnect = async () => {
+    await clearGithubToken();
     setGithubTokenState(null);
     setGitHubToken(null);
     setGithubUser(null);
