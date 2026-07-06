@@ -126,6 +126,9 @@ const History: React.FC = () => {
                           <span className="text-xs">Open</span>
                           <ExternalLink className="h-3 w-3" />
                         </Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => deleteRow('generated_projects', g.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </CardContent>
                     </Card>
                   ))}
@@ -142,6 +145,9 @@ const History: React.FC = () => {
                         <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}</p>
                       </div>
                       <Badge variant="outline" className="text-xs">{t.status}</Badge>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => deleteRow('tasks', t.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </CardContent></Card>
                   ))}
                 </TabsContent>
@@ -157,6 +163,9 @@ const History: React.FC = () => {
                         <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}{item.statusCode ? ` · ${item.statusCode}` : ''}</p>
                       </div>
                       <Badge variant="outline" className="text-xs">{item.status}</Badge>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => deleteCheck(item.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </CardContent></Card>
                   ))}
                 </TabsContent>
@@ -172,6 +181,9 @@ const History: React.FC = () => {
                         <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(s.created_at), { addSuffix: true })}{s.score != null ? ` · score ${s.score}` : ''}</p>
                       </div>
                       {s.grade && <Badge variant="outline" className="text-xs">Grade {s.grade}</Badge>}
+                      <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => deleteRow('security_scans', s.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </CardContent></Card>
                   ))}
                 </TabsContent>
