@@ -5,7 +5,7 @@ import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, Shield, Activity, FileCode, FolderOpen, ExternalLink } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, Shield, Activity, FileCode, FolderOpen, ExternalLink, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { realCheckService } from '@/services/realCheckService';
@@ -53,6 +53,22 @@ const History: React.FC = () => {
       default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
+
+  const deleteRow = async (table: 'tasks' | 'security_scans' | 'generated_projects', id: string) => {
+    if (!confirm('Delete this item?')) return;
+    const { error } = await supabase.from(table as any).delete().eq('id', id);
+    if (error) return;
+    if (table === 'tasks') setTasks(p => p.filter(x => x.id !== id));
+    else if (table === 'security_scans') setScans(p => p.filter(x => x.id !== id));
+    else setGens(p => p.filter(x => x.id !== id));
+  };
+
+  const deleteCheck = async (id: string) => {
+    if (!confirm('Delete this check?')) return;
+    await supabase.from('checks' as any).delete().eq('id', id);
+    setChecks(p => p.filter(x => x.id !== id));
+  };
+
 
   const fileCount = (files: unknown): number => Array.isArray(files) ? files.length : 0;
 
@@ -110,6 +126,9 @@ const History: React.FC = () => {
                           <span className="text-xs">Open</span>
                           <ExternalLink className="h-3 w-3" />
                         </Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => deleteRow('generated_projects', g.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </CardContent>
                     </Card>
                   ))}
@@ -126,6 +145,9 @@ const History: React.FC = () => {
                         <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}</p>
                       </div>
                       <Badge variant="outline" className="text-xs">{t.status}</Badge>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => deleteRow('tasks', t.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </CardContent></Card>
                   ))}
                 </TabsContent>
@@ -141,6 +163,9 @@ const History: React.FC = () => {
                         <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}{item.statusCode ? ` · ${item.statusCode}` : ''}</p>
                       </div>
                       <Badge variant="outline" className="text-xs">{item.status}</Badge>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => deleteCheck(item.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </CardContent></Card>
                   ))}
                 </TabsContent>
@@ -156,6 +181,9 @@ const History: React.FC = () => {
                         <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(s.created_at), { addSuffix: true })}{s.score != null ? ` · score ${s.score}` : ''}</p>
                       </div>
                       {s.grade && <Badge variant="outline" className="text-xs">Grade {s.grade}</Badge>}
+                      <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => deleteRow('security_scans', s.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </CardContent></Card>
                   ))}
                 </TabsContent>
