@@ -54,6 +54,22 @@ const History: React.FC = () => {
     }
   };
 
+  const deleteRow = async (table: 'tasks' | 'security_scans' | 'generated_projects', id: string) => {
+    if (!confirm('Delete this item?')) return;
+    const { error } = await supabase.from(table as any).delete().eq('id', id);
+    if (error) return;
+    if (table === 'tasks') setTasks(p => p.filter(x => x.id !== id));
+    else if (table === 'security_scans') setScans(p => p.filter(x => x.id !== id));
+    else setGens(p => p.filter(x => x.id !== id));
+  };
+
+  const deleteCheck = async (id: string) => {
+    if (!confirm('Delete this check?')) return;
+    await supabase.from('checks' as any).delete().eq('id', id);
+    setChecks(p => p.filter(x => x.id !== id));
+  };
+
+
   const fileCount = (files: unknown): number => Array.isArray(files) ? files.length : 0;
 
   return (
