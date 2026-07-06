@@ -5,7 +5,7 @@ import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, Shield, Activity, FileCode, FolderOpen, ExternalLink } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, Shield, Activity, FileCode, FolderOpen, ExternalLink, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { realCheckService } from '@/services/realCheckService';
