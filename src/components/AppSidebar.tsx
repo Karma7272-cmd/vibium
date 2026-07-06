@@ -160,9 +160,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
       <SidebarHeader className="border-b border-sidebar-border/60 px-3 py-3">
         <div className="flex items-center gap-2">
           {/* Logo mark */}
-          <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md">
-            <Zap className="w-4 h-4 text-white" />
-          </div>
+          <img src="/favicon.png" alt="nuvic ai logo" className="flex-shrink-0 w-8 h-8 rounded-lg object-contain" />
 
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
