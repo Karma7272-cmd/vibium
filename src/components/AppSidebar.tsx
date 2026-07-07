@@ -322,9 +322,11 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
               </Button>
             )}
           </div>
+          </>
         ) : (
           /* Collapsed footer — show avatar only */
           <div className="flex flex-col items-center gap-2 py-1">
+            <SidebarUsage collapsed />
             <div
               className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[11px] font-bold text-white shadow cursor-pointer"
               title={user?.email ?? 'Not signed in'}
