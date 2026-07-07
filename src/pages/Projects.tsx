@@ -358,18 +358,25 @@ const Projects: React.FC = () => {
                 </div>
               </div>
             </aside>
-            <main className="col-span-9 overflow-hidden">
-              {selectedFile ? (
-                <Editor
-                  height="100%"
-                  language={langFromPath(selectedFile.path)}
-                  value={selectedFile.content}
-                  theme={actualTheme === 'dark' ? 'vs-dark' : 'vs-light'}
-                  options={{ readOnly: true, minimap: { enabled: false }, fontSize: 13 }}
+            <main className="col-span-9 overflow-hidden flex flex-col">
+              <div className="flex-1 min-h-0">
+                {selectedFile ? (
+                  <Editor
+                    height="100%"
+                    language={langFromPath(selectedFile.path)}
+                    value={selectedFile.content}
+                    theme={actualTheme === 'dark' ? 'vs-dark' : 'vs-light'}
+                    options={{ readOnly: true, minimap: { enabled: false }, fontSize: 13 }}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Select a file</div>
+                )}
+              </div>
+              <div className="h-72 border-t border-border shrink-0">
+                <WebContainerTerminal
+                  files={(active.files || []).map(f => ({ name: f.path, content: f.content, language: langFromPath(f.path) }))}
                 />
-              ) : (
-                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Select a file</div>
-              )}
+              </div>
             </main>
           </div>
           <Footer />
