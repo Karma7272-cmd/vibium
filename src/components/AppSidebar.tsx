@@ -37,6 +37,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
+import SidebarUsage from './SidebarUsage';
 
 interface AppSidebarProps {
   activeSection: string;
