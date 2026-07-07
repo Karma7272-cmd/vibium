@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '@/components/ThemeProvider';
+import { WebContainerTerminal } from '@/components/code-analysis/WebContainerTerminal';
 
 interface ProjectFile { path: string; content: string; }
 interface EnvVar { name: string; description?: string; example?: string; required?: boolean; }
