@@ -277,8 +277,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
       </SidebarContent>
 
       {/* ── Footer ── */}
-      <SidebarFooter className="border-t border-sidebar-border/60 p-2">
+      <SidebarFooter className="border-t border-sidebar-border/60 p-2 space-y-2">
         {!isCollapsed ? (
+          <>
+            <SidebarUsage />
           <div className="rounded-xl bg-sidebar-accent/40 border border-sidebar-border/40 p-3 flex items-center gap-3">
             {/* Avatar */}
             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[11px] font-bold text-white shadow">
