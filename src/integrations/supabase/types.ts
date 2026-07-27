@@ -315,6 +315,57 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount_inr_paise: number
+          amount_usd: number
+          created_at: string
+          credits: number
+          currency: string
+          id: string
+          plan: string
+          razorpay_order_id: string
+          razorpay_payment_id: string | null
+          razorpay_signature: string | null
+          status: string
+          storage_gb: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_inr_paise: number
+          amount_usd: number
+          created_at?: string
+          credits?: number
+          currency?: string
+          id?: string
+          plan: string
+          razorpay_order_id: string
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          status?: string
+          storage_gb?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_inr_paise?: number
+          amount_usd?: number
+          created_at?: string
+          credits?: number
+          currency?: string
+          id?: string
+          plan?: string
+          razorpay_order_id?: string
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          status?: string
+          storage_gb?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pipeline_runs: {
         Row: {
           created_at: string
