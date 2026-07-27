@@ -2,10 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '../components/Footer';
-import { Check, Zap, Star, Building2, Sparkles, HardDrive } from 'lucide-react';
+import { Check, Zap, Star, Building2, Sparkles, HardDrive, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
+import { payWithRazorpay } from '@/lib/razorpay';
+import { toast } from 'sonner';
 
 // Credits formula: rough mapping price -> credits.
 const proCredits = (p: number) => Math.round(100 + ((p - 5) / 95) * (3000 - 100));
@@ -21,6 +23,7 @@ const Pricing: React.FC = () => {
   const [biz, setBiz] = useState(500);
   const [proGb, setProGb] = useState(PRO_BASE_GB);
   const [bizGb, setBizGb] = useState(BIZ_BASE_GB);
+  const [payingPlan, setPayingPlan] = useState<string | null>(null);
 
   const proC = useMemo(() => proCredits(pro), [pro]);
   const bizC = useMemo(() => bizCredits(biz), [biz]);
@@ -29,6 +32,17 @@ const Pricing: React.FC = () => {
   const bizStorageAdd = Math.max(0, bizGb - BIZ_BASE_GB) * STORAGE_RATE;
   const proTotal = pro + proStorageAdd;
   const bizTotal = biz + bizStorageAdd;
+
+  const handlePay = async (plan: string, amountUsd: number, credits: number, storageGb: number) => {
+    setPayingPlan(plan);
+    try {
+      const res = await payWithRazorpay({ plan, amountUsd, credits, storageGb, description: `${plan} · ${credits} credits · ${storageGb} GB` });
+      if (res.success) toast.success(`Payment successful — ${plan} plan activated`);
+      else toast.error(res.error ?? 'Payment failed');
+    } finally {
+      setPayingPlan(null);
+    }
+  };
 
   return (
     <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
@@ -88,7 +102,11 @@ const Pricing: React.FC = () => {
                   <p className="flex gap-2"><Check className="w-4 h-4 text-primary" />AI Code generation</p>
                   <p className="flex gap-2"><Check className="w-4 h-4 text-primary" />Email & Slack support</p>
                 </CardContent>
-                <CardFooter><Button className="w-full">Upgrade to Pro</Button></CardFooter>
+                <CardFooter>
+                  <Button className="w-full" disabled={payingPlan === 'Pro'} onClick={() => handlePay('Pro', proTotal, proC, proGb)}>
+                    {payingPlan === 'Pro' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Opening…</> : `Upgrade to Pro · $${proTotal.toFixed(2)}`}
+                  </Button>
+                </CardFooter>
               </Card>
 
               {/* Business */}
@@ -114,7 +132,11 @@ const Pricing: React.FC = () => {
                   <p className="flex gap-2"><Check className="w-4 h-4 text-primary" />SSO & roles</p>
                   <p className="flex gap-2"><Check className="w-4 h-4 text-primary" />Dedicated support</p>
                 </CardContent>
-                <CardFooter><Button variant="outline" className="w-full">Choose Business</Button></CardFooter>
+                <CardFooter>
+                  <Button variant="outline" className="w-full" disabled={payingPlan === 'Business'} onClick={() => handlePay('Business', bizTotal, bizC, bizGb)}>
+                    {payingPlan === 'Business' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Opening…</> : `Choose Business · $${bizTotal.toFixed(2)}`}
+                  </Button>
+                </CardFooter>
               </Card>
 
               {/* Custom */}
