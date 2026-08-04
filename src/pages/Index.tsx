@@ -5,6 +5,8 @@ import { SidebarInset, SidebarTrigger, SidebarProvider } from '@/components/ui/s
 import AppSidebar from '../components/AppSidebar';
 import MainContent from '../components/MainContent';
 import CrossOriginStatus from '../components/CrossOriginStatus';
+import WebContainerTest from '../components/WebContainerTest';
+
 
 
 const Index: React.FC = () => {
@@ -44,6 +46,11 @@ const Index: React.FC = () => {
               <h1 className="text-lg sm:text-xl font-semibold text-foreground">nuvic ai</h1>
             </div>
           </header>
+
+          <div className="px-2 sm:px-4 py-2 border-b border-border/60">
+            <WebContainerTest />
+          </div>
+
 
           <div className="flex-1 overflow-auto">
             <MainContent />
