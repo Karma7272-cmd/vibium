@@ -4,6 +4,8 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { SidebarInset, SidebarTrigger, SidebarProvider } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import MainContent from '../components/MainContent';
+import CrossOriginStatus from '../components/CrossOriginStatus';
+
 
 const Index: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -37,10 +39,12 @@ const Index: React.FC = () => {
         <SidebarInset className="flex-1 flex flex-col">
           <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-2 sm:px-4 bg-background/80 dark:bg-background/20 backdrop-blur-sm">
             <SidebarTrigger className="-ml-1" />
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <CrossOriginStatus />
               <h1 className="text-lg sm:text-xl font-semibold text-foreground">nuvic ai</h1>
             </div>
           </header>
+
           <div className="flex-1 overflow-auto">
             <MainContent />
           </div>
