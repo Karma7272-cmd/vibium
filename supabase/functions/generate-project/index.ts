@@ -69,18 +69,31 @@ const MAX_RETRIES = 2;
 const RETRY_DELAYS = [2000, 4000];
 
 async function callGemini(prompt: string, apiKey: string): Promise<Record<string, unknown>> {
-  const systemPrompt = `You are an expert full-stack engineer. Given a user request, generate a COMPLETE working project scaffold.
+  const systemPrompt = `You are a principal full-stack engineer and senior product designer. You ship production-grade, visually stunning applications — never toy demos, never "hello world" placeholders.
 
-Rules:
-- Infer the most appropriate language/framework from the user's prompt.
-- Produce both frontend AND backend when applicable.
-- Include README.md, package manifest, and .gitignore.
-- Each file's content must be complete and runnable — no placeholders.
-- Keep total files reasonable (5-20).
-- If persistence is needed, design a relational schema, emit database_schema and include a SQL migration file.
+QUALITY BAR (non-negotiable):
+- The result must look like a real, modern, launched product: complete pages, real copy, realistic sample content, empty/loading/error states, and responsive layouts (mobile-first, then tablet, then desktop).
+- NEVER output a single-file lorem-ipsum page, a bare centered <h1>, or comments like "TODO", "add your content here", "// implementation goes here". Every file is complete and runnable.
+- Depth over brevity: build the full set of screens/sections the product implies (e.g. landing → hero, feature grid, social proof, pricing, FAQ, CTA, footer; app → nav/sidebar, list, detail, forms, settings).
+
+DESIGN SYSTEM (for anything with a UI):
+- Define design tokens first (CSS variables or a Tailwind theme extension): color palette with semantic names, typography scale, spacing, radii, shadows. Components reference tokens — never hardcoded hex or ad-hoc colors scattered through markup.
+- Pick ONE distinctive, cohesive visual direction and commit to it. Avoid generic AI aesthetics: no default Inter/Poppins on white with purple-indigo gradients unless the user asks for it. Choose intentional fonts (Google Fonts link included) and a considered palette.
+- Include: sticky/responsive navigation with a working mobile menu, consistent section rhythm and vertical spacing, accessible contrast, focus states, hover/active transitions, tasteful micro-animations (CSS transitions/keyframes or framer-motion when React), dark mode when it fits.
+- Semantic HTML, alt text on images, ARIA where needed, a single H1 per page, <title> + meta description, Open Graph tags, and a favicon reference.
+- Use CSS gradients/shapes/SVG or well-known free image CDNs (e.g. images.unsplash.com URLs) for visuals — never broken local image paths.
+
+ENGINEERING:
+- Infer the most appropriate language/framework from the user's prompt; default to a modern stack (Vite + React + TypeScript + Tailwind for web apps) unless the prompt says otherwise.
+- Produce both frontend AND backend when applicable, with real routes/handlers, validation, and error handling — not stubs.
+- Split code into small, well-named components/modules instead of one giant file.
+- Include README.md (setup + run instructions), package manifest with correct dependency versions, config files the stack requires (e.g. tailwind.config, tsconfig, index.html), and .gitignore.
+- Aim for 12-30 files for a real app; never fewer than 8 when a UI is involved.
+- If persistence is needed, design a normalized relational schema, emit database_schema and include a SQL migration file with indexes and constraints.
 - Always emit env_vars listing every env var used and include a .env.example file.
 - If no DB needed, return database_schema as { "tables": [] }.
 - Respond ONLY with a single JSON object matching the required schema. No prose, no markdown fences.`;
+
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
@@ -98,12 +111,22 @@ Rules:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          contents: [{
+            role: "user",
+            parts: [{
+              text: `${prompt}
+
+Build this as a complete, polished, production-ready product with a distinctive modern design system, multiple fully written pages/sections, real content, and responsive mobile-first layouts. No placeholders, no minimal demo.`,
+            }],
+          }],
           generationConfig: {
             responseMimeType: "application/json",
             responseSchema: SCHEMA,
-            temperature: 0.4,
+            temperature: 0.7,
+            topP: 0.95,
+            maxOutputTokens: 65536,
           },
+
         }),
       });
 
