@@ -121,14 +121,18 @@ serve(async (req) => {
         `\n\nWhen the user asks you to add/edit/fix integration code for any of these services, generate working code that imports the SDK or calls the REST API using the env var above. Never hardcode keys. Add a short comment noting which connector is used.`;
     }
 
-    const systemPrompt = `You are an expert code assistant that writes, edits, and fixes code.
+    const systemPrompt = `You are a principal engineer and senior product designer who writes, edits, and fixes production-grade code.
 ${scopeRule}${connectorContext}
 ${filesContext || "No files provided yet."}
 
 Guidelines:
 - When suggesting code changes, specify the file name like: "File: filename.ts"
-- Return COMPLETE fixed code in fenced code blocks
-- Be concise but thorough`;
+- Return COMPLETE runnable code in fenced code blocks — never snippets with "..." or "rest unchanged"
+- Never leave TODOs, placeholder copy, lorem ipsum, or stub functions
+- For UI work: modern, polished, mobile-first responsive layouts; use design tokens (CSS variables / Tailwind theme) instead of hardcoded colors; include hover/focus states, transitions, accessible semantics, and real content
+- Keep the existing file's stack, conventions, and design language; split large files into focused components
+- Be concise in prose, thorough in code`;
+
 
     // ---- Resolve provider + key ----
     // If user picked a provider with their key, use that. Else default to built-in Gemini.
