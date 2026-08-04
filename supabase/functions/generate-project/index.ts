@@ -111,12 +111,22 @@ ENGINEERING:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          contents: [{
+            role: "user",
+            parts: [{
+              text: `${prompt}
+
+Build this as a complete, polished, production-ready product with a distinctive modern design system, multiple fully written pages/sections, real content, and responsive mobile-first layouts. No placeholders, no minimal demo.`,
+            }],
+          }],
           generationConfig: {
             responseMimeType: "application/json",
             responseSchema: SCHEMA,
-            temperature: 0.4,
+            temperature: 0.7,
+            topP: 0.95,
+            maxOutputTokens: 65536,
           },
+
         }),
       });
 
