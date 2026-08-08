@@ -31,6 +31,8 @@ import Auth from "./pages/Auth";
 import Security from "./pages/Security";
 import Pricing from "./pages/Pricing";
 import Connectors from "./pages/Connectors";
+import ExternalPreview from "./pages/ExternalPreview";
+
 
 const queryClient = new QueryClient();
 
