@@ -328,6 +328,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
 
     setSteps(INITIAL_STEPS.map(s => ({ ...s, status: 'pending' })));
     setPreviewUrl(null);
+    setNeedsRerun(false);
     setStatus('booting');
     setActiveTab('logs');
 
@@ -350,6 +351,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
     try {
       const tree = buildTree(files);
       await wc.mount(tree);
+      syncedRef.current = flattenTree(tree);
       updateStep(2, { status: 'done', detail: `Mounted ${files.length} file(s)` });
     } catch (e: any) {
       updateStep(2, { status: 'error', detail: e?.message });
@@ -357,6 +359,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
       setStatus('error');
       return;
     }
+
 
     // Step 3 — Detect project
     const { install, start, label } = detectStartCommand(files);
