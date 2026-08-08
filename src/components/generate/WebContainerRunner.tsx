@@ -232,6 +232,21 @@ export default defineConfig({
   return tree;
 }
 
+/** Flatten a FileSystemTree back into a path -> contents map */
+function flattenTree(tree: FileSystemTree, prefix = ''): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const [key, node] of Object.entries(tree as any)) {
+    const path = prefix ? `${prefix}/${key}` : key;
+    if ((node as any).file) {
+      out.set(path, String((node as any).file.contents ?? ''));
+    } else if ((node as any).directory) {
+      for (const [k, v] of flattenTree((node as any).directory, path)) out.set(k, v);
+    }
+  }
+  return out;
+}
+
+
 // ─── Agent step definitions ───────────────────────────────────────────────────
 const INITIAL_STEPS: Omit<AgentStep, 'status'>[] = [
   { id: 1, icon: '🔧', message: 'Booting WebContainer' },
