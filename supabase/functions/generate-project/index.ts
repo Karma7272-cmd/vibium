@@ -95,7 +95,9 @@ DESIGN & ARCHITECTURE SYSTEM:
 - Respond ONLY with a single JSON object matching the required schema. No prose, no markdown fences.`;
 
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  // Stream from the model so the connection stays alive on long generations,
+  // then assemble the full JSON server-side.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   let lastError: string = "Unknown error";
 
