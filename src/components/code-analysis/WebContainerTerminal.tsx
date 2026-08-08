@@ -102,6 +102,8 @@ export const WebContainerTerminal: React.FC<Props> = ({ files, className }) => {
         wcRef.current = wc;
         term.writeln('\x1b[36m> Mounting project files…\x1b[0m');
         await wc.mount(filesToTree(files));
+        files.forEach(f => syncedRef.current.set(f.name, f.content ?? ''));
+
         await startShell();
         setStatus('ready');
       } catch (e: any) {
