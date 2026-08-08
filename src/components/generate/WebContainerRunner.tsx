@@ -633,9 +633,25 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
           </div>
         )}
 
+        {syncing && (
+          <span className="text-[10px] text-violet-300 flex items-center gap-1">
+            <Loader2 className="h-2.5 w-2.5 animate-spin" /> syncing edits…
+          </span>
+        )}
+        {needsRerun && (
+          <span className="text-[10px] text-yellow-300">dependencies changed — restart to reinstall</span>
+        )}
+
         <div className="ml-auto flex items-center gap-1">
           {previewUrl && (
             <>
+              <Button
+                size="sm" variant="ghost"
+                className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10 gap-1"
+                onClick={reloadPreview}
+              >
+                <RefreshCw className="h-3 w-3" /> Reload
+              </Button>
               <Button
                 size="sm" variant="ghost"
                 className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10 gap-1"
@@ -647,12 +663,13 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
               <Button
                 size="sm" variant="ghost"
                 className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10 gap-1"
-                onClick={() => window.open(previewUrl, '_blank')}
+                onClick={openExternal}
               >
                 <ExternalLink className="h-3 w-3" /> Open
               </Button>
             </>
           )}
+
 
           {status === 'idle' || status === 'error' ? (
             <Button
