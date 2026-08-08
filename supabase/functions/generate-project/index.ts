@@ -218,30 +218,58 @@ Build this as a complete, polished, production-ready product with a distinctive 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let prompt: string;
   try {
-    const { prompt } = await req.json();
-    if (!prompt || typeof prompt !== "string") {
-      return new Response(JSON.stringify({ error: "prompt required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
-
-    const result = await callGemini(prompt, GEMINI_API_KEY);
-
-    if (!result.files || !Array.isArray(result.files) || result.files.length === 0) {
-      throw new Error("AI did not generate any files. Try a more specific prompt.");
-    }
-
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (e) {
-    console.error("generate-project error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    ({ prompt } = await req.json());
+  } catch {
+    return new Response(JSON.stringify({ error: "invalid JSON body" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  if (!prompt || typeof prompt !== "string") {
+    return new Response(JSON.stringify({ error: "prompt required" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+  if (!GEMINI_API_KEY) {
+    return new Response(JSON.stringify({ error: "GEMINI_API_KEY is not configured" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Generation can run for several minutes. The platform severs any request that
+  // sends no bytes for 150s, so we stream harmless whitespace keepalives while the
+  // model works and write the JSON payload last (leading whitespace is valid JSON).
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const keepalive = setInterval(() => {
+        try { controller.enqueue(encoder.encode(" ")); } catch { /* closed */ }
+      }, 10_000);
+
+      let payload: string;
+      try {
+        const result = await callGemini(prompt, GEMINI_API_KEY);
+        if (!result.files || !Array.isArray(result.files) || result.files.length === 0) {
+          throw new Error("AI did not generate any files. Try a more specific prompt.");
+        }
+        payload = JSON.stringify(result);
+      } catch (e) {
+        console.error("generate-project error:", e);
+        payload = JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" });
+      } finally {
+        clearInterval(keepalive);
+      }
+
+      controller.enqueue(encoder.encode("\n" + payload));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 });
