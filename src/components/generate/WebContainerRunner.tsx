@@ -273,6 +273,13 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
   const shellRef = useRef<any>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const logsEndRef = useRef<HTMLDivElement | null>(null);
+  // Files already written into the container (path -> contents) for incremental sync
+  const syncedRef = useRef<Map<string, string>>(new Map());
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const serverProcRef = useRef<any>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [needsRerun, setNeedsRerun] = useState(false);
+
 
   const [status, setStatus] = useState<'idle' | 'booting' | 'installing' | 'starting' | 'running' | 'error'>('idle');
   const [error, setError] = useState('');
