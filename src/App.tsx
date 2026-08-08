@@ -52,6 +52,8 @@ const App = () => (
                   <Route path="/security" element={<Security />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/connectors" element={<Connectors />} />
+                  <Route path="/external-preview" element={<ExternalPreview />} />
+
                   <Route path="/pending-request" element={<PendingRequest />} />
                   <Route path="/network" element={<Index />} />
                   <Route path="/operators" element={<Operators />} />
