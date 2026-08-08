@@ -95,7 +95,9 @@ DESIGN & ARCHITECTURE SYSTEM:
 - Respond ONLY with a single JSON object matching the required schema. No prose, no markdown fences.`;
 
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  // Stream from the model so the connection stays alive on long generations,
+  // then assemble the full JSON server-side.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   let lastError: string = "Unknown error";
 
@@ -124,14 +126,14 @@ Build this as a complete, polished, production-ready product with a distinctive 
             responseSchema: SCHEMA,
             temperature: 0.7,
             topP: 0.95,
-            maxOutputTokens: 65536,
+            maxOutputTokens: 32768,
           },
 
         }),
       });
 
-      if (!response.ok) {
-        const t = await response.text();
+      if (!response.ok || !response.body) {
+        const t = await response.text().catch(() => "");
         console.error("Gemini error:", response.status, t);
 
         if (response.status === 429) {
@@ -146,31 +148,50 @@ Build this as a complete, polished, production-ready product with a distinctive 
         break;
       }
 
-      const data = await response.json();
+      // Consume the SSE stream and rebuild the full JSON payload.
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let text = "";
+      let finishReason = "";
+      let blockReason = "";
 
-      const candidate = data.candidates?.[0];
-      if (!candidate) {
-        const blockReason = data.promptFeedback?.blockReason;
-        if (blockReason) {
-          lastError = `Request was blocked by safety filters (${blockReason}). Try rephrasing your prompt.`;
-          break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buf.indexOf("\n")) !== -1) {
+          const line = buf.slice(0, idx).trim();
+          buf = buf.slice(idx + 1);
+          if (!line.startsWith("data:")) continue;
+          const json = line.slice(5).trim();
+          if (!json || json === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(json);
+            const cand = parsed.candidates?.[0];
+            if (cand?.content?.parts) {
+              text += cand.content.parts.map((p: any) => p.text || "").join("");
+            }
+            if (cand?.finishReason) finishReason = cand.finishReason;
+            if (parsed.promptFeedback?.blockReason) blockReason = parsed.promptFeedback.blockReason;
+          } catch { /* partial chunk */ }
         }
-        lastError = "No response generated. Try rephrasing your prompt.";
-        continue;
       }
 
-      const finishReason = candidate.finishReason;
-      if (finishReason === "SAFETY") {
-        lastError = "Response was blocked by safety filters. Try rephrasing your prompt.";
+      if (blockReason || finishReason === "SAFETY") {
+        lastError = `Request was blocked by safety filters${blockReason ? ` (${blockReason})` : ""}. Try rephrasing your prompt.`;
         break;
       }
       if (finishReason === "RECITATION") {
         lastError = "Response was blocked due to recitation policy. Try a different prompt.";
         break;
       }
+      if (finishReason === "MAX_TOKENS") {
+        console.error("Generation hit MAX_TOKENS; output truncated");
+      }
 
-      const text = candidate.content?.parts?.[0]?.text;
-      if (!text || text.trim().length === 0) {
+      if (!text.trim()) {
         lastError = "Empty response from AI. Retrying…";
         continue;
       }
@@ -178,8 +199,10 @@ Build this as a complete, polished, production-ready product with a distinctive 
       try {
         return JSON.parse(text) as Record<string, unknown>;
       } catch {
-        console.error("JSON parse failed, raw text:", text.slice(0, 500));
-        lastError = "AI returned malformed output. Retrying…";
+        console.error("JSON parse failed, raw text tail:", text.slice(-500));
+        lastError = finishReason === "MAX_TOKENS"
+          ? "The project was too large to finish in one pass. Try a more focused prompt."
+          : "AI returned malformed output. Retrying…";
         continue;
       }
     } catch (e) {
@@ -195,30 +218,58 @@ Build this as a complete, polished, production-ready product with a distinctive 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let prompt: string;
   try {
-    const { prompt } = await req.json();
-    if (!prompt || typeof prompt !== "string") {
-      return new Response(JSON.stringify({ error: "prompt required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
-
-    const result = await callGemini(prompt, GEMINI_API_KEY);
-
-    if (!result.files || !Array.isArray(result.files) || result.files.length === 0) {
-      throw new Error("AI did not generate any files. Try a more specific prompt.");
-    }
-
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (e) {
-    console.error("generate-project error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    ({ prompt } = await req.json());
+  } catch {
+    return new Response(JSON.stringify({ error: "invalid JSON body" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  if (!prompt || typeof prompt !== "string") {
+    return new Response(JSON.stringify({ error: "prompt required" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+  if (!GEMINI_API_KEY) {
+    return new Response(JSON.stringify({ error: "GEMINI_API_KEY is not configured" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Generation can run for several minutes. The platform severs any request that
+  // sends no bytes for 150s, so we stream harmless whitespace keepalives while the
+  // model works and write the JSON payload last (leading whitespace is valid JSON).
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const keepalive = setInterval(() => {
+        try { controller.enqueue(encoder.encode(" ")); } catch { /* closed */ }
+      }, 10_000);
+
+      let payload: string;
+      try {
+        const result = await callGemini(prompt, GEMINI_API_KEY);
+        if (!result.files || !Array.isArray(result.files) || result.files.length === 0) {
+          throw new Error("AI did not generate any files. Try a more specific prompt.");
+        }
+        payload = JSON.stringify(result);
+      } catch (e) {
+        console.error("generate-project error:", e);
+        payload = JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" });
+      } finally {
+        clearInterval(keepalive);
+      }
+
+      controller.enqueue(encoder.encode("\n" + payload));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 });
