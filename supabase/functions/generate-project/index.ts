@@ -126,14 +126,14 @@ Build this as a complete, polished, production-ready product with a distinctive 
             responseSchema: SCHEMA,
             temperature: 0.7,
             topP: 0.95,
-            maxOutputTokens: 65536,
+            maxOutputTokens: 32768,
           },
 
         }),
       });
 
-      if (!response.ok) {
-        const t = await response.text();
+      if (!response.ok || !response.body) {
+        const t = await response.text().catch(() => "");
         console.error("Gemini error:", response.status, t);
 
         if (response.status === 429) {
@@ -148,31 +148,50 @@ Build this as a complete, polished, production-ready product with a distinctive 
         break;
       }
 
-      const data = await response.json();
+      // Consume the SSE stream and rebuild the full JSON payload.
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let text = "";
+      let finishReason = "";
+      let blockReason = "";
 
-      const candidate = data.candidates?.[0];
-      if (!candidate) {
-        const blockReason = data.promptFeedback?.blockReason;
-        if (blockReason) {
-          lastError = `Request was blocked by safety filters (${blockReason}). Try rephrasing your prompt.`;
-          break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buf.indexOf("\n")) !== -1) {
+          const line = buf.slice(0, idx).trim();
+          buf = buf.slice(idx + 1);
+          if (!line.startsWith("data:")) continue;
+          const json = line.slice(5).trim();
+          if (!json || json === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(json);
+            const cand = parsed.candidates?.[0];
+            if (cand?.content?.parts) {
+              text += cand.content.parts.map((p: any) => p.text || "").join("");
+            }
+            if (cand?.finishReason) finishReason = cand.finishReason;
+            if (parsed.promptFeedback?.blockReason) blockReason = parsed.promptFeedback.blockReason;
+          } catch { /* partial chunk */ }
         }
-        lastError = "No response generated. Try rephrasing your prompt.";
-        continue;
       }
 
-      const finishReason = candidate.finishReason;
-      if (finishReason === "SAFETY") {
-        lastError = "Response was blocked by safety filters. Try rephrasing your prompt.";
+      if (blockReason || finishReason === "SAFETY") {
+        lastError = `Request was blocked by safety filters${blockReason ? ` (${blockReason})` : ""}. Try rephrasing your prompt.`;
         break;
       }
       if (finishReason === "RECITATION") {
         lastError = "Response was blocked due to recitation policy. Try a different prompt.";
         break;
       }
+      if (finishReason === "MAX_TOKENS") {
+        console.error("Generation hit MAX_TOKENS; output truncated");
+      }
 
-      const text = candidate.content?.parts?.[0]?.text;
-      if (!text || text.trim().length === 0) {
+      if (!text.trim()) {
         lastError = "Empty response from AI. Retrying…";
         continue;
       }
@@ -180,8 +199,10 @@ Build this as a complete, polished, production-ready product with a distinctive 
       try {
         return JSON.parse(text) as Record<string, unknown>;
       } catch {
-        console.error("JSON parse failed, raw text:", text.slice(0, 500));
-        lastError = "AI returned malformed output. Retrying…";
+        console.error("JSON parse failed, raw text tail:", text.slice(-500));
+        lastError = finishReason === "MAX_TOKENS"
+          ? "The project was too large to finish in one pass. Try a more focused prompt."
+          : "AI returned malformed output. Retrying…";
         continue;
       }
     } catch (e) {
