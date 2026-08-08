@@ -503,12 +503,61 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
     }
   }, [activeTab]);
 
-  // Re-mount files when they change and WC is running
+  // Hot-sync edited files into the running container WITHOUT restarting the
+  // server, the terminal or the preview. Only changed files are written, so the
+  // dev server's own HMR updates the preview in place.
   useEffect(() => {
-    if (status === 'running' && wcRef.current) {
-      wcRef.current.mount(buildTree(files)).catch(() => { /* noop */ });
-    }
+    const wc = wcRef.current;
+    if (!wc || (status !== 'running' && status !== 'starting')) return;
+
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(async () => {
+      const next = flattenTree(buildTree(files));
+      const changed: string[] = [];
+      for (const [path, contents] of next) {
+        if (syncedRef.current.get(path) !== contents) changed.push(path);
+      }
+      if (!changed.length) return;
+
+      setSyncing(true);
+      try {
+        for (const path of changed) {
+          const dir = path.split('/').slice(0, -1).join('/');
+          if (dir) {
+            try { await wc.fs.mkdir(dir, { recursive: true }); } catch { /* exists */ }
+          }
+          await wc.fs.writeFile(path, next.get(path) ?? '');
+          syncedRef.current.set(path, next.get(path) ?? '');
+        }
+        // Dependencies changed → the user must re-run install/start manually.
+        if (changed.includes('package.json')) setNeedsRerun(true);
+      } catch {
+        /* noop */
+      } finally {
+        setSyncing(false);
+      }
+    }, 400);
+
+    return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
   }, [files, status]);
+
+  const reloadPreview = () => {
+    const frame = iframeRef.current;
+    if (frame && previewUrl) frame.src = previewUrl;
+  };
+
+  const openExternal = () => {
+    if (!previewUrl) return;
+    // Opening the raw WebContainer URL in a bare tab breaks (the preview is
+    // served through a service worker scoped to this isolated page), so we open
+    // a same-origin host page that embeds it in a full-bleed iframe.
+    window.open(
+      `${window.location.origin}/external-preview?url=${encodeURIComponent(previewUrl)}`,
+      '_blank',
+      'noopener=no',
+    );
+  };
+
 
   const handleCopyUrl = () => {
     if (!previewUrl) return;
