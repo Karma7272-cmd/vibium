@@ -232,6 +232,21 @@ export default defineConfig({
   return tree;
 }
 
+/** Flatten a FileSystemTree back into a path -> contents map */
+function flattenTree(tree: FileSystemTree, prefix = ''): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const [key, node] of Object.entries(tree as any)) {
+    const path = prefix ? `${prefix}/${key}` : key;
+    if ((node as any).file) {
+      out.set(path, String((node as any).file.contents ?? ''));
+    } else if ((node as any).directory) {
+      for (const [k, v] of flattenTree((node as any).directory, path)) out.set(k, v);
+    }
+  }
+  return out;
+}
+
+
 // ─── Agent step definitions ───────────────────────────────────────────────────
 const INITIAL_STEPS: Omit<AgentStep, 'status'>[] = [
   { id: 1, icon: '🔧', message: 'Booting WebContainer' },
@@ -258,6 +273,13 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
   const shellRef = useRef<any>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const logsEndRef = useRef<HTMLDivElement | null>(null);
+  // Files already written into the container (path -> contents) for incremental sync
+  const syncedRef = useRef<Map<string, string>>(new Map());
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const serverProcRef = useRef<any>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [needsRerun, setNeedsRerun] = useState(false);
+
 
   const [status, setStatus] = useState<'idle' | 'booting' | 'installing' | 'starting' | 'running' | 'error'>('idle');
   const [error, setError] = useState('');
@@ -306,6 +328,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
 
     setSteps(INITIAL_STEPS.map(s => ({ ...s, status: 'pending' })));
     setPreviewUrl(null);
+    setNeedsRerun(false);
     setStatus('booting');
     setActiveTab('logs');
 
@@ -328,6 +351,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
     try {
       const tree = buildTree(files);
       await wc.mount(tree);
+      syncedRef.current = flattenTree(tree);
       updateStep(2, { status: 'done', detail: `Mounted ${files.length} file(s)` });
     } catch (e: any) {
       updateStep(2, { status: 'error', detail: e?.message });
@@ -335,6 +359,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
       setStatus('error');
       return;
     }
+
 
     // Step 3 — Detect project
     const { install, start, label } = detectStartCommand(files);
@@ -478,12 +503,61 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
     }
   }, [activeTab]);
 
-  // Re-mount files when they change and WC is running
+  // Hot-sync edited files into the running container WITHOUT restarting the
+  // server, the terminal or the preview. Only changed files are written, so the
+  // dev server's own HMR updates the preview in place.
   useEffect(() => {
-    if (status === 'running' && wcRef.current) {
-      wcRef.current.mount(buildTree(files)).catch(() => { /* noop */ });
-    }
+    const wc = wcRef.current;
+    if (!wc || (status !== 'running' && status !== 'starting')) return;
+
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(async () => {
+      const next = flattenTree(buildTree(files));
+      const changed: string[] = [];
+      for (const [path, contents] of next) {
+        if (syncedRef.current.get(path) !== contents) changed.push(path);
+      }
+      if (!changed.length) return;
+
+      setSyncing(true);
+      try {
+        for (const path of changed) {
+          const dir = path.split('/').slice(0, -1).join('/');
+          if (dir) {
+            try { await wc.fs.mkdir(dir, { recursive: true }); } catch { /* exists */ }
+          }
+          await wc.fs.writeFile(path, next.get(path) ?? '');
+          syncedRef.current.set(path, next.get(path) ?? '');
+        }
+        // Dependencies changed → the user must re-run install/start manually.
+        if (changed.includes('package.json')) setNeedsRerun(true);
+      } catch {
+        /* noop */
+      } finally {
+        setSyncing(false);
+      }
+    }, 400);
+
+    return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
   }, [files, status]);
+
+  const reloadPreview = () => {
+    const frame = iframeRef.current;
+    if (frame && previewUrl) frame.src = previewUrl;
+  };
+
+  const openExternal = () => {
+    if (!previewUrl) return;
+    // Opening the raw WebContainer URL in a bare tab breaks (the preview is
+    // served through a service worker scoped to this isolated page), so we open
+    // a same-origin host page that embeds it in a full-bleed iframe.
+    window.open(
+      `${window.location.origin}/external-preview?url=${encodeURIComponent(previewUrl)}`,
+      '_blank',
+      'noopener=no',
+    );
+  };
+
 
   const handleCopyUrl = () => {
     if (!previewUrl) return;
@@ -559,9 +633,25 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
           </div>
         )}
 
+        {syncing && (
+          <span className="text-[10px] text-violet-300 flex items-center gap-1">
+            <Loader2 className="h-2.5 w-2.5 animate-spin" /> syncing edits…
+          </span>
+        )}
+        {needsRerun && (
+          <span className="text-[10px] text-yellow-300">dependencies changed — restart to reinstall</span>
+        )}
+
         <div className="ml-auto flex items-center gap-1">
           {previewUrl && (
             <>
+              <Button
+                size="sm" variant="ghost"
+                className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10 gap-1"
+                onClick={reloadPreview}
+              >
+                <RefreshCw className="h-3 w-3" /> Reload
+              </Button>
               <Button
                 size="sm" variant="ghost"
                 className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10 gap-1"
@@ -573,12 +663,13 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
               <Button
                 size="sm" variant="ghost"
                 className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10 gap-1"
-                onClick={() => window.open(previewUrl, '_blank')}
+                onClick={openExternal}
               >
                 <ExternalLink className="h-3 w-3" /> Open
               </Button>
             </>
           )}
+
 
           {status === 'idle' || status === 'error' ? (
             <Button

@@ -102,6 +102,8 @@ export const WebContainerTerminal: React.FC<Props> = ({ files, className }) => {
         wcRef.current = wc;
         term.writeln('\x1b[36m> Mounting project files…\x1b[0m');
         await wc.mount(filesToTree(files));
+        files.forEach(f => syncedRef.current.set(f.name, f.content ?? ''));
+
         await startShell();
         setStatus('ready');
       } catch (e: any) {
@@ -120,11 +122,27 @@ export const WebContainerTerminal: React.FC<Props> = ({ files, className }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-mount when files change
+  // Sync edited files into the running container without remounting the whole
+  // project (which would reset the shell and any running process).
+  const syncedRef = useRef<Map<string, string>>(new Map());
   useEffect(() => {
     if (status !== 'ready' || !wcRef.current) return;
-    wcRef.current.mount(filesToTree(files)).catch(() => { /* noop */ });
+    const wc = wcRef.current;
+    const t = setTimeout(async () => {
+      for (const f of files) {
+        const content = f.content ?? '';
+        if (syncedRef.current.get(f.name) === content) continue;
+        const dir = f.name.split('/').slice(0, -1).join('/');
+        try {
+          if (dir) { try { await wc.fs.mkdir(dir, { recursive: true }); } catch { /* exists */ } }
+          await wc.fs.writeFile(f.name, content);
+          syncedRef.current.set(f.name, content);
+        } catch { /* noop */ }
+      }
+    }, 400);
+    return () => clearTimeout(t);
   }, [files, status]);
+
 
   const startShell = async () => {
     const wc = wcRef.current;
