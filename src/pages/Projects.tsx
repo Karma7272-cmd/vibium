@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '@/components/ThemeProvider';
-import { WebContainerTerminal } from '@/components/code-analysis/WebContainerTerminal';
+import { WebContainerRunner } from '@/components/generate/WebContainerRunner';
 
 interface ProjectFile { path: string; content: string; }
 interface EnvVar { name: string; description?: string; example?: string; required?: boolean; }
@@ -372,9 +372,10 @@ const Projects: React.FC = () => {
                   <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Select a file</div>
                 )}
               </div>
-              <div className="h-72 border-t border-border shrink-0">
-                <WebContainerTerminal
+              <div className="h-80 border-t border-border shrink-0">
+                <WebContainerRunner
                   files={(active.files || []).map(f => ({ name: f.path, content: f.content, language: langFromPath(f.path) }))}
+                  projectName={active.name}
                 />
               </div>
             </main>

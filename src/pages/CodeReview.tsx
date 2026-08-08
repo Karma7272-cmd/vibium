@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/AppSidebar';
@@ -11,7 +11,8 @@ import {
   Loader2, ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest,
   Database, Key, MessageSquare, X, PanelLeftClose, PanelLeft, Code2, FolderTree,
   GitBranch, Download, ChevronsUpDown, ChevronDown, Columns2, AlignJustify,
-  Search, Filter, Eye, ExternalLink, CheckCircle2,
+  Search, Filter, Eye, ExternalLink, CheckCircle2, Play, ChevronUp,
+  TerminalSquare,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +27,7 @@ import {
   fetchFilesInParallel, getRepoPermissions, createBranch, createPullRequest,
 } from '@/services/githubService';
 import { hydrateGithubToken } from '@/lib/githubToken';
+import { WebContainerRunner } from '@/components/generate/WebContainerRunner';
 
 type Mode = 'generate' | 'analyze';
 type ViewMode = 'stacked' | 'editor';
@@ -53,6 +55,9 @@ const langFromPath = (p: string) => {
   };
   return map[ext || ''] || 'plaintext';
 };
+
+const MIN_RUNNER_HEIGHT = 220;
+const DEFAULT_RUNNER_HEIGHT = 380;
 
 const CodeReview: React.FC = () => {
   const navigate = useNavigate();
@@ -91,6 +96,33 @@ const CodeReview: React.FC = () => {
   const [autoPR, setAutoPR] = useState(true);
   const [prUrl, setPrUrl] = useState<string | null>(null);
   const [prNumber, setPrNumber] = useState<number | null>(null);
+
+  // ── WebContainer Runner state ──────────────────────────────────────────────
+  const [showRunner, setShowRunner] = useState(false);
+  const [runnerHeight, setRunnerHeight] = useState(DEFAULT_RUNNER_HEIGHT);
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null);
+
+  const handleRunnerDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragRef.current = { startY: e.clientY, startH: runnerHeight };
+    const onMove = (mv: MouseEvent) => {
+      if (!dragRef.current) return;
+      const delta = dragRef.current.startY - mv.clientY;
+      setRunnerHeight(Math.max(MIN_RUNNER_HEIGHT, dragRef.current.startH + delta));
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [runnerHeight]);
+
+  const runnerFiles = useMemo(() =>
+    genFiles.map(f => ({ name: f.path, content: f.content, language: langFromPath(f.path) })),
+    [genFiles],
+  );
 
   useEffect(() => {
     (async () => {
@@ -417,6 +449,31 @@ const CodeReview: React.FC = () => {
               <MessageSquare className="h-3.5 w-3.5" />
               <span className="hidden sm:inline text-xs">Chat</span>
             </Button>
+
+            {/* ── Run button (generate mode only) ── */}
+            {payload?.mode === 'generate' && genFiles.length > 0 && (
+              <Button
+                size="sm"
+                variant={showRunner ? 'default' : 'outline'}
+                onClick={() => setShowRunner(s => !s)}
+                className={`gap-1.5 h-8 transition-all ${
+                  showRunner
+                    ? 'bg-violet-600 hover:bg-violet-700 text-white border-violet-500'
+                    : 'border-violet-500/40 text-violet-400 hover:bg-violet-500/10 hover:text-violet-300'
+                }`}
+                title="Run project in WebContainer"
+              >
+                {showRunner
+                  ? <ChevronUp className="h-3.5 w-3.5" />
+                  : <Play className="h-3.5 w-3.5" />
+                }
+                <span className="hidden sm:inline text-xs">
+                  {showRunner ? 'Hide Runner' : 'Run'}
+                </span>
+                <TerminalSquare className="h-3 w-3 opacity-60" />
+              </Button>
+            )}
+
             {payload?.mode === 'generate' && genFiles.length > 0 && (
               <Button size="sm" onClick={handlePushNew} disabled={pushing || !newRepoName.trim()} className="gap-1.5 h-8">
                 {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Github className="h-3.5 w-3.5" />}
@@ -972,6 +1029,29 @@ const CodeReview: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── WebContainer Runner drawer (generate mode) ── */}
+        {payload?.mode === 'generate' && showRunner && genFiles.length > 0 && (
+          <div
+            className="shrink-0 flex flex-col border-t border-violet-500/30 bg-[#0d0d14] relative overflow-hidden"
+            style={{ height: runnerHeight }}
+          >
+            {/* Drag handle */}
+            <div
+              className="absolute top-0 left-0 right-0 h-1.5 cursor-row-resize z-10 group"
+              onMouseDown={handleRunnerDragStart}
+            >
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="w-16 h-0.5 rounded-full bg-violet-400/60" />
+              </div>
+            </div>
+            <WebContainerRunner
+              files={runnerFiles}
+              projectName={genMeta?.project_name ?? 'Project'}
+              className="flex-1 min-h-0"
+            />
           </div>
         )}
       </SidebarInset>

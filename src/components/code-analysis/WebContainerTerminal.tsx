@@ -65,9 +65,12 @@ export const WebContainerTerminal: React.FC<Props> = ({ files, className }) => {
   useEffect(() => {
     if (!termHostRef.current) return;
     if (!(window as any).crossOriginIsolated) {
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/coi-serviceworker.js').catch(() => {});
+      }
       setIsolated(false);
       setStatus('error');
-      setError('Cross-origin isolation required. Reload the page after the dev server restarted with COOP/COEP headers.');
+      setError('Cross-origin isolation required for WebContainer execution. Click below to activate COOP/COEP.');
       return;
     }
     setIsolated(true);
@@ -185,13 +188,29 @@ export const WebContainerTerminal: React.FC<Props> = ({ files, className }) => {
         </div>
       </div>
       {status === 'error' && !isolated && (
-        <div className="p-3 text-xs text-yellow-200 bg-yellow-500/10 border-b border-yellow-500/30 flex gap-2 items-start">
-          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold">Terminal unavailable</p>
-            <p className="opacity-80">{error}</p>
-            <p className="opacity-60 mt-1">WebContainer needs COOP/COEP headers. A hard refresh usually fixes this after deploy.</p>
+        <div className="p-3 text-xs text-yellow-200 bg-yellow-500/10 border-b border-yellow-500/30 flex items-center justify-between gap-2">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-yellow-400" />
+            <div>
+              <p className="font-semibold text-yellow-200">Terminal Unavailable</p>
+              <p className="opacity-80 text-[11px]">{error}</p>
+            </div>
           </div>
+          <Button
+            size="sm"
+            className="h-7 text-xs bg-yellow-600 hover:bg-yellow-700 text-white font-medium gap-1 shrink-0"
+            onClick={() => {
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/coi-serviceworker.js').then(() => {
+                  window.location.reload();
+                }).catch(() => window.location.reload());
+              } else {
+                window.location.reload();
+              }
+            }}
+          >
+            <RefreshCw className="h-3 w-3" /> Enable & Reload
+          </Button>
         </div>
       )}
       {status === 'booting' && (

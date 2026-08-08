@@ -6,7 +6,8 @@ import { componentTagger } from "lovable-tagger";
 // Cross-origin isolation is required by WebContainer (SharedArrayBuffer).
 const crossOriginIsolation = {
   "Cross-Origin-Opener-Policy": "same-origin",
-  "Cross-Origin-Embedder-Policy": "require-corp",
+  "Cross-Origin-Embedder-Policy": "credentialless",
+  "Cross-Origin-Resource-Policy": "cross-origin",
 };
 
 // https://vitejs.dev/config/
