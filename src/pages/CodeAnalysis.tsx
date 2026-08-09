@@ -23,7 +23,6 @@ import {
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/LoadingState';
 import { GitHubRepoSelector } from '@/components/code-analysis/GitHubRepoSelector';
 import { FileTreeView } from '@/components/code-analysis/FileTreeView';
 import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
