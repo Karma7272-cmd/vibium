@@ -61,11 +61,31 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
     setEnabledConnectors(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  const getViewport = useCallback(() => {
+    return scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null;
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    const viewport = getViewport();
+    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+  }, [getViewport]);
+
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    const viewport = getViewport();
+    if (!viewport) return;
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = viewport;
+      const nearBottom = scrollHeight - scrollTop - clientHeight < 60;
+      setShowScrollButton(!nearBottom);
+    };
+    viewport.addEventListener('scroll', handleScroll);
+    handleScroll();
+    return () => viewport.removeEventListener('scroll', handleScroll);
+  }, [getViewport]);
 
   // Extract code blocks (including still-open ones during streaming) and write
   // them incrementally to the target file so users see line-by-line output.
