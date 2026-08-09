@@ -3,7 +3,8 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Circle, CheckCircle2, Clock, Loader2, Trash2, AlertCircle, PlayCircle } from 'lucide-react';
+import { Plus, Circle, CheckCircle2, Clock, Trash2, AlertCircle, PlayCircle } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -108,7 +109,7 @@ const Tasks: React.FC = () => {
 
   const statusIcon = (s: string) => {
     if (s === 'completed') return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
-    if (s === 'running') return <Loader2 className="h-4 w-4 text-primary animate-spin" />;
+    if (s === 'running') return <LoadingState variant="bars" size="sm" />;
     if (s === 'scheduled') return <Clock className="h-4 w-4 text-blue-500" />;
     if (s === 'failed') return <AlertCircle className="h-4 w-4 text-destructive" />;
     return <Circle className="h-4 w-4 text-muted-foreground" />;
@@ -147,7 +148,7 @@ const Tasks: React.FC = () => {
                 <Button onClick={() => navigate('/auth')}>Sign in to view tasks</Button>
               </CardContent></Card>
             ) : loading ? (
-              <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              <div className="flex justify-center py-16"><LoadingState variant="bars" size="md" /></div>
             ) : tasks.length === 0 ? (
               <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">
                 No tasks yet. Create one or schedule a prompt from the home page.
@@ -219,7 +220,7 @@ const Tasks: React.FC = () => {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
             <Button onClick={createTask} disabled={saving || !title.trim()}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
+              {saving ? <LoadingState variant="bars" size="sm" /> : 'Create'}
             </Button>
           </DialogFooter>
         </DialogContent>

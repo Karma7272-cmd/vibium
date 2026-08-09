@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Check, Clock, Loader2 } from 'lucide-react';
+import { Check, Clock } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 
 interface ChecklistItem {
   id: string;
@@ -83,7 +84,7 @@ const PendingRequest: React.FC = () => {
           <div className="w-full max-w-lg mx-auto">
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-primary/20 rounded-full mb-4">
-                <Loader2 className="w-8 h-8 text-blue-600 dark:text-primary animate-spin" />
+                <LoadingState variant="pulse" size="md" className="text-blue-600 dark:text-primary" />
               </div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-foreground mb-2">Processing Your Request</h1>
               <p className="text-gray-600 dark:text-muted-foreground">
@@ -106,7 +107,7 @@ const PendingRequest: React.FC = () => {
                       {item.completed ? (
                         <Check className="w-4 h-4" />
                       ) : index === currentStep ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <LoadingState variant="bars" size="sm" />
                       ) : (
                         <Clock className="w-4 h-4" />
                       )}

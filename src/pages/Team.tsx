@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { UserPlus, Loader2, Trash2, Mail, Users } from 'lucide-react';
+import { UserPlus, Trash2, Mail, Users } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -110,7 +111,7 @@ const Team: React.FC = () => {
                 <Button onClick={() => navigate('/auth')}>Sign in to manage your team</Button>
               </CardContent></Card>
             ) : loading ? (
-              <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              <div className="flex justify-center py-16"><LoadingState variant="bars" size="md" /></div>
             ) : members.length === 0 ? (
               <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">
                 No team members yet. Invite your first collaborator.
@@ -166,7 +167,7 @@ const Team: React.FC = () => {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
             <Button onClick={invite} disabled={saving || !email.trim()}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Invite'}
+              {saving ? <LoadingState variant="bars" size="sm" /> : 'Invite'}
             </Button>
           </DialogFooter>
         </DialogContent>

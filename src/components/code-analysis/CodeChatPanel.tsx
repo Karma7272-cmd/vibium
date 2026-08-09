@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Sparkles, Plus, FolderTree, FileCode, Plug, Check as CheckIcon, RefreshCw, FileEdit, Bot, ChevronDown } from "lucide-react";
+import { Send, Sparkles, Plus, FolderTree, FileCode, Plug, Check as CheckIcon, RefreshCw, FileEdit, Bot, ChevronDown } from "lucide-react";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 type Scope = 'project' | 'file';
 import { Button } from "@/components/ui/button";
@@ -473,16 +474,13 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
               ))}
             </div>
 
-            {isLoading && messages[messages.length - 1]?.role === 'user' && (
-              <div className="flex justify-start mt-3">
-                <Card className="bg-muted p-2.5 shadow-none">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                    <span className="text-[10px] text-muted-foreground">Generating & applying changes...</span>
-                  </div>
-                </Card>
-              </div>
-            )}
+          {isLoading && messages[messages.length - 1]?.role === 'user' && (
+            <div className="flex justify-start mt-3">
+              <Card className="bg-muted p-2.5 shadow-none">
+                <LoadingState variant="bars" size="sm" message="Generating & applying changes..." />
+              </Card>
+            </div>
+          )}
           </div>
         </ScrollArea>
 

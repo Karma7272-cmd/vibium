@@ -12,7 +12,6 @@ import {
   Search,
   Plus,
   X,
-  Loader2,
   Code2,
   MessageSquare,
   FolderTree,
@@ -21,6 +20,7 @@ import {
   FilePlus,
   FolderPlus, ArrowUp, GitPullRequest, Sparkles, Lock, ExternalLink, CheckCircle2, GitMerge, TerminalSquare,
 } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GitHubRepoSelector } from '@/components/code-analysis/GitHubRepoSelector';
@@ -615,7 +615,7 @@ const CodeAnalysis: React.FC = () => {
                         disabled={isMerging}
                         title={`Merge PR #${openPR.number}`}
                       >
-                        {isMerging ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GitMerge className="h-3.5 w-3.5" />}
+                        {isMerging ? <LoadingState variant="bars" size="sm" /> : <GitMerge className="h-3.5 w-3.5" />}
                         {!isMobile && <span>Merge #{openPR.number}</span>}
                       </Button>
                     )}
@@ -629,7 +629,7 @@ const CodeAnalysis: React.FC = () => {
                     disabled={isMerging}
                     title={`Merge PR #${openPR.number} in ${openPR.repo}`}
                   >
-                    {isMerging ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GitMerge className="h-3.5 w-3.5" />}
+                    {isMerging ? <LoadingState variant="bars" size="sm" /> : <GitMerge className="h-3.5 w-3.5" />}
                     <span>Merge #{openPR.number}</span>
                   </Button>
                 )}
@@ -882,7 +882,7 @@ const CodeAnalysis: React.FC = () => {
                     disabled={isGenerating || !aiPrompt.trim()}
                     className="p-1.5 rounded-lg hover:bg-foreground/10 text-muted-foreground/60 hover:text-foreground/70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+                    {isGenerating ? <LoadingState variant="bars" size="sm" /> : <ArrowUp className="h-5 w-5" />}
                   </button>
                 </div>
               </div>
@@ -1004,7 +1004,7 @@ const CodeAnalysis: React.FC = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPRDialog(false)}>Cancel</Button>
             <Button onClick={handleCreatePR} disabled={isPushing || !prTitle.trim()}>
-              {isPushing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</> : 'Create PR'}
+              {isPushing ? <><LoadingState variant="bars" size="sm" className="mr-2" />Creating...</> : 'Create PR'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1035,7 +1035,7 @@ const CodeAnalysis: React.FC = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPushGenDialog(false)}>Cancel</Button>
             <Button onClick={handlePushGeneratedFiles} disabled={isPushing || !newRepoName.trim()} className="gap-1.5">
-              {isPushing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Pushing...</> : <><Upload className="h-4 w-4" />Create & Push</>}
+              {isPushing ? <><LoadingState variant="bars" size="sm" className="mr-2" />Pushing...</> : <><Upload className="h-4 w-4" />Create & Push</>}
             </Button>
           </DialogFooter>
         </DialogContent>

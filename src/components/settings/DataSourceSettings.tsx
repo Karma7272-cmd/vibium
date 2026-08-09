@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { AlertCircle, Plus, Trash2, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Wifi, WifiOff } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,7 +54,7 @@ const DataSourceSettings: React.FC = () => {
       case 'connected':
         return <Wifi className="h-4 w-4 text-green-500" />;
       case 'connecting':
-        return <RefreshCw className="h-4 w-4 text-yellow-500 animate-spin" />;
+        return <LoadingState variant="bars" size="sm" className="text-yellow-500" />;
       case 'error':
         return <WifiOff className="h-4 w-4 text-red-500" />;
       default:

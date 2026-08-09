@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Loader2, Clock, Settings } from 'lucide-react';
+import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Clock, Settings } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -298,7 +299,7 @@ const SimpleCheckForm: React.FC = () => {
                   {localStorage.getItem('github_access_token') ? (
                     isReposLoading ? (
                       <div className="flex items-center justify-center py-6">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        <LoadingState variant="bars" size="md" />
                       </div>
                     ) : repos.length > 0 ? (
                       <div className="py-1">

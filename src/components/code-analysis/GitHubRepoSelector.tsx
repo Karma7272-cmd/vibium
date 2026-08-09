@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { GitHubRepo, listUserRepos, getRepoTree, getBlobContent, setGitHubToken, fetchFilesInParallel, getRepoPermissions } from "@/services/githubService";
 import { hydrateGithubToken } from "@/lib/githubToken";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, GitBranch, Lock, Globe, Shield, ShieldCheck, Search } from "lucide-react";
+import { GitBranch, Lock, Globe, Shield, ShieldCheck, Search } from "lucide-react";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -163,7 +164,7 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <LoadingState variant="bars" size="lg" />
         </CardContent>
       </Card>
     );
@@ -210,7 +211,7 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
                       )}
                       <Button size="sm" className="h-7 text-xs" onClick={() => importRepo(repo)} disabled={importing !== null}>
                         {importing === repo.id ? (
-                          <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Importing</>
+                          <><LoadingState variant="bars" size="sm" className="mr-1.5" />Importing</>
                         ) : (
                           "Import"
                         )}

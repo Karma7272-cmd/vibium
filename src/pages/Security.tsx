@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '../components/Footer';
-import { Shield, Loader2, Globe, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
+import { Shield, Globe, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,7 +104,7 @@ const Security: React.FC = () => {
                     />
                   </div>
                   <Button onClick={runScan} disabled={loading || !url.trim()} className="gap-2">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {loading ? <LoadingState variant="bars" size="sm" /> : <Sparkles className="h-4 w-4" />}
                     {loading ? 'Scanning…' : 'Scan website'}
                   </Button>
                 </div>

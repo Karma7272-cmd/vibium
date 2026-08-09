@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '../components/Footer';
-import { Check, Zap, Star, Building2, Sparkles, HardDrive, Loader2 } from 'lucide-react';
+import { Check, Zap, Star, Building2, Sparkles, HardDrive } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -104,7 +105,7 @@ const Pricing: React.FC = () => {
                 </CardContent>
                 <CardFooter>
                   <Button className="w-full" disabled={payingPlan === 'Pro'} onClick={() => handlePay('Pro', proTotal, proC, proGb)}>
-                    {payingPlan === 'Pro' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Opening…</> : `Upgrade to Pro · $${proTotal.toFixed(2)}`}
+                    {payingPlan === 'Pro' ? <><LoadingState variant="bars" size="sm" className="mr-2" />Opening…</> : `Upgrade to Pro · $${proTotal.toFixed(2)}`}
                   </Button>
                 </CardFooter>
               </Card>
@@ -134,7 +135,7 @@ const Pricing: React.FC = () => {
                 </CardContent>
                 <CardFooter>
                   <Button variant="outline" className="w-full" disabled={payingPlan === 'Business'} onClick={() => handlePay('Business', bizTotal, bizC, bizGb)}>
-                    {payingPlan === 'Business' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Opening…</> : `Choose Business · $${bizTotal.toFixed(2)}`}
+                    {payingPlan === 'Business' ? <><LoadingState variant="bars" size="sm" className="mr-2" />Opening…</> : `Choose Business · $${bizTotal.toFixed(2)}`}
                   </Button>
                 </CardFooter>
               </Card>

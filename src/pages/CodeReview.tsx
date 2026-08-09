@@ -8,12 +8,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import {
-  Loader2, ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest,
+  ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest,
   Database, Key, MessageSquare, X, PanelLeftClose, PanelLeft, Code2, FolderTree,
   GitBranch, Download, ChevronsUpDown, ChevronDown, Columns2, AlignJustify,
   Search, Filter, Eye, ExternalLink, CheckCircle2, Play, ChevronUp,
   TerminalSquare,
 } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +29,7 @@ import {
 } from '@/services/githubService';
 import { hydrateGithubToken } from '@/lib/githubToken';
 import { WebContainerRunner } from '@/components/generate/WebContainerRunner';
+import { GenerationLoading } from '@/components/generate/GenerationLoading';
 
 type Mode = 'generate' | 'analyze';
 type ViewMode = 'stacked' | 'editor';
@@ -476,7 +478,7 @@ const CodeReview: React.FC = () => {
 
             {payload?.mode === 'generate' && genFiles.length > 0 && (
               <Button size="sm" onClick={handlePushNew} disabled={pushing || !newRepoName.trim()} className="gap-1.5 h-8">
-                {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Github className="h-3.5 w-3.5" />}
+                {pushing ? <LoadingState variant="bars" size="sm" /> : <Github className="h-3.5 w-3.5" />}
                 <span className="hidden sm:inline text-xs">Create repo & push</span>
                 <span className="sm:hidden text-xs">Push</span>
               </Button>
@@ -485,7 +487,7 @@ const CodeReview: React.FC = () => {
               <>
                 {canPush && !prUrl && (
                   <Button size="sm" onClick={() => handlePushEdits(false)} disabled={pushing} className="gap-1.5 h-8">
-                    {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                    {pushing ? <LoadingState variant="bars" size="sm" /> : <Upload className="h-3.5 w-3.5" />}
                     <span className="hidden sm:inline text-xs">Push</span>
                   </Button>
                 )}
@@ -509,18 +511,7 @@ const CodeReview: React.FC = () => {
 
         {/* Loading state */}
         {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 text-center">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-              <Loader2 className="h-10 w-10 animate-spin text-primary relative" />
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-sm font-medium">{stageMsg}</p>
-              {payload && (
-                <p className="text-xs text-muted-foreground/60 max-w-md truncate">&ldquo;{payload.prompt}&rdquo;</p>
-              )}
-            </div>
-          </div>
+          <GenerationLoading stage={stageMsg} prompt={payload?.prompt || null} />
         ) : (
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
             {/* Left sidebar: file tree (editor mode) or meta info */}

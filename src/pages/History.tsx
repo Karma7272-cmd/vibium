@@ -5,7 +5,8 @@ import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, Shield, Activity, FileCode, FolderOpen, ExternalLink, Trash2 } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertTriangle, Sparkles, Shield, Activity, FileCode, FolderOpen, ExternalLink, Trash2 } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { realCheckService } from '@/services/realCheckService';
@@ -88,7 +89,7 @@ const History: React.FC = () => {
             </div>
 
             {loading ? (
-              <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              <div className="flex items-center justify-center py-16"><LoadingState variant="bars" size="md" /></div>
             ) : (
               <Tabs defaultValue="generations">
                 <TabsList className="flex-wrap h-auto">

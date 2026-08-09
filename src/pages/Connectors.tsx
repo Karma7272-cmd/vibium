@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '../components/Footer';
-import { Share2, Cloud, Zap, Triangle, Flame, Book, Mail, ListTodo, UserCheck, Server, CheckCircle2, Loader2, KeyRound, Trash2, Play } from 'lucide-react';
+import { Share2, Cloud, Zap, Triangle, Flame, Book, Mail, ListTodo, UserCheck, Server, CheckCircle2, KeyRound, Trash2, Play } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -202,7 +203,7 @@ const Connectors: React.FC = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpenId(null)}>Cancel</Button>
               <Button onClick={save} disabled={testing || !apiKey.trim()} className="gap-2">
-                {testing && <Loader2 className="h-4 w-4 animate-spin" />}{testing ? 'Verifying…' : 'Verify & Save'}
+                {testing && <LoadingState variant="bars" size="sm" />}{testing ? 'Verifying…' : 'Verify & Save'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -232,7 +233,7 @@ const Connectors: React.FC = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setTryId(null)}>Close</Button>
               <Button onClick={runAction} disabled={tryLoading || !tryAction} className="gap-2">
-                {tryLoading && <Loader2 className="h-4 w-4 animate-spin" />}{tryLoading ? 'Running…' : 'Run action'}
+                {tryLoading && <LoadingState variant="bars" size="sm" />}{tryLoading ? 'Running…' : 'Run action'}
               </Button>
             </DialogFooter>
           </DialogContent>

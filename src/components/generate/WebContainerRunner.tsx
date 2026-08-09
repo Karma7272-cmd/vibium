@@ -4,8 +4,9 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { Button } from '@/components/ui/button';
+import { LoadingState } from '@/components/ui/LoadingState';
 import {
-  Loader2, Play, Square, RefreshCw, AlertTriangle,
+  Play, Square, RefreshCw, AlertTriangle,
   ExternalLink, Copy, Check, TerminalSquare, Globe,
   ListOrdered, ChevronRight, Wifi, WifiOff,
 } from 'lucide-react';
@@ -593,7 +594,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
   ];
 
   const stepStatusIcon = (s: AgentStep) => {
-    if (s.status === 'running') return <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-400 shrink-0" />;
+    if (s.status === 'running') return <LoadingState variant="bars" size="sm" className="text-blue-400 shrink-0" />;
     if (s.status === 'done') return <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />;
     if (s.status === 'error') return <AlertTriangle className="h-3.5 w-3.5 text-red-400 shrink-0" />;
     return <ChevronRight className="h-3.5 w-3.5 text-zinc-600 shrink-0" />;
@@ -635,7 +636,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
 
         {syncing && (
           <span className="text-[10px] text-violet-300 flex items-center gap-1">
-            <Loader2 className="h-2.5 w-2.5 animate-spin" /> syncing edits…
+            <LoadingState variant="bars" size="sm" className="text-violet-300" /> syncing edits…
           </span>
         )}
         {needsRerun && (
@@ -693,7 +694,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
               className="h-6 px-2 text-[10px] text-white/40 gap-1 cursor-not-allowed"
               disabled
             >
-              <Loader2 className="h-3 w-3 animate-spin" /> Running…
+              <LoadingState variant="bars" size="sm" className="text-white/40" /> Running…
             </Button>
           )}
         </div>
@@ -771,7 +772,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
                 </div>
                 {(status === 'booting' || status === 'installing' || status === 'starting') && (
                   <div className="absolute -top-1 -right-1">
-                    <Loader2 className="h-4 w-4 animate-spin text-violet-400" />
+                    <LoadingState variant="pulse" size="sm" className="text-violet-400" />
                   </div>
                 )}
               </div>
