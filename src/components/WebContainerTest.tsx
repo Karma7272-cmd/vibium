@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { WebContainer } from '@webcontainer/api';
 import { Button } from '@/components/ui/button';
-import { Loader2, Play, CheckCircle2, XCircle } from 'lucide-react';
+import { Play, CheckCircle2, XCircle } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { cn } from '@/lib/utils';
 
 type Result =
