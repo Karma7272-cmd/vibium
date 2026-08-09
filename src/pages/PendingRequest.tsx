@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Check, Clock, Loader2 } from 'lucide-react';
+import { Check, Clock } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 
 interface ChecklistItem {
   id: string;

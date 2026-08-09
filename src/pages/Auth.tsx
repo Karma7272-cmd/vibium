@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 
 const Auth: React.FC = () => {
   const navigate = useNavigate();
