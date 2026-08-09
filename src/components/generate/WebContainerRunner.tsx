@@ -4,8 +4,9 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { Button } from '@/components/ui/button';
+import { LoadingState } from '@/components/ui/LoadingState';
 import {
-  Loader2, Play, Square, RefreshCw, AlertTriangle,
+  Play, Square, RefreshCw, AlertTriangle,
   ExternalLink, Copy, Check, TerminalSquare, Globe,
   ListOrdered, ChevronRight, Wifi, WifiOff,
 } from 'lucide-react';
