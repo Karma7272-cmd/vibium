@@ -104,7 +104,7 @@ const Security: React.FC = () => {
                     />
                   </div>
                   <Button onClick={runScan} disabled={loading || !url.trim()} className="gap-2">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {loading ? <LoadingState variant="bars" size="sm" /> : <Sparkles className="h-4 w-4" />}
                     {loading ? 'Scanning…' : 'Scan website'}
                   </Button>
                 </div>

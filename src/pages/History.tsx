@@ -89,7 +89,7 @@ const History: React.FC = () => {
             </div>
 
             {loading ? (
-              <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              <div className="flex items-center justify-center py-16"><LoadingState variant="bars" size="md" /></div>
             ) : (
               <Tabs defaultValue="generations">
                 <TabsList className="flex-wrap h-auto">

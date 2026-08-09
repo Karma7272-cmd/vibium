@@ -274,7 +274,7 @@ const Projects: React.FC = () => {
               ) : active.repo_full_name ? (
                 <>
                   <Button size="sm" onClick={handlePushToExistingRepo} disabled={pushing} className="gap-1.5 h-8">
-                    {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                    {pushing ? <LoadingState variant="bars" size="sm" /> : <Upload className="h-3.5 w-3.5" />}
                     <span className="text-xs">Push</span>
                   </Button>
                   <Button size="sm" variant="outline" onClick={handleCreatePR} disabled={pushing} className="gap-1.5 h-8">
@@ -307,7 +307,7 @@ const Projects: React.FC = () => {
                 <span>Private</span>
               </label>
               <Button size="sm" onClick={handlePushToNewRepo} disabled={pushing || !repoName.trim()} className="gap-1.5 h-8">
-                {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                {pushing ? <LoadingState variant="bars" size="sm" /> : <Upload className="h-3.5 w-3.5" />}
                 <span className="text-xs">Create & Push</span>
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setShowPushForm(false)} className="h-8">
@@ -405,7 +405,7 @@ const Projects: React.FC = () => {
             {!user ? (
               <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Sign in to view projects.</CardContent></Card>
             ) : loading ? (
-              <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              <div className="flex justify-center py-16"><LoadingState variant="bars" size="md" /></div>
             ) : projects.length === 0 ? (
               <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">
                 No projects yet. Generate from the home page or schedule a generation task.

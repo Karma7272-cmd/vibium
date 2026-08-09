@@ -203,7 +203,7 @@ const Connectors: React.FC = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpenId(null)}>Cancel</Button>
               <Button onClick={save} disabled={testing || !apiKey.trim()} className="gap-2">
-                {testing && <Loader2 className="h-4 w-4 animate-spin" />}{testing ? 'Verifying…' : 'Verify & Save'}
+                {testing && <LoadingState variant="bars" size="sm" />}{testing ? 'Verifying…' : 'Verify & Save'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -233,7 +233,7 @@ const Connectors: React.FC = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setTryId(null)}>Close</Button>
               <Button onClick={runAction} disabled={tryLoading || !tryAction} className="gap-2">
-                {tryLoading && <Loader2 className="h-4 w-4 animate-spin" />}{tryLoading ? 'Running…' : 'Run action'}
+                {tryLoading && <LoadingState variant="bars" size="sm" />}{tryLoading ? 'Running…' : 'Run action'}
               </Button>
             </DialogFooter>
           </DialogContent>

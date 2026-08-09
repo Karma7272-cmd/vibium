@@ -28,7 +28,7 @@ const Auth: React.FC = () => {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <LoadingState variant="bars" size="lg" />
       </div>
     );
   }
@@ -103,7 +103,7 @@ const Auth: React.FC = () => {
                   />
                 </div>
                 <Button type="submit" className="w-full gap-2" disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                  {loading ? <LoadingState variant="bars" size="sm" /> : <Mail className="h-4 w-4" />}
                   Sign In
                 </Button>
               </form>
@@ -135,7 +135,7 @@ const Auth: React.FC = () => {
                   />
                 </div>
                 <Button type="submit" className="w-full gap-2" disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                  {loading ? <LoadingState variant="bars" size="sm" /> : <Mail className="h-4 w-4" />}
                   Sign Up
                 </Button>
               </form>

@@ -105,7 +105,7 @@ const Pricing: React.FC = () => {
                 </CardContent>
                 <CardFooter>
                   <Button className="w-full" disabled={payingPlan === 'Pro'} onClick={() => handlePay('Pro', proTotal, proC, proGb)}>
-                    {payingPlan === 'Pro' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Opening…</> : `Upgrade to Pro · $${proTotal.toFixed(2)}`}
+                    {payingPlan === 'Pro' ? <><LoadingState variant="bars" size="sm" className="mr-2" />Opening…</> : `Upgrade to Pro · $${proTotal.toFixed(2)}`}
                   </Button>
                 </CardFooter>
               </Card>
@@ -135,7 +135,7 @@ const Pricing: React.FC = () => {
                 </CardContent>
                 <CardFooter>
                   <Button variant="outline" className="w-full" disabled={payingPlan === 'Business'} onClick={() => handlePay('Business', bizTotal, bizC, bizGb)}>
-                    {payingPlan === 'Business' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Opening…</> : `Choose Business · $${bizTotal.toFixed(2)}`}
+                    {payingPlan === 'Business' ? <><LoadingState variant="bars" size="sm" className="mr-2" />Opening…</> : `Choose Business · $${bizTotal.toFixed(2)}`}
                   </Button>
                 </CardFooter>
               </Card>
