@@ -9,6 +9,7 @@ import OperatorProfileStats from '@/components/operators/OperatorProfileStats';
 import OperatorProfilePosts from '@/components/operators/OperatorProfilePosts';
 import OperatorProfileNodes from '@/components/operators/OperatorProfileNodes';
 import { useOperatorData } from '@/hooks/useOperatorData';
+import { LoadingState } from '@/components/ui/LoadingState';
 
 const OperatorProfile: React.FC = () => {
   const { npub } = useParams<{ npub: string }>();
@@ -30,8 +31,7 @@ const OperatorProfile: React.FC = () => {
       >
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading operator profile...</p>
+            <LoadingState variant="bars" size="md" message="Loading operator profile..." />
           </div>
         </div>
       </OperatorLayout>

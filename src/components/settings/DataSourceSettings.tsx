@@ -53,7 +53,7 @@ const DataSourceSettings: React.FC = () => {
       case 'connected':
         return <Wifi className="h-4 w-4 text-green-500" />;
       case 'connecting':
-        return <RefreshCw className="h-4 w-4 text-yellow-500 animate-spin" />;
+        return <LoadingState variant="bars" size="sm" className="text-yellow-500" />;
       case 'error':
         return <WifiOff className="h-4 w-4 text-red-500" />;
       default:

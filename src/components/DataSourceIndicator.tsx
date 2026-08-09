@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { Database, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Database, Wifi, WifiOff } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { useSettings } from '@/contexts/SettingsContext';
 import { Badge } from '@/components/ui/badge';
 
@@ -21,7 +22,7 @@ const DataSourceIndicator: React.FC = () => {
       case 'connected':
         return <Wifi className="h-3 w-3 text-green-500" />;
       case 'connecting':
-        return <RefreshCw className="h-3 w-3 text-yellow-500 animate-spin" />;
+        return <LoadingState variant="bars" size="sm" className="text-yellow-500" />;
       case 'error':
         return <WifiOff className="h-3 w-3 text-red-500" />;
       default:
