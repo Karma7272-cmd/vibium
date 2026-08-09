@@ -8,12 +8,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import {
-  Loader2, ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest,
+  ArrowLeft, Github, Upload, FileCode, Sparkles, GitPullRequest,
   Database, Key, MessageSquare, X, PanelLeftClose, PanelLeft, Code2, FolderTree,
   GitBranch, Download, ChevronsUpDown, ChevronDown, Columns2, AlignJustify,
   Search, Filter, Eye, ExternalLink, CheckCircle2, Play, ChevronUp,
   TerminalSquare,
 } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';

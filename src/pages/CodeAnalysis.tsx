@@ -12,7 +12,6 @@ import {
   Search,
   Plus,
   X,
-  Loader2,
   Code2,
   MessageSquare,
   FolderTree,
@@ -21,6 +20,7 @@ import {
   FilePlus,
   FolderPlus, ArrowUp, GitPullRequest, Sparkles, Lock, ExternalLink, CheckCircle2, GitMerge, TerminalSquare,
 } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LoadingState } from '@/components/ui/LoadingState';

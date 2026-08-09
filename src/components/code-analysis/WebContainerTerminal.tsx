@@ -4,7 +4,8 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { Button } from '@/components/ui/button';
-import { Loader2, Play, RefreshCw, Square, AlertTriangle } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { Play, RefreshCw, Square, AlertTriangle } from 'lucide-react';
 
 interface CodeFile { name: string; content: string; language?: string; }
 interface Props {

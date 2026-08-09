@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Loader2, Clock, Settings } from 'lucide-react';
+import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Clock, Settings } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import {
   DropdownMenu,
   DropdownMenuContent,

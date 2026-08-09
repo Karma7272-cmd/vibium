@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { GitHubRepo, listUserRepos, getRepoTree, getBlobContent, setGitHubToken, fetchFilesInParallel, getRepoPermissions } from "@/services/githubService";
 import { hydrateGithubToken } from "@/lib/githubToken";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, GitBranch, Lock, Globe, Shield, ShieldCheck, Search } from "lucide-react";
+import { GitBranch, Lock, Globe, Shield, ShieldCheck, Search } from "lucide-react";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
