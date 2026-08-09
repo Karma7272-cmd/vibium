@@ -636,7 +636,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
 
         {syncing && (
           <span className="text-[10px] text-violet-300 flex items-center gap-1">
-            <Loader2 className="h-2.5 w-2.5 animate-spin" /> syncing edits…
+            <LoadingState variant="bars" size="sm" className="text-violet-300" /> syncing edits…
           </span>
         )}
         {needsRerun && (
@@ -694,7 +694,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
               className="h-6 px-2 text-[10px] text-white/40 gap-1 cursor-not-allowed"
               disabled
             >
-              <Loader2 className="h-3 w-3 animate-spin" /> Running…
+              <LoadingState variant="bars" size="sm" className="text-white/40" /> Running…
             </Button>
           )}
         </div>
@@ -772,7 +772,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
                 </div>
                 {(status === 'booting' || status === 'installing' || status === 'starting') && (
                   <div className="absolute -top-1 -right-1">
-                    <Loader2 className="h-4 w-4 animate-spin text-violet-400" />
+                    <LoadingState variant="pulse" size="sm" className="text-violet-400" />
                   </div>
                 )}
               </div>
