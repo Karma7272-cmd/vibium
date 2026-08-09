@@ -436,54 +436,67 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1" ref={scrollRef}>
-        <div className="p-3">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl" />
-                <Sparkles className="h-8 w-8 text-muted-foreground/40 relative" />
+      <div className="relative flex-1 min-h-0">
+        <ScrollArea className="h-full" ref={scrollRef}>
+          <div className="p-3">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl" />
+                  <Sparkles className="h-8 w-8 text-muted-foreground/40 relative" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-foreground/70">Ask AI to edit your code</p>
+                  <p className="text-[10px] text-muted-foreground/50 max-w-[200px]">
+                    Describe changes and they&apos;ll be applied automatically to your files
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-foreground/70">Ask AI to edit your code</p>
-                <p className="text-[10px] text-muted-foreground/50 max-w-[200px]">
-                  Describe changes and they&apos;ll be applied automatically to your files
-                </p>
-              </div>
-            </div>
-          )}
+            )}
 
-          <div className="space-y-3">
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <Card
-                  className={`max-w-[90%] p-2.5 shadow-none ${
-                    msg.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
+            <div className="space-y-3">
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  {renderMessageContent(msg)}
+                  <Card
+                    className={`max-w-[90%] p-2.5 shadow-none ${
+                      msg.role === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted'
+                    }`}
+                  >
+                    {renderMessageContent(msg)}
+                  </Card>
+                </div>
+              ))}
+            </div>
+
+            {isLoading && messages[messages.length - 1]?.role === 'user' && (
+              <div className="flex justify-start mt-3">
+                <Card className="bg-muted p-2.5 shadow-none">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                    <span className="text-[10px] text-muted-foreground">Generating & applying changes...</span>
+                  </div>
                 </Card>
               </div>
-            ))}
+            )}
           </div>
+        </ScrollArea>
 
-          {isLoading && messages[messages.length - 1]?.role === 'user' && (
-            <div className="flex justify-start mt-3">
-              <Card className="bg-muted p-2.5 shadow-none">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                  <span className="text-[10px] text-muted-foreground">Generating & applying changes...</span>
-                </div>
-              </Card>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+        {showScrollButton && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            className="absolute bottom-3 right-3 z-10 flex items-center gap-1 px-2 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-medium shadow-md hover:bg-primary/90 transition-colors"
+          >
+            <ChevronDown className="h-3 w-3" />
+            Scroll
+          </button>
+        )}
+      </div>
 
       {/* Footer: attach left, textarea, send right */}
       <div className="p-2">
