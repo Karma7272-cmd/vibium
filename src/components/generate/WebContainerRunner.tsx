@@ -594,7 +594,7 @@ export const WebContainerRunner: React.FC<WebContainerRunnerProps> = ({
   ];
 
   const stepStatusIcon = (s: AgentStep) => {
-    if (s.status === 'running') return <LoadingState variant="pulse" size="xs" className="text-blue-400 shrink-0" />;
+    if (s.status === 'running') return <LoadingState variant="bars" size="sm" className="text-blue-400 shrink-0" />;
     if (s.status === 'done') return <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />;
     if (s.status === 'error') return <AlertTriangle className="h-3.5 w-3.5 text-red-400 shrink-0" />;
     return <ChevronRight className="h-3.5 w-3.5 text-zinc-600 shrink-0" />;
