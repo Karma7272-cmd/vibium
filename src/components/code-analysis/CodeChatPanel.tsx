@@ -47,6 +47,7 @@ export const CodeChatPanel = ({ allFiles, selectedFile, onFileUpdate, onClose, o
   const [enabledConnectors, setEnabledConnectors] = useState<string[]>([]);
   const [aiProvider, setAiProvider] = useState<'default' | 'openai' | 'anthropic' | 'gemini'>('default');
   const [autoApplied, setAutoApplied] = useState<string[]>([]);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
