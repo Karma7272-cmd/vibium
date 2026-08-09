@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Plus, FolderTree, FileCode, Plug, Check as CheckIcon, RefreshCw, FileEdit, Bot, ChevronDown } from "lucide-react";
+import { Send, Sparkles, Plus, FolderTree, FileCode, Plug, Check as CheckIcon, RefreshCw, FileEdit, Bot, ChevronDown } from "lucide-react";
 import { LoadingState } from "@/components/ui/LoadingState";
 
 type Scope = 'project' | 'file';
