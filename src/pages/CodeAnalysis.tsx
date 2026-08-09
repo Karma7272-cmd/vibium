@@ -883,7 +883,7 @@ const CodeAnalysis: React.FC = () => {
                     disabled={isGenerating || !aiPrompt.trim()}
                     className="p-1.5 rounded-lg hover:bg-foreground/10 text-muted-foreground/60 hover:text-foreground/70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+                    {isGenerating ? <LoadingState variant="bars" size="sm" /> : <ArrowUp className="h-5 w-5" />}
                   </button>
                 </div>
               </div>
