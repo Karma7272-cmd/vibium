@@ -510,18 +510,7 @@ const CodeReview: React.FC = () => {
 
         {/* Loading state */}
         {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 text-center">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-              <Loader2 className="h-10 w-10 animate-spin text-primary relative" />
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-sm font-medium">{stageMsg}</p>
-              {payload && (
-                <p className="text-xs text-muted-foreground/60 max-w-md truncate">&ldquo;{payload.prompt}&rdquo;</p>
-              )}
-            </div>
-          </div>
+          <GenerationLoading stage={stageMsg} prompt={payload?.prompt || null} />
         ) : (
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
             {/* Left sidebar: file tree (editor mode) or meta info */}
