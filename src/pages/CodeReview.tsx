@@ -28,6 +28,7 @@ import {
 } from '@/services/githubService';
 import { hydrateGithubToken } from '@/lib/githubToken';
 import { WebContainerRunner } from '@/components/generate/WebContainerRunner';
+import { GenerationLoading } from '@/components/generate/GenerationLoading';
 
 type Mode = 'generate' | 'analyze';
 type ViewMode = 'stacked' | 'editor';
