@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 
 interface CheckLoadingStateProps {
   message?: string;
@@ -13,10 +12,7 @@ const CheckLoadingState: React.FC<CheckLoadingStateProps> = ({
   return (
     <Card className="dark:bg-card/40 dark:backdrop-blur-sm dark:border-border">
       <CardContent className="p-6 flex items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>{message}</span>
-        </div>
+        <LoadingState variant="bars" size="sm" message={message} />
       </CardContent>
     </Card>
   );
