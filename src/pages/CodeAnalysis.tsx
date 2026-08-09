@@ -615,7 +615,7 @@ const CodeAnalysis: React.FC = () => {
                         disabled={isMerging}
                         title={`Merge PR #${openPR.number}`}
                       >
-                        {isMerging ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GitMerge className="h-3.5 w-3.5" />}
+                        {isMerging ? <LoadingState variant="bars" size="sm" /> : <GitMerge className="h-3.5 w-3.5" />}
                         {!isMobile && <span>Merge #{openPR.number}</span>}
                       </Button>
                     )}
@@ -629,7 +629,7 @@ const CodeAnalysis: React.FC = () => {
                     disabled={isMerging}
                     title={`Merge PR #${openPR.number} in ${openPR.repo}`}
                   >
-                    {isMerging ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GitMerge className="h-3.5 w-3.5" />}
+                    {isMerging ? <LoadingState variant="bars" size="sm" /> : <GitMerge className="h-3.5 w-3.5" />}
                     <span>Merge #{openPR.number}</span>
                   </Button>
                 )}
@@ -1004,7 +1004,7 @@ const CodeAnalysis: React.FC = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPRDialog(false)}>Cancel</Button>
             <Button onClick={handleCreatePR} disabled={isPushing || !prTitle.trim()}>
-              {isPushing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</> : 'Create PR'}
+              {isPushing ? <><LoadingState variant="bars" size="sm" className="mr-2" />Creating...</> : 'Create PR'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1035,7 +1035,7 @@ const CodeAnalysis: React.FC = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPushGenDialog(false)}>Cancel</Button>
             <Button onClick={handlePushGeneratedFiles} disabled={isPushing || !newRepoName.trim()} className="gap-1.5">
-              {isPushing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Pushing...</> : <><Upload className="h-4 w-4" />Create & Push</>}
+              {isPushing ? <><LoadingState variant="bars" size="sm" className="mr-2" />Pushing...</> : <><Upload className="h-4 w-4" />Create & Push</>}
             </Button>
           </DialogFooter>
         </DialogContent>

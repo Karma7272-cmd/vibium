@@ -164,7 +164,7 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <LoadingState variant="bars" size="lg" />
         </CardContent>
       </Card>
     );
@@ -211,7 +211,7 @@ export function GitHubRepoSelector({ onRepoImported }: GitHubRepoSelectorProps) 
                       )}
                       <Button size="sm" className="h-7 text-xs" onClick={() => importRepo(repo)} disabled={importing !== null}>
                         {importing === repo.id ? (
-                          <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Importing</>
+                          <><LoadingState variant="bars" size="sm" className="mr-1.5" />Importing</>
                         ) : (
                           "Import"
                         )}

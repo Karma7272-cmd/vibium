@@ -299,7 +299,7 @@ const SimpleCheckForm: React.FC = () => {
                   {localStorage.getItem('github_access_token') ? (
                     isReposLoading ? (
                       <div className="flex items-center justify-center py-6">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        <LoadingState variant="bars" size="md" />
                       </div>
                     ) : repos.length > 0 ? (
                       <div className="py-1">

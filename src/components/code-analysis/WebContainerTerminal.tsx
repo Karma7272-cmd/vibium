@@ -234,7 +234,7 @@ export const WebContainerTerminal: React.FC<Props> = ({ files, className }) => {
       )}
       {status === 'booting' && (
         <div className="flex items-center gap-2 text-xs text-white/60 px-3 py-1.5 border-b border-white/10">
-          <Loader2 className="h-3 w-3 animate-spin" /> Booting sandbox…
+          <LoadingState variant="bars" size="sm" /> Booting sandbox…
         </div>
       )}
       <div ref={termHostRef} className="flex-1 overflow-hidden px-1 py-1" />

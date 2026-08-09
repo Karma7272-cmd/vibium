@@ -478,7 +478,7 @@ const CodeReview: React.FC = () => {
 
             {payload?.mode === 'generate' && genFiles.length > 0 && (
               <Button size="sm" onClick={handlePushNew} disabled={pushing || !newRepoName.trim()} className="gap-1.5 h-8">
-                {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Github className="h-3.5 w-3.5" />}
+                {pushing ? <LoadingState variant="bars" size="sm" /> : <Github className="h-3.5 w-3.5" />}
                 <span className="hidden sm:inline text-xs">Create repo & push</span>
                 <span className="sm:hidden text-xs">Push</span>
               </Button>
@@ -487,7 +487,7 @@ const CodeReview: React.FC = () => {
               <>
                 {canPush && !prUrl && (
                   <Button size="sm" onClick={() => handlePushEdits(false)} disabled={pushing} className="gap-1.5 h-8">
-                    {pushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                    {pushing ? <LoadingState variant="bars" size="sm" /> : <Upload className="h-3.5 w-3.5" />}
                     <span className="hidden sm:inline text-xs">Push</span>
                   </Button>
                 )}
