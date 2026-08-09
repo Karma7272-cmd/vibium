@@ -92,7 +92,7 @@ const WebContainerTest: React.FC<{ className?: string }> = ({ className }) => {
         className="h-7 gap-1.5 text-xs"
       >
         {running ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <LoadingState variant="bars" size="sm" />
         ) : (
           <Play className="w-3.5 h-3.5" />
         )}
