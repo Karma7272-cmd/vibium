@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Copy, RefreshCw, AlertCircle, Plus, Trash2, Wifi, WifiOff } from 'lucide-react';
+import { Eye, EyeOff, Copy, AlertCircle, Plus, Trash2, Wifi, WifiOff } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

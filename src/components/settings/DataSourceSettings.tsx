@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { AlertCircle, Plus, Trash2, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Wifi, WifiOff } from 'lucide-react';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
