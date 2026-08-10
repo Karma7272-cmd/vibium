@@ -48,6 +48,7 @@ const SCHEMA = {
       },
       required: ["tables"],
     },
+    sql_migration: { type: "string" },
     env_vars: {
       type: "array",
       items: {
@@ -62,7 +63,7 @@ const SCHEMA = {
       },
     },
   },
-  required: ["project_name", "description", "stack", "files", "database_schema", "env_vars"],
+  required: ["project_name", "description", "stack", "files", "database_schema", "sql_migration", "env_vars"],
 };
 
 const MAX_RETRIES = 2;
