@@ -17,8 +17,6 @@ interface DatabasePanelProps {
   envValues?: Record<string, string>;
 }
 
-const SUPABASE_KEYS = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'] as const;
-
 export const DatabasePanel: React.FC<DatabasePanelProps> = ({ files, onSaveEnv, envValues = {} }) => {
   const { actualTheme } = useTheme();
   const { toast } = useToast();

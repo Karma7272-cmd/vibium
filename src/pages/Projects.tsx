@@ -4,7 +4,7 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { FolderOpen, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock } from 'lucide-react';
+import { FolderOpen, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Database } from 'lucide-react';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,7 @@ import { formatDistanceToNow } from 'date-fns';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '@/components/ThemeProvider';
 import { WebContainerRunner } from '@/components/generate/WebContainerRunner';
+import { DatabasePanel } from '@/components/generate/DatabasePanel';
 
 interface ProjectFile { path: string; content: string; }
 interface EnvVar { name: string; description?: string; example?: string; required?: boolean; }
@@ -58,6 +59,7 @@ const Projects: React.FC = () => {
   const [repoName, setRepoName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [showPushForm, setShowPushForm] = useState(false);
+  const [showDb, setShowDb] = useState(false);
 
   const load = async () => {
     if (!user) { setLoading(false); return; }
@@ -288,6 +290,15 @@ const Projects: React.FC = () => {
                   <span className="text-xs">Push to GitHub</span>
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant={showDb ? 'default' : 'outline'}
+                onClick={() => setShowDb(s => !s)}
+                className="gap-1.5 h-8"
+              >
+                <Database className="h-3.5 w-3.5" />
+                <span className="text-xs">Database</span>
+              </Button>
               <Button variant="ghost" size="icon" onClick={() => removeProject(active.id)}>
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
@@ -361,7 +372,13 @@ const Projects: React.FC = () => {
             </aside>
             <main className="col-span-9 overflow-hidden flex flex-col">
               <div className="flex-1 min-h-0">
-                {selectedFile ? (
+                {showDb ? (
+                  <DatabasePanel
+                    files={active.files || []}
+                    envValues={Object.fromEntries(envs.map(e => [e.key, e.value]))}
+                    onSaveEnv={saveEnv}
+                  />
+                ) : selectedFile ? (
                   <Editor
                     height="100%"
                     language={langFromPath(selectedFile.path)}
