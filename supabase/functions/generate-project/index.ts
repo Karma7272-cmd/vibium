@@ -272,6 +272,16 @@ serve(async (req) => {
         if (!result.files || !Array.isArray(result.files) || result.files.length === 0) {
           throw new Error("AI did not generate any files. Try a more specific prompt.");
         }
+        // Make sure the SQL migration is always available as a real project file.
+        const files = result.files as Array<{ path: string; content: string }>;
+        const sql = typeof result.sql_migration === "string" ? result.sql_migration.trim() : "";
+        if (sql && !files.some((f) => f.path?.toLowerCase().endsWith(".sql"))) {
+          files.push({ path: "supabase/migrations/0001_init.sql", content: sql });
+        }
+        if (!sql) {
+          const existing = files.find((f) => f.path?.toLowerCase().endsWith(".sql"));
+          if (existing) result.sql_migration = existing.content;
+        }
         payload = JSON.stringify(result);
       } catch (e) {
         console.error("generate-project error:", e);
