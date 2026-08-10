@@ -67,11 +67,7 @@ const SCHEMA = {
   required: ["project_name", "description", "stack", "files", "database_schema", "sql_migration", "env_vars"],
 };
 
-const MAX_RETRIES = 2;
-const RETRY_DELAYS = [2000, 4000];
-
-async function callGemini(prompt: string, apiKey: string): Promise<Record<string, unknown>> {
-  const systemPrompt = `You are a principal full-stack engineer and senior product designer. Given a user request, generate a COMPLETE, production-grade, working project scaffold — never toy demos or "hello world" placeholders.
+const GENERATOR_SYSTEM_PROMPT = `You are a principal full-stack engineer and senior product designer. Given a user request, generate a COMPLETE, production-grade, working project scaffold — never toy demos or "hello world" placeholders.
 
 QUALITY BAR (non-negotiable):
 - The result must look like a real, modern, launched product: complete pages, real copy, realistic sample content, empty/loading/error states, and responsive layouts.
@@ -110,6 +106,12 @@ DATABASE / SQL (required for every full-stack app that stores data):
 - Always emit env_vars listing every env var used and include a .env.example file.
 - If no DB is needed, return database_schema as { "tables": [] } and sql_migration as "".
 - Respond ONLY with a single JSON object matching the required schema. No prose, no markdown fences.`;
+
+const MAX_RETRIES = 2;
+const RETRY_DELAYS = [2000, 4000];
+
+async function callGemini(prompt: string, apiKey: string): Promise<Record<string, unknown>> {
+  const systemPrompt = GENERATOR_SYSTEM_PROMPT;
 
 
   // Stream from the model so the connection stays alive on long generations,
