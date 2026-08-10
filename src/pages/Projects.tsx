@@ -130,7 +130,9 @@ const Projects: React.FC = () => {
       const { data } = await supabase.from('project_envs' as any).insert({
         project_id: active.id, user_id: user.id, key, value,
       } as any).select('id').single();
-      setEnvs(prev => prev.map(e => e.key === key ? { ...e, id: (data as any)?.id || '', value } : e));
+      setEnvs(prev => prev.some(e => e.key === key)
+        ? prev.map(e => e.key === key ? { ...e, id: (data as any)?.id || '', value } : e)
+        : [...prev, { id: (data as any)?.id || '', key, value }]);
       return;
     }
     setEnvs(prev => prev.map(e => e.key === key ? { ...e, value } : e));
