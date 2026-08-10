@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Clock, Settings } from 'lucide-react';
+import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Clock, Settings, Bot, Check as CheckIcon } from 'lucide-react';
 import { LoadingState } from '@/components/ui/LoadingState';
 import {
   DropdownMenu,
@@ -20,6 +20,14 @@ import { listUserRepos, GitHubRepo, setGitHubToken } from '@/services/githubServ
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+const AI_PROVIDERS = [
+  { id: 'openai', label: 'ChatGPT' },
+  { id: 'anthropic', label: 'Claude' },
+  { id: 'gemini', label: 'Gemini' },
+  { id: 'xai', label: 'Grok (xAI)' },
+  { id: 'mistral', label: 'Mistral' },
+] as const;
+
 const SimpleCheckForm: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -31,12 +39,31 @@ const SimpleCheckForm: React.FC = () => {
   const [isReposLoading, setIsReposLoading] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   const [isTimerOpen, setIsTimerOpen] = useState(false);
+  const [aiProvider, setAiProvider] = useState<string>('default');
+  const [connectedAi, setConnectedAi] = useState<string[]>([]);
   const isMobile = useIsMobile();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const zipInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('connector_credentials')
+        .select('connector_id')
+        .eq('status', 'connected')
+        .in('connector_id', AI_PROVIDERS.map(p => p.id));
+      setConnectedAi((data || []).map((c: { connector_id: string }) => c.connector_id));
+    })();
+  }, []);
+
+  const activeModelLabel = aiProvider === 'default'
+    ? 'nuvic ai'
+    : AI_PROVIDERS.find(p => p.id === aiProvider)?.label || 'nuvic ai';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +112,7 @@ const SimpleCheckForm: React.FC = () => {
         mode: 'analyze',
         prompt: trimmed,
         repo: selectedRepo,
+        aiProvider,
       }));
       navigate('/code-review');
       return;
@@ -101,6 +129,7 @@ const SimpleCheckForm: React.FC = () => {
       mode: 'generate',
       prompt: trimmed,
       repo: selectedRepo,
+      aiProvider,
     }));
     navigate('/code-review');
   };
@@ -282,6 +311,48 @@ const SimpleCheckForm: React.FC = () => {
                     <Button variant="ghost" size="sm" className="text-[10px] h-7" onClick={() => setScheduledDate(undefined)}>Clear</Button>
                     <Button variant="default" size="sm" className="text-[10px] h-7" onClick={() => setIsTimerOpen(false)}>Set Time</Button>
                   </div>
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-3 rounded-full font-medium text-[11px] bg-background border-border hover:bg-muted transition-colors">
+                    <Bot className="h-3.5 w-3.5" />
+                    <span className="max-w-[110px] truncate">{activeModelLabel}</span>
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-60 p-2 z-[100]">
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 px-1 uppercase tracking-wider">AI model</p>
+                  <button
+                    type="button"
+                    onClick={() => setAiProvider('default')}
+                    className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded hover:bg-muted"
+                  >
+                    <span>nuvic ai (built-in)</span>
+                    {aiProvider === 'default' && <CheckIcon className="h-3 w-3 text-primary" />}
+                  </button>
+                  {connectedAi.length > 0 && (
+                    <div className="mt-1 pt-1 border-t border-border">
+                      <p className="text-[10px] font-semibold text-muted-foreground mb-1 px-1">Your connected models</p>
+                      {AI_PROVIDERS.filter(p => connectedAi.includes(p.id)).map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setAiProvider(p.id)}
+                          className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded hover:bg-muted"
+                        >
+                          <span>{p.label}</span>
+                          {aiProvider === p.id && <CheckIcon className="h-3 w-3 text-primary" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground/70 px-1 pt-1.5 mt-1 border-t border-border">
+                    {connectedAi.length === 0
+                      ? 'Connect your own API keys on the Connectors page to use ChatGPT, Claude, Gemini, Grok or Mistral.'
+                      : 'Add more keys on the Connectors page.'}
+                  </p>
                 </PopoverContent>
               </Popover>
 
