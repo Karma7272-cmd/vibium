@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -231,12 +232,78 @@ Build this as a complete, polished, production-ready product with a distinctive 
   throw new Error(lastError);
 }
 
+
+const JSON_INSTRUCTION = `Respond ONLY with a single JSON object with these keys: project_name (string), description (string), stack (string), files (array of {path, content}), database_schema ({tables: [{name, description, columns:[{name,type,constraints}]}]}), env_vars (array of {name, description, example, required}). No markdown fences, no prose.`;
+
+function extractJson(text: string): Record<string, unknown> {
+  const cleaned = text.replace(/^```(?:json)?/i, "").replace(/```\s*$/, "").trim();
+  try { return JSON.parse(cleaned); } catch { /* fallthrough */ }
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start !== -1 && end > start) return JSON.parse(cleaned.slice(start, end + 1));
+  throw new Error("AI returned malformed output. Try again.");
+}
+
+async function callUserProvider(
+  provider: string,
+  key: string,
+  prompt: string,
+  systemPrompt: string,
+): Promise<Record<string, unknown>> {
+  const userMsg = `${prompt}\n\n${JSON_INSTRUCTION}`;
+
+  if (provider === "anthropic") {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 16000,
+        system: `${systemPrompt}\n\n${JSON_INSTRUCTION}`,
+        messages: [{ role: "user", content: userMsg }],
+      }),
+    });
+    if (!r.ok) throw new Error(`Claude API error (${r.status}): ${(await r.text()).slice(0, 300)}`);
+    const j = await r.json();
+    return extractJson(j.content?.map((c: any) => c.text || "").join("") || "");
+  }
+
+  if (provider === "gemini") {
+    return await callGemini(prompt, key);
+  }
+
+  const endpoints: Record<string, { url: string; model: string }> = {
+    openai: { url: "https://api.openai.com/v1/chat/completions", model: "gpt-4o" },
+    xai: { url: "https://api.x.ai/v1/chat/completions", model: "grok-2-latest" },
+    mistral: { url: "https://api.mistral.ai/v1/chat/completions", model: "mistral-large-latest" },
+  };
+  const cfg = endpoints[provider];
+  if (!cfg) throw new Error(`Unsupported AI provider: ${provider}`);
+
+  const r = await fetch(cfg.url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: cfg.model,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: `${systemPrompt}\n\n${JSON_INSTRUCTION}` },
+        { role: "user", content: userMsg },
+      ],
+    }),
+  });
+  if (!r.ok) throw new Error(`${provider} API error (${r.status}): ${(await r.text()).slice(0, 300)}`);
+  const j = await r.json();
+  return extractJson(j.choices?.[0]?.message?.content || "");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   let prompt: string;
+  let aiProvider: string | undefined;
   try {
-    ({ prompt } = await req.json());
+    ({ prompt, aiProvider } = await req.json());
   } catch {
     return new Response(JSON.stringify({ error: "invalid JSON body" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -249,8 +316,32 @@ serve(async (req) => {
     });
   }
 
+  // Resolve the user's own model key when they picked one on the home page.
+  let userProvider: string | null = null;
+  let userProviderKey: string | null = null;
+  const authHeader = req.headers.get("Authorization");
+  const SUPPORTED = ["openai", "anthropic", "gemini", "xai", "mistral"];
+  if (authHeader && aiProvider && SUPPORTED.includes(aiProvider)) {
+    try {
+      const sb = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const { data: cred } = await sb
+        .from("connector_credentials")
+        .select("api_key")
+        .eq("connector_id", aiProvider)
+        .eq("status", "connected")
+        .maybeSingle();
+      if (cred?.api_key) { userProvider = aiProvider; userProviderKey = cred.api_key; }
+    } catch (e) {
+      console.error("connector lookup failed", e);
+    }
+  }
+
   const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-  if (!GEMINI_API_KEY) {
+  if (!GEMINI_API_KEY && !userProviderKey) {
     return new Response(JSON.stringify({ error: "GEMINI_API_KEY is not configured" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -268,7 +359,9 @@ serve(async (req) => {
 
       let payload: string;
       try {
-        const result = await callGemini(prompt, GEMINI_API_KEY);
+        const result = userProvider && userProviderKey
+          ? await callUserProvider(userProvider, userProviderKey, prompt, GENERATOR_SYSTEM_PROMPT)
+          : await callGemini(prompt, GEMINI_API_KEY!);
         if (!result.files || !Array.isArray(result.files) || result.files.length === 0) {
           throw new Error("AI did not generate any files. Try a more specific prompt.");
         }
