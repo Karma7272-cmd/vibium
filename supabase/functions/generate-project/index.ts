@@ -91,8 +91,23 @@ DESIGN & ARCHITECTURE SYSTEM:
 - Include README.md (setup + run instructions), config files, and .gitignore.
 - Aim for 10-25 files for a real application.
 - If persistence is needed, design a normalized relational schema, emit database_schema and include a SQL migration file with indexes and constraints.
+
+DATABASE / SQL (required for every full-stack app that stores data):
+- Emit "sql_migration": a single complete, runnable Postgres script that works both on Supabase and on any plain Postgres (custom connection string). It MUST contain, in this order:
+  1. "create extension if not exists pgcrypto;"
+  2. "create table if not exists public.<name> (...)" for every table, with uuid primary keys defaulting to gen_random_uuid(), sensible NOT NULL/defaults, foreign keys, created_at/updated_at timestamptz.
+  3. indexes on every foreign key and frequently filtered column.
+  4. GRANT statements for each table: "grant select, insert, update, delete on public.<t> to authenticated;" and "grant all on public.<t> to service_role;" (add anon select only for public data).
+  5. "alter table public.<t> enable row level security;" plus explicit owner-scoped policies using auth.uid() when the app has users; wrap Supabase-only statements so plain Postgres users can skip them and say so in a SQL comment.
+  6. an updated_at trigger function + triggers.
+- Also include this exact SQL as a project file at "supabase/migrations/0001_init.sql".
+- Include the client wiring for BOTH connection options:
+  * Supabase: a client module (e.g. src/lib/supabase.ts) using @supabase/supabase-js with VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY (or SUPABASE_URL / SUPABASE_ANON_KEY server-side), and add @supabase/supabase-js to dependencies.
+  * Custom Postgres: a db module (e.g. src/lib/db.ts) using "pg" Pool with DATABASE_URL, and add pg to dependencies.
+  * README.md must document how to run the SQL: paste into the Supabase SQL editor, or "psql \\$DATABASE_URL -f supabase/migrations/0001_init.sql".
+- env_vars must include VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY and DATABASE_URL when a database is used.
 - Always emit env_vars listing every env var used and include a .env.example file.
-- If no DB needed, return database_schema as { "tables": [] }.
+- If no DB is needed, return database_schema as { "tables": [] } and sql_migration as "".
 - Respond ONLY with a single JSON object matching the required schema. No prose, no markdown fences.`;
 
 
