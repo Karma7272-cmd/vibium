@@ -44,6 +44,7 @@ interface PendingPayload {
   mode: Mode;
   prompt: string;
   repo?: { owner: string; name: string } | null;
+  aiProvider?: string;
 }
 
 const langFromPath = (p: string) => {
@@ -138,19 +139,19 @@ const CodeReview: React.FC = () => {
       const data: PendingPayload = JSON.parse(raw);
       setPayload(data);
       if (data.mode === 'generate') {
-        runGenerate(data.prompt);
+        runGenerate(data.prompt, data.aiProvider);
       } else if (data.repo) {
-        runAnalyze(data.prompt, data.repo);
+        runAnalyze(data.prompt, data.repo, data.aiProvider);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
-  const runGenerate = async (prompt: string) => {
+  const runGenerate = async (prompt: string, aiProvider?: string) => {
     try {
       setStageMsg('Generating full-stack code\u2026');
-      const { data, error } = await supabase.functions.invoke('generate-project', { body: { prompt } });
+      const { data, error } = await supabase.functions.invoke('generate-project', { body: { prompt, aiProvider } });
       if (error) {
         let msg = 'Generation failed';
         try {
@@ -178,7 +179,7 @@ const CodeReview: React.FC = () => {
     }
   };
 
-  const runAnalyze = async (prompt: string, repo: { owner: string; name: string }) => {
+  const runAnalyze = async (prompt: string, repo: { owner: string; name: string }, aiProvider?: string) => {
     try {
       const token = localStorage.getItem('github_access_token');
       if (!token) throw new Error('GitHub not connected');
@@ -215,7 +216,7 @@ const CodeReview: React.FC = () => {
 
       setStageMsg('AI is analyzing and editing\u2026');
       const { data, error } = await supabase.functions.invoke('analyze-and-edit', {
-        body: { prompt, files: cleaned },
+        body: { prompt, files: cleaned, aiProvider },
       });
       if (error) {
         let msg = 'Analysis failed';
