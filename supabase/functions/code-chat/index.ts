@@ -42,25 +42,97 @@ const CONNECTOR_RECIPES: Record<string, { env: string; hint: string }> = {
   },
 };
 
+const MAX_FILES = 200;
+const MAX_FILE_CONTENT = 100_000;
+const MAX_TOTAL_CONTENT = 1_500_000;
+const MAX_MESSAGES = 100;
+const MAX_MESSAGE_LENGTH = 50_000;
+
+const jsonResponse = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, files, scope, connectors, aiProvider } = await req.json();
+    // ---- Authentication: require a valid signed-in user ----
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return jsonResponse({ error: "Unauthorized" }, 401);
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !userData?.user) return jsonResponse({ error: "Unauthorized" }, 401);
+
+    // ---- Input validation ----
+    let payload: any;
+    try {
+      payload = await req.json();
+    } catch {
+      return jsonResponse({ error: "Invalid JSON body" }, 400);
+    }
+
+    const { messages, files, scope, connectors, aiProvider } = payload ?? {};
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return jsonResponse({ error: "messages must be a non-empty array" }, 400);
+    }
+    if (messages.length > MAX_MESSAGES) {
+      return jsonResponse({ error: `messages cannot exceed ${MAX_MESSAGES} entries` }, 400);
+    }
+    for (const m of messages) {
+      if (!m || typeof m.content !== "string" || typeof m.role !== "string") {
+        return jsonResponse({ error: "each message needs a string role and content" }, 400);
+      }
+      if (!["user", "assistant", "system"].includes(m.role)) {
+        return jsonResponse({ error: "invalid message role" }, 400);
+      }
+      if (m.content.length > MAX_MESSAGE_LENGTH) {
+        return jsonResponse({ error: "a message exceeds the maximum allowed length" }, 400);
+      }
+    }
+
+    if (files !== undefined && !Array.isArray(files)) {
+      return jsonResponse({ error: "files must be an array" }, 400);
+    }
+    if (Array.isArray(files)) {
+      if (files.length > MAX_FILES) {
+        return jsonResponse({ error: `files cannot exceed ${MAX_FILES} entries` }, 400);
+      }
+      let total = 0;
+      for (const f of files) {
+        if (!f || typeof f.name !== "string" || typeof f.content !== "string") {
+          return jsonResponse({ error: "each file needs a string name and content" }, 400);
+        }
+        if (f.name.length > 300 || f.content.length > MAX_FILE_CONTENT) {
+          return jsonResponse({ error: "a file exceeds the maximum allowed size" }, 400);
+        }
+        total += f.content.length;
+      }
+      if (total > MAX_TOTAL_CONTENT) {
+        return jsonResponse({ error: "total file content exceeds the maximum allowed size" }, 400);
+      }
+    }
+
+    if (connectors !== undefined && (!Array.isArray(connectors) || connectors.some((c: unknown) => typeof c !== "string"))) {
+      return jsonResponse({ error: "connectors must be an array of strings" }, 400);
+    }
+    if (aiProvider !== undefined && typeof aiProvider !== "string") {
+      return jsonResponse({ error: "aiProvider must be a string" }, 400);
+    }
+
     const effectiveScope: 'project' | 'file' = scope === 'file' ? 'file' : 'project';
 
     // Fetch authorized connector credentials for the calling user
     let authorizedConnectors: Array<{ id: string; envVar: string; hint: string; hasConfig: boolean }> = [];
     let userProviderKey: string | null = null;
-    const authHeader = req.headers.get("Authorization");
 
-    const supabaseClient = authHeader
-      ? createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_ANON_KEY")!,
-          { global: { headers: { Authorization: authHeader } } },
-        )
-      : null;
 
     if (supabaseClient && Array.isArray(connectors) && connectors.length) {
       try {
