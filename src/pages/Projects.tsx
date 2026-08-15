@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
@@ -47,6 +47,8 @@ const Projects: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { actualTheme } = useTheme();
+  const { id: routeId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState<GenProject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,19 +76,21 @@ const Projects: React.FC = () => {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user?.id]);
 
-  // Auto-open project from ?open=<id> (e.g. from History page).
+  // Auto-open project from route param /:id or ?open=<id> (e.g. from History/Home).
   useEffect(() => {
-    const id = searchParams.get('open');
-    if (!id || active || projects.length === 0) return;
-    const target = projects.find(p => p.id === id);
+    const projectId = routeId || searchParams.get('open');
+    if (!projectId || active || projects.length === 0) return;
+    const target = projects.find(p => p.id === projectId);
     if (target) {
       openProject(target);
-      // Clear the param so a manual "back" doesn't re-open.
-      searchParams.delete('open');
-      setSearchParams(searchParams, { replace: true });
+      // If we opened via legacy query param, replace with the clean direct URL.
+      if (searchParams.get('open')) {
+        searchParams.delete('open');
+        navigate(`/projects/${projectId}`, { replace: true });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, searchParams]);
+  }, [projects, routeId, searchParams]);
 
   // Realtime
   useEffect(() => {
@@ -264,7 +268,10 @@ const Projects: React.FC = () => {
         <SidebarInset className="flex-1 flex flex-col">
           <header className="flex h-auto min-h-[48px] shrink-0 items-center gap-2 border-b border-border px-3 py-2 flex-wrap">
             <SidebarTrigger className="-ml-1" />
-            <Button variant="ghost" size="sm" onClick={() => { setActive(null); setShowPushForm(false); }} className="gap-1">
+            <Button variant="ghost" size="sm" onClick={() => {
+              if (routeId) navigate('/projects');
+              else { setActive(null); setShowPushForm(false); }
+            }} className="gap-1">
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
             <span className="font-semibold truncate">{active.name}</span>

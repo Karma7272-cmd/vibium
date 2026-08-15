@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -438,20 +438,19 @@ const SimpleCheckForm: React.FC = () => {
           <div className="pt-1">
             <div className="flex items-center justify-between px-1 mb-1.5">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Previous projects</p>
-              <button type="button" onClick={() => navigate('/projects')} className="text-[10px] text-primary hover:underline">View all</button>
+              <Link to="/projects" className="text-[10px] text-primary hover:underline">View all</Link>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 touch-pan-x">
               {recentProjects.map((p) => (
-                <button
+                <Link
                   key={p.id}
-                  type="button"
-                  onClick={() => navigate(`/projects?open=${p.id}`)}
-                  className="shrink-0 max-w-[220px] flex items-center gap-2 rounded-full border border-border bg-background hover:bg-muted transition-colors px-3 py-1.5"
+                  to={`/projects/${p.id}`}
+                  className="shrink-0 max-w-[220px] flex items-center gap-2 rounded-full border border-border bg-background hover:bg-muted active:bg-muted/80 transition-colors px-3 py-2 touch-manipulation"
                 >
                   <FolderGit2 className="h-3.5 w-3.5 text-primary shrink-0" />
                   <span className="text-[11px] font-medium truncate">{p.name}</span>
                   <span className="text-[10px] text-muted-foreground shrink-0">{format(new Date(p.created_at), 'MMM d')}</span>
-                </button>
+                </Link>
               ))}
             </div>
           </div>
