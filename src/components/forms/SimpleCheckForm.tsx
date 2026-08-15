@@ -318,8 +318,8 @@ const SimpleCheckForm: React.FC = () => {
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-3 rounded-full font-medium text-[11px] bg-background border-border hover:bg-muted transition-colors">
                     <Bot className="h-3.5 w-3.5" />
-                    <span className="max-w-[110px] truncate">{activeModelLabel}</span>
-                    <ChevronDown className="h-3 w-3 opacity-50" />
+                    <span className="max-w-[110px] truncate hidden sm:inline">{activeModelLabel}</span>
+                    <ChevronDown className="h-3 w-3 opacity-50 hidden sm:inline" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-60 p-2 z-[100]">
