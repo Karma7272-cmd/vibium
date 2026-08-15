@@ -47,6 +47,8 @@ const Projects: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { actualTheme } = useTheme();
+  const { id: routeId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState<GenProject[]>([]);
   const [loading, setLoading] = useState(true);
