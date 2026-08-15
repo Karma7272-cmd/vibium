@@ -42,9 +42,9 @@ const CONNECTOR_RECIPES: Record<string, { env: string; hint: string }> = {
   },
 };
 
-const MAX_FILES = 50;
+const MAX_FILES = 200;
 const MAX_FILE_CONTENT = 100_000;
-const MAX_TOTAL_CONTENT = 400_000;
+const MAX_TOTAL_CONTENT = 1_500_000;
 const MAX_MESSAGES = 100;
 const MAX_MESSAGE_LENGTH = 50_000;
 
