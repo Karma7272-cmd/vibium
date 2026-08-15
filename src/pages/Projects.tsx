@@ -268,7 +268,10 @@ const Projects: React.FC = () => {
         <SidebarInset className="flex-1 flex flex-col">
           <header className="flex h-auto min-h-[48px] shrink-0 items-center gap-2 border-b border-border px-3 py-2 flex-wrap">
             <SidebarTrigger className="-ml-1" />
-            <Button variant="ghost" size="sm" onClick={() => { setActive(null); setShowPushForm(false); }} className="gap-1">
+            <Button variant="ghost" size="sm" onClick={() => {
+              if (routeId) navigate('/projects');
+              else { setActive(null); setShowPushForm(false); }
+            }} className="gap-1">
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
             <span className="font-semibold truncate">{active.name}</span>
