@@ -76,19 +76,21 @@ const Projects: React.FC = () => {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user?.id]);
 
-  // Auto-open project from ?open=<id> (e.g. from History page).
+  // Auto-open project from route param /:id or ?open=<id> (e.g. from History/Home).
   useEffect(() => {
-    const id = searchParams.get('open');
-    if (!id || active || projects.length === 0) return;
-    const target = projects.find(p => p.id === id);
+    const projectId = routeId || searchParams.get('open');
+    if (!projectId || active || projects.length === 0) return;
+    const target = projects.find(p => p.id === projectId);
     if (target) {
       openProject(target);
-      // Clear the param so a manual "back" doesn't re-open.
-      searchParams.delete('open');
-      setSearchParams(searchParams, { replace: true });
+      // If we opened via legacy query param, replace with the clean direct URL.
+      if (searchParams.get('open')) {
+        searchParams.delete('open');
+        navigate(`/projects/${projectId}`, { replace: true });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, searchParams]);
+  }, [projects, routeId, searchParams]);
 
   // Realtime
   useEffect(() => {
