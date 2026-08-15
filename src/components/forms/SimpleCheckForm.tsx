@@ -422,9 +422,33 @@ const SimpleCheckForm: React.FC = () => {
         <input type="file" ref={folderInputRef} className="hidden" {...({ webkitdirectory: "", directory: "" } as any)} onChange={handleFolderChange} />
         <input type="file" ref={zipInputRef} className="hidden" accept=".zip" onChange={handleFileChange} />
         <input type="file" ref={imageInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
+
+        {recentProjects.length > 0 && (
+          <div className="pt-1">
+            <div className="flex items-center justify-between px-1 mb-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Previous projects</p>
+              <button type="button" onClick={() => navigate('/projects')} className="text-[10px] text-primary hover:underline">View all</button>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              {recentProjects.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => navigate(`/projects?open=${p.id}`)}
+                  className="shrink-0 max-w-[220px] flex items-center gap-2 rounded-full border border-border bg-background hover:bg-muted transition-colors px-3 py-1.5"
+                >
+                  <FolderGit2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="text-[11px] font-medium truncate">{p.name}</span>
+                  <span className="text-[10px] text-muted-foreground shrink-0">{format(new Date(p.created_at), 'MMM d')}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );
+
 };
 
 export default SimpleCheckForm;
