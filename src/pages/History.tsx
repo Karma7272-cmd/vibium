@@ -122,7 +122,7 @@ const History: React.FC = () => {
                         <Button
                           size="sm"
                           className="gap-1.5 h-8 shrink-0"
-                          onClick={() => navigate(`/projects?open=${g.id}`)}
+                          onClick={() => navigate(`/projects/${g.id}`)}
                         >
                           <span className="text-xs">Open</span>
                           <ExternalLink className="h-3 w-3" />
