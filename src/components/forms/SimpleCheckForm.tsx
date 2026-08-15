@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Clock, Settings, Bot, Check as CheckIcon } from 'lucide-react';
+import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Clock, Settings, Bot, Check as CheckIcon, FolderGit2 } from 'lucide-react';
 import { LoadingState } from '@/components/ui/LoadingState';
 import {
   DropdownMenu,
@@ -41,6 +41,8 @@ const SimpleCheckForm: React.FC = () => {
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [aiProvider, setAiProvider] = useState<string>('default');
   const [connectedAi, setConnectedAi] = useState<string[]>([]);
+  const [recentProjects, setRecentProjects] = useState<{ id: string; name: string; created_at: string }[]>([]);
+
   const isMobile = useIsMobile();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,8 +60,17 @@ const SimpleCheckForm: React.FC = () => {
         .eq('status', 'connected')
         .in('connector_id', AI_PROVIDERS.map(p => p.id));
       setConnectedAi((data || []).map((c: { connector_id: string }) => c.connector_id));
+
+      const { data: projects } = await supabase
+        .from('generated_projects' as any)
+        .select('id,name,created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(8);
+      setRecentProjects((projects || []) as any);
     })();
   }, []);
+
 
   const activeModelLabel = aiProvider === 'default'
     ? 'nuvic ai'
@@ -422,9 +433,33 @@ const SimpleCheckForm: React.FC = () => {
         <input type="file" ref={folderInputRef} className="hidden" {...({ webkitdirectory: "", directory: "" } as any)} onChange={handleFolderChange} />
         <input type="file" ref={zipInputRef} className="hidden" accept=".zip" onChange={handleFileChange} />
         <input type="file" ref={imageInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
+
+        {recentProjects.length > 0 && (
+          <div className="pt-1">
+            <div className="flex items-center justify-between px-1 mb-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Previous projects</p>
+              <button type="button" onClick={() => navigate('/projects')} className="text-[10px] text-primary hover:underline">View all</button>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              {recentProjects.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => navigate(`/projects?open=${p.id}`)}
+                  className="shrink-0 max-w-[220px] flex items-center gap-2 rounded-full border border-border bg-background hover:bg-muted transition-colors px-3 py-1.5"
+                >
+                  <FolderGit2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="text-[11px] font-medium truncate">{p.name}</span>
+                  <span className="text-[10px] text-muted-foreground shrink-0">{format(new Date(p.created_at), 'MMM d')}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );
+
 };
 
 export default SimpleCheckForm;
