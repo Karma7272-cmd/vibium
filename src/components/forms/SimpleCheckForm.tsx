@@ -41,6 +41,8 @@ const SimpleCheckForm: React.FC = () => {
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [aiProvider, setAiProvider] = useState<string>('default');
   const [connectedAi, setConnectedAi] = useState<string[]>([]);
+  const [recentProjects, setRecentProjects] = useState<{ id: string; name: string; created_at: string }[]>([]);
+
   const isMobile = useIsMobile();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
