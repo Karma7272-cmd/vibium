@@ -60,8 +60,17 @@ const SimpleCheckForm: React.FC = () => {
         .eq('status', 'connected')
         .in('connector_id', AI_PROVIDERS.map(p => p.id));
       setConnectedAi((data || []).map((c: { connector_id: string }) => c.connector_id));
+
+      const { data: projects } = await supabase
+        .from('generated_projects' as any)
+        .select('id,name,created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(8);
+      setRecentProjects((projects || []) as any);
     })();
   }, []);
+
 
   const activeModelLabel = aiProvider === 'default'
     ? 'nuvic ai'
