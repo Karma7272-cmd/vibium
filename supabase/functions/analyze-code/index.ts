@@ -72,16 +72,16 @@ serve(async (req) => {
 
     if (action === 'analyze') {
       systemPrompt = 'You are an expert code analyzer. Analyze the provided code and identify bugs, security vulnerabilities, performance issues, and best practice violations. Provide clear, actionable feedback.';
-      userPrompt = `Analyze this ${fileName} file and identify any issues:\n\n${code}`;
+      userPrompt = `Analyze this ${safeFileName} file and identify any issues:\n\n${code}`;
     } else if (action === 'fix') {
       systemPrompt = 'You are an expert code fixer. Fix bugs, security vulnerabilities, and improve code quality while maintaining the original functionality. Return ONLY the fixed code without explanations.';
-      userPrompt = `Fix all issues in this ${fileName} file:\n\n${code}`;
+      userPrompt = `Fix all issues in this ${safeFileName} file:\n\n${code}`;
     } else if (action === 'explain') {
       systemPrompt = 'You are an expert code explainer. Explain what the code does in clear, simple terms that both beginners and experts can understand.';
-      userPrompt = `Explain what this ${fileName} file does:\n\n${code}`;
+      userPrompt = `Explain what this ${safeFileName} file does:\n\n${code}`;
     } else if (action === 'optimize') {
       systemPrompt = 'You are an expert code optimizer. Optimize the code for better performance, readability, and maintainability. Return ONLY the optimized code without explanations.';
-      userPrompt = `Optimize this ${fileName} file:\n\n${code}`;
+      userPrompt = `Optimize this ${safeFileName} file:\n\n${code}`;
     }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -120,7 +120,7 @@ serve(async (req) => {
     const data = await response.json();
     const result = data.choices[0].message.content;
 
-    console.log(`Analysis complete for ${fileName}`);
+    console.log(`Analysis complete`);
 
     return new Response(
       JSON.stringify({ result }),
