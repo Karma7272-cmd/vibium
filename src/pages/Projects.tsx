@@ -4,7 +4,7 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { FolderOpen, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Database } from 'lucide-react';
+import { FolderOpen, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Database, Users, Save, Eye } from 'lucide-react';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,11 +21,13 @@ import Editor from '@monaco-editor/react';
 import { useTheme } from '@/components/ThemeProvider';
 import { WebContainerRunner } from '@/components/generate/WebContainerRunner';
 import { DatabasePanel } from '@/components/generate/DatabasePanel';
+import { useCollaboration } from '@/hooks/useCollaboration';
 
 interface ProjectFile { path: string; content: string; }
 interface EnvVar { name: string; description?: string; example?: string; required?: boolean; }
 interface GenProject {
   id: string;
+  user_id: string;
   name: string;
   description: string | null;
   stack: string | null;
@@ -62,6 +64,13 @@ const Projects: React.FC = () => {
   const [isPrivate, setIsPrivate] = useState(false);
   const [showPushForm, setShowPushForm] = useState(false);
   const [showDb, setShowDb] = useState(false);
+  const [dirtyFiles, setDirtyFiles] = useState<Record<string, string>>({});
+  const [savingFiles, setSavingFiles] = useState(false);
+
+  const { roleForOwner, canEdit, canDelete } = useCollaboration();
+  const activeRole = active ? roleForOwner(active.user_id) : null;
+  const activeCanEdit = active ? canEdit(active.user_id) : false;
+  const activeCanDelete = active ? canDelete(active.user_id) : false;
 
   const load = async () => {
     if (!user) { setLoading(false); return; }
@@ -92,12 +101,12 @@ const Projects: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projects, routeId, searchParams]);
 
-  // Realtime
+  // Realtime — covers own and shared projects (RLS decides what we can see)
   useEffect(() => {
     if (!user) return;
     const ch = supabase
       .channel('gen-projects')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'generated_projects', filter: `user_id=eq.${user.id}` }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'generated_projects' }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line
@@ -106,6 +115,7 @@ const Projects: React.FC = () => {
   const openProject = async (p: GenProject) => {
     setActive(p);
     setSelectedFile(p.files?.[0] || null);
+    setDirtyFiles({});
     const { data } = await supabase.from('project_envs' as any).select('id,key,value').eq('project_id', p.id);
     const existing: ProjEnv[] = (data as any) ?? [];
     // Seed missing required envs from definitions
@@ -118,21 +128,48 @@ const Projects: React.FC = () => {
     setEnvs(seeded);
   };
 
+  const saveFiles = async () => {
+    if (!active || !activeCanEdit || Object.keys(dirtyFiles).length === 0) return;
+    const merged = (active.files || []).map(f =>
+      dirtyFiles[f.path] !== undefined ? { ...f, content: dirtyFiles[f.path] } : f,
+    );
+    setSavingFiles(true);
+    const { error } = await supabase
+      .from('generated_projects' as any)
+      .update({ files: merged } as any)
+      .eq('id', active.id);
+    setSavingFiles(false);
+    if (error) {
+      toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setActive({ ...active, files: merged });
+    setSelectedFile(prev => prev ? merged.find(f => f.path === prev.path) || prev : prev);
+    setDirtyFiles({});
+    toast({ title: 'Saved', description: 'Changes saved for the whole team.' });
+    load();
+  };
+
   const removeProject = async (id: string) => {
+    if (!activeCanDelete) {
+      toast({ title: 'Not allowed', description: 'Only the project owner can delete this project.', variant: 'destructive' });
+      return;
+    }
     if (!confirm('Delete this project?')) return;
     await supabase.from('generated_projects' as any).delete().eq('id', id);
     setActive(null);
     load();
   };
 
+
   const saveEnv = async (key: string, value: string) => {
-    if (!active || !user) return;
+    if (!active || !user || !activeCanEdit) return;
     const existing = envs.find(e => e.key === key && e.id);
     if (existing) {
       await supabase.from('project_envs' as any).update({ value }).eq('id', existing.id);
     } else {
       const { data } = await supabase.from('project_envs' as any).insert({
-        project_id: active.id, user_id: user.id, key, value,
+        project_id: active.id, user_id: active.user_id, key, value,
       } as any).select('id').single();
       setEnvs(prev => prev.some(e => e.key === key)
         ? prev.map(e => e.key === key ? { ...e, id: (data as any)?.id || '', value } : e)
@@ -143,9 +180,9 @@ const Projects: React.FC = () => {
   };
 
   const addEnv = async () => {
-    if (!newKey.trim() || !active || !user) return;
+    if (!newKey.trim() || !active || !user || !activeCanEdit) return;
     const { data, error } = await supabase.from('project_envs' as any).insert({
-      project_id: active.id, user_id: user.id, key: newKey.trim(), value: newVal,
+      project_id: active.id, user_id: active.user_id, key: newKey.trim(), value: newVal,
     } as any).select('id,key,value').single();
     if (error) { toast({ title: 'Failed', description: error.message, variant: 'destructive' }); return; }
     setEnvs(prev => [...prev, data as any]);
@@ -153,9 +190,11 @@ const Projects: React.FC = () => {
   };
 
   const removeEnv = async (e: ProjEnv) => {
+    if (!activeCanEdit) return;
     if (e.id) await supabase.from('project_envs' as any).delete().eq('id', e.id);
     setEnvs(prev => prev.filter(x => x.key !== e.key));
   };
+
 
   const handlePushToNewRepo = async () => {
     if (!active || !repoName.trim()) return;
@@ -275,7 +314,21 @@ const Projects: React.FC = () => {
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
             <span className="font-semibold truncate">{active.name}</span>
+            {activeRole && activeRole !== 'owner' && (
+              <Badge variant="outline" className="gap-1 text-[10px]">
+                <Users className="h-3 w-3" /> Shared · {activeRole}
+              </Badge>
+            )}
+            {!activeCanEdit && (
+              <Badge variant="secondary" className="gap-1 text-[10px]"><Eye className="h-3 w-3" /> Read only</Badge>
+            )}
             <div className="ml-auto flex items-center gap-2 flex-wrap">
+              {activeCanEdit && Object.keys(dirtyFiles).length > 0 && (
+                <Button size="sm" onClick={saveFiles} disabled={savingFiles} className="gap-1.5 h-8">
+                  {savingFiles ? <LoadingState variant="bars" size="sm" /> : <Save className="h-3.5 w-3.5" />}
+                  <span className="text-xs">Save {Object.keys(dirtyFiles).length}</span>
+                </Button>
+              )}
               {active.pr_url ? (
                 <Button size="sm" className="gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => window.open(active.pr_url!, '_blank')}>
                   <CheckCircle2 className="h-3.5 w-3.5" />
@@ -284,17 +337,17 @@ const Projects: React.FC = () => {
                 </Button>
               ) : active.repo_full_name ? (
                 <>
-                  <Button size="sm" onClick={handlePushToExistingRepo} disabled={pushing} className="gap-1.5 h-8">
+                  <Button size="sm" onClick={handlePushToExistingRepo} disabled={pushing || !activeCanEdit} className="gap-1.5 h-8">
                     {pushing ? <LoadingState variant="bars" size="sm" /> : <Upload className="h-3.5 w-3.5" />}
                     <span className="text-xs">Push</span>
                   </Button>
-                  <Button size="sm" variant="outline" onClick={handleCreatePR} disabled={pushing} className="gap-1.5 h-8">
+                  <Button size="sm" variant="outline" onClick={handleCreatePR} disabled={pushing || !activeCanEdit} className="gap-1.5 h-8">
                     <GitPullRequest className="h-3.5 w-3.5" />
                     <span className="text-xs">Open PR</span>
                   </Button>
                 </>
               ) : (
-                <Button size="sm" onClick={() => { setShowPushForm(s => !s); setRepoName(active.name); }} className="gap-1.5 h-8">
+                <Button size="sm" disabled={!activeCanEdit} onClick={() => { setShowPushForm(s => !s); setRepoName(active.name); }} className="gap-1.5 h-8">
                   <Github className="h-3.5 w-3.5" />
                   <span className="text-xs">Push to GitHub</span>
                 </Button>
@@ -308,9 +361,11 @@ const Projects: React.FC = () => {
                 <Database className="h-3.5 w-3.5" />
                 <span className="text-xs">Database</span>
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => removeProject(active.id)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              {activeCanDelete && (
+                <Button variant="ghost" size="icon" onClick={() => removeProject(active.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              )}
             </div>
           </header>
           {showPushForm && !active.repo_full_name && (
@@ -390,10 +445,21 @@ const Projects: React.FC = () => {
                 ) : selectedFile ? (
                   <Editor
                     height="100%"
+                    path={selectedFile.path}
                     language={langFromPath(selectedFile.path)}
-                    value={selectedFile.content}
+                    value={dirtyFiles[selectedFile.path] ?? selectedFile.content}
+                    onChange={(val) => {
+                      if (!activeCanEdit || !selectedFile) return;
+                      const original = (active.files || []).find(f => f.path === selectedFile.path)?.content ?? '';
+                      setDirtyFiles(prev => {
+                        const next = { ...prev };
+                        if ((val ?? '') === original) delete next[selectedFile.path];
+                        else next[selectedFile.path] = val ?? '';
+                        return next;
+                      });
+                    }}
                     theme={actualTheme === 'dark' ? 'vs-dark' : 'vs-light'}
-                    options={{ readOnly: true, minimap: { enabled: false }, fontSize: 13 }}
+                    options={{ readOnly: !activeCanEdit, minimap: { enabled: false }, fontSize: 13 }}
                   />
                 ) : (
                   <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Select a file</div>
@@ -451,6 +517,9 @@ const Projects: React.FC = () => {
                       <p className="text-xs text-muted-foreground mb-3 line-clamp-2 min-h-[32px]">{p.description || p.stack || 'No description'}</p>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge variant="secondary" className="text-[10px]">{(p.files || []).length} files</Badge>
+                        {p.user_id !== user?.id && (
+                          <Badge variant="outline" className="text-[10px] gap-1"><Users className="h-2.5 w-2.5" />Shared · {roleForOwner(p.user_id) ?? 'viewer'}</Badge>
+                        )}
                         {p.stack && <Badge variant="outline" className="text-[10px]">{p.stack}</Badge>}
                         {p.repo_full_name && <Badge variant="outline" className="text-[10px] gap-1"><Github className="h-2.5 w-2.5" />{p.repo_full_name.split('/')[1]}</Badge>}
                         {p.pr_url && <Badge className="text-[10px]">PR</Badge>}

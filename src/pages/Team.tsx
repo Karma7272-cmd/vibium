@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { UserPlus, Trash2, Mail, Users } from 'lucide-react';
+import { UserPlus, Trash2, Mail, Users, Check, X } from 'lucide-react';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useCollaboration } from '@/hooks/useCollaboration';
 
 interface Member {
   id: string;
@@ -27,6 +28,7 @@ const Team: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { invitations, memberships, respond } = useCollaboration();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -35,11 +37,18 @@ const Team: React.FC = () => {
   const [role, setRole] = useState('viewer');
   const [saving, setSaving] = useState(false);
 
+  const handleRespond = async (id: string, accept: boolean) => {
+    const { error } = await respond(id, accept);
+    if (error) toast({ title: 'Action failed', description: error, variant: 'destructive' });
+    else toast({ title: accept ? 'Invitation accepted' : 'Invitation declined' });
+  };
+
   const load = async () => {
     if (!user) { setLoading(false); return; }
     const { data, error } = await supabase
       .from('team_members')
       .select('*')
+      .eq('owner_id', user.id)
       .order('created_at', { ascending: false });
     if (error) toast({ title: 'Load failed', description: error.message, variant: 'destructive' });
     else setMembers(data as Member[]);
@@ -105,6 +114,48 @@ const Team: React.FC = () => {
                 <UserPlus className="h-4 w-4" /> <span className="hidden sm:inline">Invite</span>
               </Button>
             </div>
+
+            {user && invitations.length > 0 && (
+              <Card className="border-primary/40">
+                <CardContent className="p-4 space-y-3">
+                  <p className="text-sm font-semibold">Invitations for you</p>
+                  {invitations.map((inv) => (
+                    <div key={inv.id} className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate">You were invited as <strong>{inv.role}</strong></p>
+                        <p className="text-[11px] text-muted-foreground truncate">{inv.email}</p>
+                      </div>
+                      <Button size="sm" className="gap-1 h-8" onClick={() => handleRespond(inv.id, true)}>
+                        <Check className="h-3.5 w-3.5" /> Accept
+                      </Button>
+                      <Button size="sm" variant="ghost" className="gap-1 h-8" onClick={() => handleRespond(inv.id, false)}>
+                        <X className="h-3.5 w-3.5" /> Decline
+                      </Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {user && memberships.length > 0 && (
+              <Card>
+                <CardContent className="p-4 space-y-2">
+                  <p className="text-sm font-semibold">Shared with you</p>
+                  {memberships.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Team workspace</span>
+                      <div className="flex items-center gap-2">
+                        {roleBadge(m.role)}
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => navigate('/projects')}>
+                          Open projects
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
 
             {!user ? (
               <Card><CardContent className="p-8 text-center text-sm">
