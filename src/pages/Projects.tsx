@@ -517,6 +517,9 @@ const Projects: React.FC = () => {
                       <p className="text-xs text-muted-foreground mb-3 line-clamp-2 min-h-[32px]">{p.description || p.stack || 'No description'}</p>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge variant="secondary" className="text-[10px]">{(p.files || []).length} files</Badge>
+                        {p.user_id !== user?.id && (
+                          <Badge variant="outline" className="text-[10px] gap-1"><Users className="h-2.5 w-2.5" />Shared · {roleForOwner(p.user_id) ?? 'viewer'}</Badge>
+                        )}
                         {p.stack && <Badge variant="outline" className="text-[10px]">{p.stack}</Badge>}
                         {p.repo_full_name && <Badge variant="outline" className="text-[10px] gap-1"><Github className="h-2.5 w-2.5" />{p.repo_full_name.split('/')[1]}</Badge>}
                         {p.pr_url && <Badge className="text-[10px]">PR</Badge>}
