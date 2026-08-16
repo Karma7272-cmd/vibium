@@ -64,6 +64,13 @@ const Projects: React.FC = () => {
   const [isPrivate, setIsPrivate] = useState(false);
   const [showPushForm, setShowPushForm] = useState(false);
   const [showDb, setShowDb] = useState(false);
+  const [dirtyFiles, setDirtyFiles] = useState<Record<string, string>>({});
+  const [savingFiles, setSavingFiles] = useState(false);
+
+  const { roleForOwner, canEdit, canDelete } = useCollaboration();
+  const activeRole = active ? roleForOwner(active.user_id) : null;
+  const activeCanEdit = active ? canEdit(active.user_id) : false;
+  const activeCanDelete = active ? canDelete(active.user_id) : false;
 
   const load = async () => {
     if (!user) { setLoading(false); return; }
