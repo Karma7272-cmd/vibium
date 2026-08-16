@@ -48,6 +48,7 @@ const Team: React.FC = () => {
     const { data, error } = await supabase
       .from('team_members')
       .select('*')
+      .eq('owner_id', user.id)
       .order('created_at', { ascending: false });
     if (error) toast({ title: 'Load failed', description: error.message, variant: 'destructive' });
     else setMembers(data as Member[]);
