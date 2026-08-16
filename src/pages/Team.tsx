@@ -28,7 +28,7 @@ const Team: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { invitations, memberships, respond, reload: reloadCollab } = useCollaboration();
+  const { invitations, memberships, respond } = useCollaboration();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
