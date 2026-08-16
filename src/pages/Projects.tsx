@@ -337,17 +337,17 @@ const Projects: React.FC = () => {
                 </Button>
               ) : active.repo_full_name ? (
                 <>
-                  <Button size="sm" onClick={handlePushToExistingRepo} disabled={pushing} className="gap-1.5 h-8">
+                  <Button size="sm" onClick={handlePushToExistingRepo} disabled={pushing || !activeCanEdit} className="gap-1.5 h-8">
                     {pushing ? <LoadingState variant="bars" size="sm" /> : <Upload className="h-3.5 w-3.5" />}
                     <span className="text-xs">Push</span>
                   </Button>
-                  <Button size="sm" variant="outline" onClick={handleCreatePR} disabled={pushing} className="gap-1.5 h-8">
+                  <Button size="sm" variant="outline" onClick={handleCreatePR} disabled={pushing || !activeCanEdit} className="gap-1.5 h-8">
                     <GitPullRequest className="h-3.5 w-3.5" />
                     <span className="text-xs">Open PR</span>
                   </Button>
                 </>
               ) : (
-                <Button size="sm" onClick={() => { setShowPushForm(s => !s); setRepoName(active.name); }} className="gap-1.5 h-8">
+                <Button size="sm" disabled={!activeCanEdit} onClick={() => { setShowPushForm(s => !s); setRepoName(active.name); }} className="gap-1.5 h-8">
                   <Github className="h-3.5 w-3.5" />
                   <span className="text-xs">Push to GitHub</span>
                 </Button>
