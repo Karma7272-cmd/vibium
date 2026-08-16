@@ -163,13 +163,13 @@ const Projects: React.FC = () => {
 
 
   const saveEnv = async (key: string, value: string) => {
-    if (!active || !user) return;
+    if (!active || !user || !activeCanEdit) return;
     const existing = envs.find(e => e.key === key && e.id);
     if (existing) {
       await supabase.from('project_envs' as any).update({ value }).eq('id', existing.id);
     } else {
       const { data } = await supabase.from('project_envs' as any).insert({
-        project_id: active.id, user_id: user.id, key, value,
+        project_id: active.id, user_id: active.user_id, key, value,
       } as any).select('id').single();
       setEnvs(prev => prev.some(e => e.key === key)
         ? prev.map(e => e.key === key ? { ...e, id: (data as any)?.id || '', value } : e)
@@ -180,9 +180,9 @@ const Projects: React.FC = () => {
   };
 
   const addEnv = async () => {
-    if (!newKey.trim() || !active || !user) return;
+    if (!newKey.trim() || !active || !user || !activeCanEdit) return;
     const { data, error } = await supabase.from('project_envs' as any).insert({
-      project_id: active.id, user_id: user.id, key: newKey.trim(), value: newVal,
+      project_id: active.id, user_id: active.user_id, key: newKey.trim(), value: newVal,
     } as any).select('id,key,value').single();
     if (error) { toast({ title: 'Failed', description: error.message, variant: 'destructive' }); return; }
     setEnvs(prev => [...prev, data as any]);
@@ -190,9 +190,11 @@ const Projects: React.FC = () => {
   };
 
   const removeEnv = async (e: ProjEnv) => {
+    if (!activeCanEdit) return;
     if (e.id) await supabase.from('project_envs' as any).delete().eq('id', e.id);
     setEnvs(prev => prev.filter(x => x.key !== e.key));
   };
+
 
   const handlePushToNewRepo = async () => {
     if (!active || !repoName.trim()) return;
