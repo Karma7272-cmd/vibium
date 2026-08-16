@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { UserPlus, Trash2, Mail, Users } from 'lucide-react';
+import { UserPlus, Trash2, Mail, Users, Check, X } from 'lucide-react';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useCollaboration } from '@/hooks/useCollaboration';
 
 interface Member {
   id: string;
