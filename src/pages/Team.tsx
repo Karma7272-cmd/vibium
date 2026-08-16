@@ -115,6 +115,48 @@ const Team: React.FC = () => {
               </Button>
             </div>
 
+            {user && invitations.length > 0 && (
+              <Card className="border-primary/40">
+                <CardContent className="p-4 space-y-3">
+                  <p className="text-sm font-semibold">Invitations for you</p>
+                  {invitations.map((inv) => (
+                    <div key={inv.id} className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate">You were invited as <strong>{inv.role}</strong></p>
+                        <p className="text-[11px] text-muted-foreground truncate">{inv.email}</p>
+                      </div>
+                      <Button size="sm" className="gap-1 h-8" onClick={() => handleRespond(inv.id, true)}>
+                        <Check className="h-3.5 w-3.5" /> Accept
+                      </Button>
+                      <Button size="sm" variant="ghost" className="gap-1 h-8" onClick={() => handleRespond(inv.id, false)}>
+                        <X className="h-3.5 w-3.5" /> Decline
+                      </Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {user && memberships.length > 0 && (
+              <Card>
+                <CardContent className="p-4 space-y-2">
+                  <p className="text-sm font-semibold">Shared with you</p>
+                  {memberships.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Team workspace</span>
+                      <div className="flex items-center gap-2">
+                        {roleBadge(m.role)}
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => navigate('/projects')}>
+                          Open projects
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+
             {!user ? (
               <Card><CardContent className="p-8 text-center text-sm">
                 <Button onClick={() => navigate('/auth')}>Sign in to manage your team</Button>
