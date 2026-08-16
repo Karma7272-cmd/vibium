@@ -361,9 +361,11 @@ const Projects: React.FC = () => {
                 <Database className="h-3.5 w-3.5" />
                 <span className="text-xs">Database</span>
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => removeProject(active.id)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              {activeCanDelete && (
+                <Button variant="ghost" size="icon" onClick={() => removeProject(active.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              )}
             </div>
           </header>
           {showPushForm && !active.repo_full_name && (
