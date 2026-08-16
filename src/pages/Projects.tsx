@@ -314,7 +314,21 @@ const Projects: React.FC = () => {
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
             <span className="font-semibold truncate">{active.name}</span>
+            {activeRole && activeRole !== 'owner' && (
+              <Badge variant="outline" className="gap-1 text-[10px]">
+                <Users className="h-3 w-3" /> Shared · {activeRole}
+              </Badge>
+            )}
+            {!activeCanEdit && (
+              <Badge variant="secondary" className="gap-1 text-[10px]"><Eye className="h-3 w-3" /> Read only</Badge>
+            )}
             <div className="ml-auto flex items-center gap-2 flex-wrap">
+              {activeCanEdit && Object.keys(dirtyFiles).length > 0 && (
+                <Button size="sm" onClick={saveFiles} disabled={savingFiles} className="gap-1.5 h-8">
+                  {savingFiles ? <LoadingState variant="bars" size="sm" /> : <Save className="h-3.5 w-3.5" />}
+                  <span className="text-xs">Save {Object.keys(dirtyFiles).length}</span>
+                </Button>
+              )}
               {active.pr_url ? (
                 <Button size="sm" className="gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => window.open(active.pr_url!, '_blank')}>
                   <CheckCircle2 className="h-3.5 w-3.5" />
