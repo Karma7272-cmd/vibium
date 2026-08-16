@@ -101,12 +101,12 @@ const Projects: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projects, routeId, searchParams]);
 
-  // Realtime
+  // Realtime — covers own and shared projects (RLS decides what we can see)
   useEffect(() => {
     if (!user) return;
     const ch = supabase
       .channel('gen-projects')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'generated_projects', filter: `user_id=eq.${user.id}` }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'generated_projects' }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line
@@ -115,6 +115,7 @@ const Projects: React.FC = () => {
   const openProject = async (p: GenProject) => {
     setActive(p);
     setSelectedFile(p.files?.[0] || null);
+    setDirtyFiles({});
     const { data } = await supabase.from('project_envs' as any).select('id,key,value').eq('project_id', p.id);
     const existing: ProjEnv[] = (data as any) ?? [];
     // Seed missing required envs from definitions
@@ -127,12 +128,39 @@ const Projects: React.FC = () => {
     setEnvs(seeded);
   };
 
+  const saveFiles = async () => {
+    if (!active || !activeCanEdit || Object.keys(dirtyFiles).length === 0) return;
+    const merged = (active.files || []).map(f =>
+      dirtyFiles[f.path] !== undefined ? { ...f, content: dirtyFiles[f.path] } : f,
+    );
+    setSavingFiles(true);
+    const { error } = await supabase
+      .from('generated_projects' as any)
+      .update({ files: merged } as any)
+      .eq('id', active.id);
+    setSavingFiles(false);
+    if (error) {
+      toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setActive({ ...active, files: merged });
+    setSelectedFile(prev => prev ? merged.find(f => f.path === prev.path) || prev : prev);
+    setDirtyFiles({});
+    toast({ title: 'Saved', description: 'Changes saved for the whole team.' });
+    load();
+  };
+
   const removeProject = async (id: string) => {
+    if (!activeCanDelete) {
+      toast({ title: 'Not allowed', description: 'Only the project owner can delete this project.', variant: 'destructive' });
+      return;
+    }
     if (!confirm('Delete this project?')) return;
     await supabase.from('generated_projects' as any).delete().eq('id', id);
     setActive(null);
     load();
   };
+
 
   const saveEnv = async (key: string, value: string) => {
     if (!active || !user) return;
