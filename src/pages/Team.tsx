@@ -28,6 +28,7 @@ const Team: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { invitations, memberships, respond, reload: reloadCollab } = useCollaboration();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -35,6 +36,12 @@ const Team: React.FC = () => {
   const [name, setName] = useState('');
   const [role, setRole] = useState('viewer');
   const [saving, setSaving] = useState(false);
+
+  const handleRespond = async (id: string, accept: boolean) => {
+    const { error } = await respond(id, accept);
+    if (error) toast({ title: 'Action failed', description: error, variant: 'destructive' });
+    else toast({ title: accept ? 'Invitation accepted' : 'Invitation declined' });
+  };
 
   const load = async () => {
     if (!user) { setLoading(false); return; }
