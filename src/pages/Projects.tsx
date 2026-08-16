@@ -445,10 +445,21 @@ const Projects: React.FC = () => {
                 ) : selectedFile ? (
                   <Editor
                     height="100%"
+                    path={selectedFile.path}
                     language={langFromPath(selectedFile.path)}
-                    value={selectedFile.content}
+                    value={dirtyFiles[selectedFile.path] ?? selectedFile.content}
+                    onChange={(val) => {
+                      if (!activeCanEdit || !selectedFile) return;
+                      const original = (active.files || []).find(f => f.path === selectedFile.path)?.content ?? '';
+                      setDirtyFiles(prev => {
+                        const next = { ...prev };
+                        if ((val ?? '') === original) delete next[selectedFile.path];
+                        else next[selectedFile.path] = val ?? '';
+                        return next;
+                      });
+                    }}
                     theme={actualTheme === 'dark' ? 'vs-dark' : 'vs-light'}
-                    options={{ readOnly: true, minimap: { enabled: false }, fontSize: 13 }}
+                    options={{ readOnly: !activeCanEdit, minimap: { enabled: false }, fontSize: 13 }}
                   />
                 ) : (
                   <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Select a file</div>
