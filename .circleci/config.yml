@@ -8,7 +8,16 @@ jobs:
     # Build node project
     executor: node/default
     steps:
-      - checkout
+      - run:
+          name: Checkout code
+          command: |
+            for i in 1 2 3; do
+              git clone --filter=blob:none "$CIRCLE_REPOSITORY_URL" . && break
+              echo "Checkout attempt $i failed, retrying..."
+              sleep 5
+              rm -rf .git
+            done
+            git checkout "$CIRCLE_SHA1"
       - node/install-packages:
           pkg-manager: npm
       - run:
