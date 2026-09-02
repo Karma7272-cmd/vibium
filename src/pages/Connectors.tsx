@@ -81,8 +81,16 @@ const Connectors: React.FC = () => {
   const tryActions = tryId ? (ACTIONS[tryId] || []) : [];
   const currentAction = tryActions.find(a => a.id === tryAction);
 
+  const requireAuth = (): boolean => {
+    if (!user) {
+      toast({ title: 'Sign in required', description: 'Sign in to connect connectors. Keys are stored securely in the database.', variant: 'destructive' });
+      return false;
+    }
+    return true;
+  };
+
   const save = async () => {
-    if (!openId || !apiKey.trim()) return;
+    if (!openId || !apiKey.trim() || !requireAuth()) return;
     setTesting(true);
     try {
       const { data, error } = await supabase.functions.invoke('connector-test', { body: { connector_id: openId, api_key: apiKey.trim() } });
