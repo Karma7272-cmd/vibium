@@ -318,18 +318,31 @@ serve(async (req) => {
     });
   }
 
+  // AI generation requires a signed-in user.
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: "Sign in required to generate." }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const sb = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  const { data: userData, error: userErr } = await sb.auth.getUser();
+  if (userErr || !userData?.user) {
+    return new Response(JSON.stringify({ error: "Sign in required to generate." }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   // Resolve the user's own model key when they picked one on the home page.
   let userProvider: string | null = null;
   let userProviderKey: string | null = null;
-  const authHeader = req.headers.get("Authorization");
   const SUPPORTED = ["openai", "anthropic", "gemini", "xai", "mistral"];
-  if (authHeader && aiProvider && SUPPORTED.includes(aiProvider)) {
+  if (aiProvider && SUPPORTED.includes(aiProvider)) {
     try {
-      const sb = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: authHeader } } },
-      );
       const { data: cred } = await sb
         .from("connector_credentials")
         .select("api_key")
