@@ -103,12 +103,14 @@ const Connectors: React.FC = () => {
   };
 
   const disconnect = async (connector_id: string) => {
+    if (!requireAuth()) return;
     await supabase.from('connector_credentials').delete().eq('connector_id', connector_id);
     toast({ title: 'Disconnected' });
     load();
   };
 
   const retest = async (connector_id: string) => {
+    if (!requireAuth()) return;
     setTesting(true);
     try {
       const { data: row } = await supabase.from('connector_credentials').select('api_key').eq('connector_id', connector_id).maybeSingle();
@@ -131,7 +133,7 @@ const Connectors: React.FC = () => {
   };
 
   const runAction = async () => {
-    if (!tryId || !tryAction) return;
+    if (!tryId || !tryAction || !requireAuth()) return;
     setTryLoading(true); setTryResult(null);
     try {
       const { data, error } = await supabase.functions.invoke('connector-invoke', {
