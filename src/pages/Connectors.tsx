@@ -149,6 +149,50 @@ const Connectors: React.FC = () => {
     } finally { setTryLoading(false); }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
+        <AppSidebar activeSection="" onSectionChange={() => {}} />
+        <SidebarInset className="flex-1 flex flex-col">
+          <div className="flex-1 flex items-center justify-center">
+            <LoadingState variant="bars" size="lg" />
+          </div>
+        </SidebarInset>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
+        <AppSidebar activeSection="" onSectionChange={() => {}} />
+        <SidebarInset className="flex-1 flex flex-col">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-2 sm:px-4 bg-background/80 dark:bg-background/20 backdrop-blur-sm">
+            <SidebarTrigger className="-ml-1" />
+            <div className="ml-auto"><h1 className="text-lg sm:text-xl font-semibold">Connectors</h1></div>
+          </header>
+          <div className="flex-1 flex items-center justify-center p-6">
+            <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardHeader className="text-center">
+                <div className="inline-flex items-center justify-center p-2 bg-primary/10 rounded-full mb-2 mx-auto w-fit"><Share2 className="w-6 h-6 text-primary" /></div>
+                <CardTitle>Sign in to connect</CardTitle>
+                <CardDescription>
+                  Connectors store your API keys securely in the database, tied to your account, so they work on any device. Sign in or create an account to continue.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full gap-2" onClick={() => navigate('/auth')}>
+                  <LogIn className="h-4 w-4" /> Sign in / Sign up
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+          <Footer />
+        </SidebarInset>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
       <AppSidebar activeSection="" onSectionChange={() => {}} />
@@ -157,6 +201,7 @@ const Connectors: React.FC = () => {
           <SidebarTrigger className="-ml-1" />
           <div className="ml-auto"><h1 className="text-lg sm:text-xl font-semibold">Connectors</h1></div>
         </header>
+
 
         <div className="flex-1 overflow-auto bg-gray-50/50 dark:bg-transparent">
           <div className="max-w-6xl mx-auto p-6 sm:p-8">
