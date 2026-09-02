@@ -11,6 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 
 // Quick actions per connector — proxied server-side via `connector-invoke`.
 const ACTIONS: Record<string, Array<{ id: string; label: string; needs?: Array<{ key: string; placeholder: string }> }>> = {
