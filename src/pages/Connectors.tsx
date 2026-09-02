@@ -11,6 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 
 // Quick actions per connector — proxied server-side via `connector-invoke`.
 const ACTIONS: Record<string, Array<{ id: string; label: string; needs?: Array<{ key: string; placeholder: string }> }>> = {
@@ -60,12 +63,17 @@ const Connectors: React.FC = () => {
   const [tryResult, setTryResult] = useState<any>(null);
   const [tryLoading, setTryLoading] = useState(false);
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
 
   const load = async () => {
     const { data } = await supabase.from('connector_credentials').select('id,connector_id,status,last_tested_at');
     if (data) setSaved(data as any);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (user) load();
+    else if (!authLoading) setSaved([]);
+  }, [user, authLoading]);
 
   const isConnected = (id: string) => saved.find(s => s.connector_id === id);
   const active = openId ? CONNECTORS.find(c => c.id === openId) : null;
@@ -73,8 +81,16 @@ const Connectors: React.FC = () => {
   const tryActions = tryId ? (ACTIONS[tryId] || []) : [];
   const currentAction = tryActions.find(a => a.id === tryAction);
 
+  const requireAuth = (): boolean => {
+    if (!user) {
+      toast({ title: 'Sign in required', description: 'Sign in to connect connectors. Keys are stored securely in the database.', variant: 'destructive' });
+      return false;
+    }
+    return true;
+  };
+
   const save = async () => {
-    if (!openId || !apiKey.trim()) return;
+    if (!openId || !apiKey.trim() || !requireAuth()) return;
     setTesting(true);
     try {
       const { data, error } = await supabase.functions.invoke('connector-test', { body: { connector_id: openId, api_key: apiKey.trim() } });
@@ -87,12 +103,14 @@ const Connectors: React.FC = () => {
   };
 
   const disconnect = async (connector_id: string) => {
+    if (!requireAuth()) return;
     await supabase.from('connector_credentials').delete().eq('connector_id', connector_id);
     toast({ title: 'Disconnected' });
     load();
   };
 
   const retest = async (connector_id: string) => {
+    if (!requireAuth()) return;
     setTesting(true);
     try {
       const { data: row } = await supabase.from('connector_credentials').select('api_key').eq('connector_id', connector_id).maybeSingle();
@@ -115,7 +133,7 @@ const Connectors: React.FC = () => {
   };
 
   const runAction = async () => {
-    if (!tryId || !tryAction) return;
+    if (!tryId || !tryAction || !requireAuth()) return;
     setTryLoading(true); setTryResult(null);
     try {
       const { data, error } = await supabase.functions.invoke('connector-invoke', {
@@ -131,6 +149,50 @@ const Connectors: React.FC = () => {
     } finally { setTryLoading(false); }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
+        <AppSidebar activeSection="" onSectionChange={() => {}} />
+        <SidebarInset className="flex-1 flex flex-col">
+          <div className="flex-1 flex items-center justify-center">
+            <LoadingState variant="bars" size="lg" />
+          </div>
+        </SidebarInset>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
+        <AppSidebar activeSection="" onSectionChange={() => {}} />
+        <SidebarInset className="flex-1 flex flex-col">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-2 sm:px-4 bg-background/80 dark:bg-background/20 backdrop-blur-sm">
+            <SidebarTrigger className="-ml-1" />
+            <div className="ml-auto"><h1 className="text-lg sm:text-xl font-semibold">Connectors</h1></div>
+          </header>
+          <div className="flex-1 flex items-center justify-center p-6">
+            <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardHeader className="text-center">
+                <div className="inline-flex items-center justify-center p-2 bg-primary/10 rounded-full mb-2 mx-auto w-fit"><Share2 className="w-6 h-6 text-primary" /></div>
+                <CardTitle>Sign in to connect</CardTitle>
+                <CardDescription>
+                  Connectors store your API keys securely in the database, tied to your account, so they work on any device. Sign in or create an account to continue.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full gap-2" onClick={() => navigate('/auth')}>
+                  <LogIn className="h-4 w-4" /> Sign in / Sign up
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+          <Footer />
+        </SidebarInset>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
       <AppSidebar activeSection="" onSectionChange={() => {}} />
@@ -139,6 +201,7 @@ const Connectors: React.FC = () => {
           <SidebarTrigger className="-ml-1" />
           <div className="ml-auto"><h1 className="text-lg sm:text-xl font-semibold">Connectors</h1></div>
         </header>
+
 
         <div className="flex-1 overflow-auto bg-gray-50/50 dark:bg-transparent">
           <div className="max-w-6xl mx-auto p-6 sm:p-8">
