@@ -4,7 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Clock, Settings, Bot, Check as CheckIcon, FolderGit2 } from 'lucide-react';
+import { ArrowUp, Plus, File, Folder, FileArchive, Image, Github, ChevronDown, X, Clock, Settings, Bot, Check as CheckIcon, FolderGit2, LogIn } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { LoadingState } from '@/components/ui/LoadingState';
 import {
   DropdownMenu,
@@ -31,6 +32,7 @@ const AI_PROVIDERS = [
 const SimpleCheckForm: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [isTextareaFocused, setIsTextareaFocused] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -49,6 +51,18 @@ const SimpleCheckForm: React.FC = () => {
   const folderInputRef = useRef<HTMLInputElement>(null);
   const zipInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Restore a prompt drafted before sign-in.
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const draft = sessionStorage.getItem('nuvic-draft-prompt');
+      if (draft) {
+        setPrompt(draft);
+        sessionStorage.removeItem('nuvic-draft-prompt');
+      }
+    } catch {}
+  }, [user]);
 
   useEffect(() => {
     (async () => {
@@ -81,6 +95,14 @@ const SimpleCheckForm: React.FC = () => {
     const trimmed = prompt.trim();
     if (!trimmed) {
       toast({ title: "Enter a prompt", description: "Describe what you'd like to build or change." });
+      return;
+    }
+
+    // AI generation requires an account.
+    if (!user) {
+      try { sessionStorage.setItem('nuvic-draft-prompt', trimmed); } catch {}
+      toast({ title: "Sign in required", description: "Sign in or create an account to generate with AI. Your prompt is saved.", variant: "destructive" });
+      navigate('/auth');
       return;
     }
 
@@ -422,9 +444,20 @@ const SimpleCheckForm: React.FC = () => {
 
             <Button
               type="submit"
-              className="w-10 h-10 p-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full font-medium flex items-center justify-center transition-all shadow-md active:scale-95"
+              aria-label={!authLoading && !user ? 'Sign in to generate' : 'Generate'}
+              className={cn(
+                "bg-primary text-primary-foreground hover:bg-primary/90 rounded-full font-medium flex items-center justify-center transition-all shadow-md active:scale-95",
+                !authLoading && !user ? "h-10 px-4 gap-1.5" : "w-10 h-10 p-0"
+              )}
             >
-              <ArrowUp size={18} />
+              {!authLoading && !user ? (
+                <>
+                  <LogIn size={16} />
+                  <span className="text-xs">Sign in</span>
+                </>
+              ) : (
+                <ArrowUp size={18} />
+              )}
             </Button>
           </div>
         </div>
