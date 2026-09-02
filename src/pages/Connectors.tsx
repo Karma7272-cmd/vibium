@@ -63,12 +63,17 @@ const Connectors: React.FC = () => {
   const [tryResult, setTryResult] = useState<any>(null);
   const [tryLoading, setTryLoading] = useState(false);
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
 
   const load = async () => {
     const { data } = await supabase.from('connector_credentials').select('id,connector_id,status,last_tested_at');
     if (data) setSaved(data as any);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (user) load();
+    else if (!authLoading) setSaved([]);
+  }, [user, authLoading]);
 
   const isConnected = (id: string) => saved.find(s => s.connector_id === id);
   const active = openId ? CONNECTORS.find(c => c.id === openId) : null;
