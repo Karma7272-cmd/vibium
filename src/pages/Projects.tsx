@@ -4,7 +4,8 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { FolderOpen, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Database, Users, Save, Eye } from 'lucide-react';
+import { FolderOpen, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Database, Users, Save, Eye, Download, Code2, MessageSquareText, TerminalSquare } from 'lucide-react';
+import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -63,7 +64,8 @@ const Projects: React.FC = () => {
   const [repoName, setRepoName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [showPushForm, setShowPushForm] = useState(false);
-  const [showDb, setShowDb] = useState(false);
+  const [rightTab, setRightTab] = useState<string>('code'); // 'code' | '__db' | '__preview'
+  const [mobileTab, setMobileTab] = useState<'chat' | 'code'>('code');
   const [dirtyFiles, setDirtyFiles] = useState<Record<string, string>>({});
   const [savingFiles, setSavingFiles] = useState(false);
 
