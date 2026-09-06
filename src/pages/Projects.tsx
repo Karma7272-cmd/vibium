@@ -302,6 +302,19 @@ const Projects: React.FC = () => {
     }
   };
 
+  const downloadZip = async () => {
+    if (!active) return;
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    for (const f of active.files || []) zip.file(f.path, dirtyFiles[f.path] ?? f.content);
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(active.name || 'project').replace(/\s+/g, '-').toLowerCase()}.zip`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
   if (active) {
     return (
       <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
