@@ -4,7 +4,8 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { FolderOpen, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Database, Users, Save, Eye } from 'lucide-react';
+import { FolderOpen, Trash2, Github, ExternalLink, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Database, Users, Save, Eye, Download, Code2, MessageSquareText, TerminalSquare } from 'lucide-react';
+import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -63,7 +64,8 @@ const Projects: React.FC = () => {
   const [repoName, setRepoName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [showPushForm, setShowPushForm] = useState(false);
-  const [showDb, setShowDb] = useState(false);
+  const [rightTab, setRightTab] = useState<string>('code'); // 'code' | '__db' | '__preview'
+  const [mobileTab, setMobileTab] = useState<'chat' | 'code'>('code');
   const [dirtyFiles, setDirtyFiles] = useState<Record<string, string>>({});
   const [savingFiles, setSavingFiles] = useState(false);
 
@@ -300,20 +302,45 @@ const Projects: React.FC = () => {
     }
   };
 
+  const downloadZip = async () => {
+    if (!active) return;
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    for (const f of active.files || []) zip.file(f.path, dirtyFiles[f.path] ?? f.content);
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(active.name || 'project').replace(/\s+/g, '-').toLowerCase()}.zip`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
   if (active) {
     return (
-      <div className="min-h-screen flex w-full bg-background dark:sunrise-gradient">
+      <div className="h-screen flex w-full bg-background dark:sunrise-gradient overflow-hidden">
         <AppSidebar activeSection="projects" onSectionChange={() => {}} />
-        <SidebarInset className="flex-1 flex flex-col">
-          <header className="flex h-auto min-h-[48px] shrink-0 items-center gap-2 border-b border-border px-3 py-2 flex-wrap">
+        <SidebarInset className="flex-1 flex flex-col min-h-0">
+          {/* Top bar — repo context + actions (Jules-style) */}
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
             <SidebarTrigger className="-ml-1" />
-            <Button variant="ghost" size="sm" onClick={() => {
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
               if (routeId) navigate('/projects');
               else { setActive(null); setShowPushForm(false); }
-            }} className="gap-1">
-              <ArrowLeft className="h-4 w-4" /> Back
+            }}>
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <span className="font-semibold truncate">{active.name}</span>
+            <span className="font-semibold truncate max-w-[200px]">{active.name}</span>
+            {active.repo_full_name && (
+              <a
+                href={`https://github.com/${active.repo_full_name}`}
+                target="_blank"
+                rel="noreferrer"
+                className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Github className="h-3.5 w-3.5" />
+                <span className="font-mono truncate max-w-[180px]">{active.repo_full_name}</span>
+              </a>
+            )}
             {activeRole && activeRole !== 'owner' && (
               <Badge variant="outline" className="gap-1 text-[10px]">
                 <Users className="h-3 w-3" /> Shared · {activeRole}
@@ -322,54 +349,45 @@ const Projects: React.FC = () => {
             {!activeCanEdit && (
               <Badge variant="secondary" className="gap-1 text-[10px]"><Eye className="h-3 w-3" /> Read only</Badge>
             )}
-            <div className="ml-auto flex items-center gap-2 flex-wrap">
+            <div className="ml-auto flex items-center gap-1.5">
               {activeCanEdit && Object.keys(dirtyFiles).length > 0 && (
                 <Button size="sm" onClick={saveFiles} disabled={savingFiles} className="gap-1.5 h-8">
                   {savingFiles ? <LoadingState variant="bars" size="sm" /> : <Save className="h-3.5 w-3.5" />}
-                  <span className="text-xs">Save {Object.keys(dirtyFiles).length}</span>
+                  <span className="text-xs hidden sm:inline">Save {Object.keys(dirtyFiles).length}</span>
                 </Button>
               )}
               {active.pr_url ? (
                 <Button size="sm" className="gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => window.open(active.pr_url!, '_blank')}>
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span className="text-xs">View PR</span>
-                  <ExternalLink className="h-3 w-3" />
+                  <span className="text-xs hidden sm:inline">View PR</span>
                 </Button>
               ) : active.repo_full_name ? (
                 <>
-                  <Button size="sm" onClick={handlePushToExistingRepo} disabled={pushing || !activeCanEdit} className="gap-1.5 h-8">
+                  <Button size="sm" variant="outline" onClick={handlePushToExistingRepo} disabled={pushing || !activeCanEdit} className="gap-1.5 h-8">
                     {pushing ? <LoadingState variant="bars" size="sm" /> : <Upload className="h-3.5 w-3.5" />}
-                    <span className="text-xs">Push</span>
+                    <span className="text-xs hidden sm:inline">Push</span>
                   </Button>
                   <Button size="sm" variant="outline" onClick={handleCreatePR} disabled={pushing || !activeCanEdit} className="gap-1.5 h-8">
                     <GitPullRequest className="h-3.5 w-3.5" />
-                    <span className="text-xs">Open PR</span>
+                    <span className="text-xs hidden sm:inline">PR</span>
                   </Button>
                 </>
               ) : (
-                <Button size="sm" disabled={!activeCanEdit} onClick={() => { setShowPushForm(s => !s); setRepoName(active.name); }} className="gap-1.5 h-8">
+                <Button size="sm" variant="outline" disabled={!activeCanEdit} onClick={() => { setShowPushForm(s => !s); setRepoName(active.name); }} className="gap-1.5 h-8">
                   <Github className="h-3.5 w-3.5" />
-                  <span className="text-xs">Push to GitHub</span>
+                  <span className="text-xs hidden sm:inline">Push to GitHub</span>
                 </Button>
               )}
-              <Button
-                size="sm"
-                variant={showDb ? 'default' : 'outline'}
-                onClick={() => setShowDb(s => !s)}
-                className="gap-1.5 h-8"
-              >
-                <Database className="h-3.5 w-3.5" />
-                <span className="text-xs">Database</span>
-              </Button>
               {activeCanDelete && (
-                <Button variant="ghost" size="icon" onClick={() => removeProject(active.id)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeProject(active.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               )}
             </div>
           </header>
+
           {showPushForm && !active.repo_full_name && (
-            <div className="border-b border-border bg-muted/30 px-4 py-3 flex items-center gap-3 flex-wrap">
+            <div className="border-b border-border bg-muted/30 px-4 py-2.5 flex items-center gap-3 flex-wrap shrink-0">
               <Input
                 value={repoName}
                 onChange={(e) => setRepoName(e.target.value)}
@@ -390,57 +408,134 @@ const Projects: React.FC = () => {
               </Button>
             </div>
           )}
-          <div className="flex-1 grid grid-cols-12 overflow-hidden">
-            <aside className="col-span-3 border-r border-border overflow-y-auto bg-muted/20">
-              <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase">Files</div>
-              {(active.files || []).map(f => (
-                <button
-                  key={f.path}
-                  onClick={() => setSelectedFile(f)}
-                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-muted truncate flex items-center gap-1.5 ${selectedFile?.path === f.path ? 'bg-primary/10 text-primary' : ''}`}
-                >
-                  <FileCode className="h-3 w-3 shrink-0" />
-                  {f.path}
-                </button>
-              ))}
-              <div className="px-3 py-2 mt-3 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <KeyRound className="h-3 w-3" /> Env Variables
+
+          {/* Two-pane body: task/chat on the left, code on the right */}
+          <div className="flex-1 min-h-0 grid md:grid-cols-12">
+            {/* LEFT — task summary + AI chat */}
+            <aside className={`${mobileTab === 'chat' ? 'flex' : 'hidden'} md:flex md:col-span-5 lg:col-span-4 flex-col min-h-0 border-r border-border`}>
+              <div className="px-4 py-3 border-b border-border shrink-0">
+                <h2 className="text-sm font-semibold truncate">{active.description || active.name}</h2>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {(active.files || []).length} files · {formatDistanceToNow(new Date(active.created_at), { addSuffix: true })}
+                </p>
               </div>
-              <div className="px-3 space-y-1.5 pb-4">
-                {envs.map(e => (
-                  <div key={e.key} className="space-y-0.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-muted-foreground truncate">{e.key}</span>
-                      <button onClick={() => removeEnv(e)} className="opacity-50 hover:opacity-100">
-                        <X className="h-3 w-3" />
-                      </button>
+              <div className="px-4 py-3 border-b border-border shrink-0">
+                <div className="text-xs font-semibold mb-1.5">Updated files</div>
+                <div className="flex flex-wrap items-center gap-1">
+                  {(active.files || []).slice(0, 4).map(f => (
+                    <button
+                      key={f.path}
+                      onClick={() => { setSelectedFile(f); setRightTab('code'); setMobileTab('code'); }}
+                      className="px-1.5 py-0.5 rounded bg-muted hover:bg-muted/70 text-[10px] font-mono truncate max-w-[140px] transition-colors"
+                    >
+                      {f.path}
+                    </button>
+                  ))}
+                  {(active.files || []).length > 4 && (
+                    <span className="text-[10px] text-muted-foreground">and {(active.files || []).length - 4} more</span>
+                  )}
+                </div>
+              </div>
+              {/* Env variables — collapsible, compact */}
+              <details className="border-b border-border shrink-0 group">
+                <summary className="px-4 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 cursor-pointer select-none">
+                  <KeyRound className="h-3 w-3" /> Env Variables ({envs.length})
+                </summary>
+                <div className="px-4 pb-3 space-y-1.5 max-h-44 overflow-y-auto">
+                  {envs.map(e => (
+                    <div key={e.key} className="space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-muted-foreground truncate">{e.key}</span>
+                        <button onClick={() => removeEnv(e)} className="opacity-50 hover:opacity-100">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <Input
+                        type="password"
+                        value={e.value}
+                        onChange={(ev) => setEnvs(prev => prev.map(x => x.key === e.key ? { ...x, value: ev.target.value } : x))}
+                        onBlur={(ev) => saveEnv(e.key, ev.target.value)}
+                        className="h-7 text-xs"
+                        placeholder="value"
+                      />
                     </div>
-                    <Input
-                      type="password"
-                      value={e.value}
-                      onChange={(ev) => setEnvs(prev => prev.map(x => x.key === e.key ? { ...x, value: ev.target.value } : x))}
-                      onBlur={(ev) => saveEnv(e.key, ev.target.value)}
-                      className="h-7 text-xs"
-                      placeholder="value"
-                    />
+                  ))}
+                  <div className="pt-1.5 border-t border-border space-y-1">
+                    <Input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="KEY" className="h-7 text-xs font-mono" />
+                    <Input value={newVal} onChange={(e) => setNewVal(e.target.value)} placeholder="value" className="h-7 text-xs" />
+                    <Button size="sm" className="w-full h-7 text-xs gap-1" onClick={addEnv} disabled={!newKey.trim()}>
+                      <Plus className="h-3 w-3" /> Add env
+                    </Button>
                   </div>
-                ))}
-                <div className="pt-2 border-t border-border space-y-1">
-                  <Input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="KEY" className="h-7 text-xs font-mono" />
-                  <Input value={newVal} onChange={(e) => setNewVal(e.target.value)} placeholder="value" className="h-7 text-xs" />
-                  <Button size="sm" className="w-full h-7 text-xs gap-1" onClick={addEnv} disabled={!newKey.trim()}>
-                    <Plus className="h-3 w-3" /> Add env
+                </div>
+              </details>
+              {/* AI chat — fills remaining space with bottom input */}
+              <div className="flex-1 min-h-0">
+                <CodeChatPanel
+                  allFiles={(active.files || []).map(f => ({ name: f.path, content: dirtyFiles[f.path] ?? f.content, language: langFromPath(f.path) }))}
+                  selectedFile={selectedFile ? { name: selectedFile.path, content: dirtyFiles[selectedFile.path] ?? selectedFile.content } : null}
+                  onFileUpdate={(name, content) => {
+                    setDirtyFiles(prev => ({ ...prev, [name]: content }));
+                    setSelectedFile(prev => prev && prev.path === name ? { ...prev, content } : prev);
+                  }}
+                />
+              </div>
+            </aside>
+
+            {/* RIGHT — Code panel with tabbed files + zip download */}
+            <main className={`${mobileTab === 'code' ? 'flex' : 'hidden'} md:flex md:col-span-7 lg:col-span-8 flex-col min-h-0`}>
+              <div className="flex items-center gap-2 px-3 h-10 border-b border-border shrink-0">
+                <span className="text-sm font-semibold">Code</span>
+                <div className="ml-auto flex items-center gap-1.5">
+                  <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={downloadZip}>
+                    <Download className="h-3.5 w-3.5" /> Download zip
                   </Button>
                 </div>
               </div>
-            </aside>
-            <main className="col-span-9 overflow-hidden flex flex-col">
+              {/* Tab bar: files + Database + Preview */}
+              <div className="flex items-center gap-0.5 px-2 pt-1.5 border-b border-border overflow-x-auto shrink-0">
+                {(active.files || []).map(f => (
+                  <button
+                    key={f.path}
+                    onClick={() => { setSelectedFile(f); setRightTab('code'); }}
+                    className={`px-2.5 py-1 text-[11px] font-mono rounded-t-md whitespace-nowrap transition-colors ${
+                      rightTab === 'code' && selectedFile?.path === f.path
+                        ? 'bg-muted text-foreground border-b-2 border-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {f.path.split('/').pop()}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setRightTab('__db')}
+                  className={`px-2.5 py-1 text-[11px] rounded-t-md whitespace-nowrap flex items-center gap-1 transition-colors ${
+                    rightTab === '__db' ? 'bg-muted text-foreground border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Database className="h-3 w-3" /> Database
+                </button>
+                <button
+                  onClick={() => setRightTab('__preview')}
+                  className={`px-2.5 py-1 text-[11px] rounded-t-md whitespace-nowrap flex items-center gap-1 transition-colors ${
+                    rightTab === '__preview' ? 'bg-muted text-foreground border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <TerminalSquare className="h-3 w-3" /> Preview
+                </button>
+              </div>
+              {/* Panel content */}
               <div className="flex-1 min-h-0">
-                {showDb ? (
+                {rightTab === '__db' ? (
                   <DatabasePanel
                     files={active.files || []}
                     envValues={Object.fromEntries(envs.map(e => [e.key, e.value]))}
                     onSaveEnv={saveEnv}
+                  />
+                ) : rightTab === '__preview' ? (
+                  <WebContainerRunner
+                    files={(active.files || []).map(f => ({ name: f.path, content: dirtyFiles[f.path] ?? f.content, language: langFromPath(f.path) }))}
+                    projectName={active.name}
                   />
                 ) : selectedFile ? (
                   <Editor
@@ -465,15 +560,24 @@ const Projects: React.FC = () => {
                   <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Select a file</div>
                 )}
               </div>
-              <div className="h-80 border-t border-border shrink-0">
-                <WebContainerRunner
-                  files={(active.files || []).map(f => ({ name: f.path, content: f.content, language: langFromPath(f.path) }))}
-                  projectName={active.name}
-                />
-              </div>
             </main>
           </div>
-          <Footer />
+
+          {/* Mobile bottom toggle: Chat / Code */}
+          <div className="md:hidden flex border-t border-border shrink-0">
+            <button
+              onClick={() => setMobileTab('chat')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${mobileTab === 'chat' ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}
+            >
+              <MessageSquareText className="h-4 w-4" /> Chat
+            </button>
+            <button
+              onClick={() => setMobileTab('code')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${mobileTab === 'code' ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}
+            >
+              <Code2 className="h-4 w-4" /> Code
+            </button>
+          </div>
         </SidebarInset>
       </div>
     );
