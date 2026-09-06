@@ -4,7 +4,7 @@ import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '../components/AppSidebar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { FolderOpen, Trash2, Github, ExternalLink, FileCode, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Database, Users, Save, Eye, Download, Code2, MessageSquareText, TerminalSquare } from 'lucide-react';
+import { FolderOpen, Trash2, Github, ExternalLink, KeyRound, Plus, X, ArrowLeft, Upload, GitPullRequest, CheckCircle2, Lock, Database, Users, Save, Eye, Download, Code2, MessageSquareText, TerminalSquare } from 'lucide-react';
 import { CodeChatPanel } from '@/components/code-analysis/CodeChatPanel';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Button } from '@/components/ui/button';
