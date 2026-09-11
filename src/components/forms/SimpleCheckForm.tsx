@@ -41,7 +41,7 @@ const SimpleCheckForm: React.FC = () => {
   const [isReposLoading, setIsReposLoading] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   const [isTimerOpen, setIsTimerOpen] = useState(false);
-  const [aiProvider, setAiProvider] = useState<string>('default');
+  const [aiProvider, setAiProvider] = useState<string>('');
   const [connectedAi, setConnectedAi] = useState<string[]>([]);
   const [recentProjects, setRecentProjects] = useState<{ id: string; name: string; created_at: string }[]>([]);
 
@@ -73,7 +73,10 @@ const SimpleCheckForm: React.FC = () => {
         .select('connector_id')
         .eq('status', 'connected')
         .in('connector_id', AI_PROVIDERS.map(p => p.id));
-      setConnectedAi((data || []).map((c: { connector_id: string }) => c.connector_id));
+      const ids = (data || []).map((c: { connector_id: string }) => c.connector_id);
+      setConnectedAi(ids);
+      // BYOK only: default to the first key the user has connected.
+      setAiProvider(prev => (prev && ids.includes(prev) ? prev : ids[0] ?? ''));
 
       const { data: projects } = await supabase
         .from('generated_projects' as any)
@@ -86,9 +89,7 @@ const SimpleCheckForm: React.FC = () => {
   }, []);
 
 
-  const activeModelLabel = aiProvider === 'default'
-    ? 'nuvic ai'
-    : AI_PROVIDERS.find(p => p.id === aiProvider)?.label || 'nuvic ai';
+  const activeModelLabel = AI_PROVIDERS.find(p => p.id === aiProvider)?.label || 'Connect a key';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
