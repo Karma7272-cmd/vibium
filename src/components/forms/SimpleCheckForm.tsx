@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import { listUserRepos, GitHubRepo, setGitHubToken } from '@/services/githubService';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { usePlan } from '@/hooks/usePlan';
 
 const AI_PROVIDERS = [
   { id: 'openai', label: 'ChatGPT' },
@@ -41,11 +42,12 @@ const SimpleCheckForm: React.FC = () => {
   const [isReposLoading, setIsReposLoading] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   const [isTimerOpen, setIsTimerOpen] = useState(false);
-  const [aiProvider, setAiProvider] = useState<string>('default');
+  const [aiProvider, setAiProvider] = useState<string>('');
   const [connectedAi, setConnectedAi] = useState<string[]>([]);
   const [recentProjects, setRecentProjects] = useState<{ id: string; name: string; created_at: string }[]>([]);
 
   const isMobile = useIsMobile();
+  const { canCreateProject, planDef } = usePlan();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -73,7 +75,10 @@ const SimpleCheckForm: React.FC = () => {
         .select('connector_id')
         .eq('status', 'connected')
         .in('connector_id', AI_PROVIDERS.map(p => p.id));
-      setConnectedAi((data || []).map((c: { connector_id: string }) => c.connector_id));
+      const ids = (data || []).map((c: { connector_id: string }) => c.connector_id);
+      setConnectedAi(ids);
+      // BYOK only: default to the first key the user has connected.
+      setAiProvider(prev => (prev && ids.includes(prev) ? prev : ids[0] ?? ''));
 
       const { data: projects } = await supabase
         .from('generated_projects' as any)
@@ -86,9 +91,7 @@ const SimpleCheckForm: React.FC = () => {
   }, []);
 
 
-  const activeModelLabel = aiProvider === 'default'
-    ? 'nuvic ai'
-    : AI_PROVIDERS.find(p => p.id === aiProvider)?.label || 'nuvic ai';
+  const activeModelLabel = AI_PROVIDERS.find(p => p.id === aiProvider)?.label || 'Connect a key';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +106,28 @@ const SimpleCheckForm: React.FC = () => {
       try { sessionStorage.setItem('nuvic-draft-prompt', trimmed); } catch {}
       toast({ title: "Sign in required", description: "Sign in or create an account to generate with AI. Your prompt is saved.", variant: "destructive" });
       navigate('/auth');
+      return;
+    }
+
+    // BYOK: an AI provider key of the user's own is required.
+    if (!aiProvider) {
+      toast({
+        title: 'Connect an AI key',
+        description: 'nuvic ai runs on your own API key. Add OpenAI, Claude, Gemini, Grok or Mistral on the Connectors page.',
+        variant: 'destructive',
+      });
+      navigate('/connectors');
+      return;
+    }
+
+    // Plan capacity check.
+    if (!selectedRepo && !canCreateProject) {
+      toast({
+        title: 'Plan limit reached',
+        description: `Your ${planDef.name} plan allows ${planDef.projects} projects and ${planDef.storageMb} MB. Upgrade to keep building.`,
+        variant: 'destructive',
+      });
+      navigate('/pricing');
       return;
     }
 
@@ -357,34 +382,26 @@ const SimpleCheckForm: React.FC = () => {
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-60 p-2 z-[100]">
                   <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 px-1 uppercase tracking-wider">AI model</p>
-                  <button
-                    type="button"
-                    onClick={() => setAiProvider('default')}
-                    className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded hover:bg-muted"
-                  >
-                    <span>nuvic ai (built-in)</span>
-                    {aiProvider === 'default' && <CheckIcon className="h-3 w-3 text-primary" />}
-                  </button>
-                  {connectedAi.length > 0 && (
-                    <div className="mt-1 pt-1 border-t border-border">
-                      <p className="text-[10px] font-semibold text-muted-foreground mb-1 px-1">Your connected models</p>
-                      {AI_PROVIDERS.filter(p => connectedAi.includes(p.id)).map(p => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setAiProvider(p.id)}
-                          className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded hover:bg-muted"
-                        >
-                          <span>{p.label}</span>
-                          {aiProvider === p.id && <CheckIcon className="h-3 w-3 text-primary" />}
-                        </button>
-                      ))}
-                    </div>
+                  {connectedAi.length > 0 ? (
+                    AI_PROVIDERS.filter(p => connectedAi.includes(p.id)).map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setAiProvider(p.id)}
+                        className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded hover:bg-muted"
+                      >
+                        <span>{p.label}</span>
+                        {aiProvider === p.id && <CheckIcon className="h-3 w-3 text-primary" />}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground px-1 py-1.5">No API key connected yet.</p>
                   )}
                   <p className="text-[10px] text-muted-foreground/70 px-1 pt-1.5 mt-1 border-t border-border">
-                    {connectedAi.length === 0
-                      ? 'Connect your own API keys on the Connectors page to use ChatGPT, Claude, Gemini, Grok or Mistral.'
-                      : 'Add more keys on the Connectors page.'}
+                    nuvic ai runs on your own keys.{' '}
+                    <Link to="/connectors" className="underline font-medium text-foreground">
+                      {connectedAi.length === 0 ? 'Connect a key' : 'Add another key'}
+                    </Link>
                   </p>
                 </PopoverContent>
               </Popover>

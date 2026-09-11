@@ -550,6 +550,45 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          billing_period: string
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string
+          id: string
+          plan: string
+          razorpay_payment_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_period?: string
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          id?: string
+          plan?: string
+          razorpay_payment_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_period?: string
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          id?: string
+          plan?: string
+          razorpay_payment_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           completed_at: string | null

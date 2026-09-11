@@ -337,12 +337,12 @@ serve(async (req) => {
     });
   }
 
-  // Resolve the user's own model key when they picked one on the home page.
+  // BYOK only: generation always runs on one of the user's own provider keys.
   let userProvider: string | null = null;
   let userProviderKey: string | null = null;
   const SUPPORTED = ["openai", "anthropic", "gemini", "xai", "mistral"];
-  if (aiProvider && SUPPORTED.includes(aiProvider)) {
-    try {
+  try {
+    if (aiProvider && SUPPORTED.includes(aiProvider)) {
       const { data: cred } = await sb
         .from("connector_credentials")
         .select("api_key")
@@ -350,15 +350,25 @@ serve(async (req) => {
         .eq("status", "connected")
         .maybeSingle();
       if (cred?.api_key) { userProvider = aiProvider; userProviderKey = cred.api_key; }
-    } catch (e) {
-      console.error("connector lookup failed", e);
     }
+    if (!userProviderKey) {
+      const { data: creds } = await sb
+        .from("connector_credentials")
+        .select("connector_id, api_key")
+        .in("connector_id", SUPPORTED)
+        .eq("status", "connected");
+      const first = (creds ?? [])[0];
+      if (first?.api_key) { userProvider = first.connector_id; userProviderKey = first.api_key; }
+    }
+  } catch (e) {
+    console.error("connector lookup failed", e);
   }
 
-  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-  if (!GEMINI_API_KEY && !userProviderKey) {
-    return new Response(JSON.stringify({ error: "GEMINI_API_KEY is not configured" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+  if (!userProviderKey || !userProvider) {
+    return new Response(JSON.stringify({
+      error: "No AI key connected. Add your own OpenAI, Claude, Gemini, Grok or Mistral key on the Connectors page.",
+    }), {
+      status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 

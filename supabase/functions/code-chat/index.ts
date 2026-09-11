@@ -159,14 +159,33 @@ serve(async (req) => {
       }
     }
 
-    // If the user picked a model provider with their own key, fetch it
-    if (supabaseClient && (aiProvider === 'openai' || aiProvider === 'anthropic' || aiProvider === 'gemini')) {
-      const { data: cred } = await supabaseClient
-        .from("connector_credentials")
-        .select("api_key")
-        .eq("connector_id", aiProvider)
-        .maybeSingle();
-      if (cred?.api_key) userProviderKey = cred.api_key;
+    // BYOK only: every call runs on one of the user's own provider keys.
+    let byokProvider: 'openai' | 'anthropic' | 'gemini' | null = null;
+    if (supabaseClient) {
+      const wanted = (aiProvider === 'openai' || aiProvider === 'anthropic' || aiProvider === 'gemini')
+        ? aiProvider : null;
+      if (wanted) {
+        const { data: cred } = await supabaseClient
+          .from("connector_credentials")
+          .select("api_key")
+          .eq("connector_id", wanted)
+          .eq("status", "connected")
+          .maybeSingle();
+        if (cred?.api_key) { userProviderKey = cred.api_key; byokProvider = wanted; }
+      }
+      if (!userProviderKey) {
+        // Fall back to any AI key the user has connected.
+        const { data: creds } = await supabaseClient
+          .from("connector_credentials")
+          .select("connector_id, api_key")
+          .in("connector_id", ["gemini", "openai", "anthropic"])
+          .eq("status", "connected");
+        const first = (creds ?? [])[0];
+        if (first?.api_key) {
+          userProviderKey = first.api_key;
+          byokProvider = first.connector_id as 'openai' | 'anthropic' | 'gemini';
+        }
+      }
     }
 
     let filesContext = "";
@@ -206,16 +225,12 @@ Guidelines:
 - Be concise in prose, thorough in code`;
 
 
-    // ---- Resolve provider + key ----
-    // If user picked a provider with their key, use that. Else default to built-in Gemini.
-    const provider: 'openai' | 'anthropic' | 'gemini' =
-      (aiProvider === 'openai' || aiProvider === 'anthropic' || aiProvider === 'gemini') && userProviderKey
-        ? aiProvider
-        : 'gemini';
-    const apiKey = userProviderKey || Deno.env.get("GEMINI_API_KEY");
+    // ---- Resolve provider + key (BYOK only) ----
+    const provider: 'openai' | 'anthropic' | 'gemini' = byokProvider ?? 'gemini';
+    const apiKey = userProviderKey;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "No AI key available. Connect a provider on the Connectors page." }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "No AI key connected. Add your OpenAI, Claude or Gemini key on the Connectors page." }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 

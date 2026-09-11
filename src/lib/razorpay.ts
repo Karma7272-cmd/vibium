@@ -18,10 +18,12 @@ function loadScript(src: string): Promise<boolean> {
 }
 
 export interface CheckoutInput {
+  /** Display name, e.g. "Pro" */
   plan: string;
+  /** Internal plan id stored on the subscription: starter | pro | business */
+  planId: string;
+  billingPeriod: 'monthly' | 'annual';
   amountUsd: number;
-  credits?: number;
-  storageGb?: number;
   description?: string;
 }
 
@@ -33,7 +35,13 @@ export async function payWithRazorpay(input: CheckoutInput): Promise<{ success: 
   if (!sessionData.session) return { success: false, error: 'Please sign in first' };
 
   const { data, error } = await supabase.functions.invoke('razorpay-create-order', {
-    body: { plan: input.plan, amount_usd: input.amountUsd, credits: input.credits ?? 0, storage_gb: input.storageGb ?? 0 },
+    body: {
+      plan: input.planId,
+      amount_usd: input.amountUsd,
+      credits: 0,
+      storage_gb: 0,
+      billing_period: input.billingPeriod,
+    },
   });
   if (error || !data?.order_id) return { success: false, error: error?.message || data?.error || 'Order failed' };
 
@@ -55,6 +63,7 @@ export async function payWithRazorpay(input: CheckoutInput): Promise<{ success: 
             razorpay_order_id: resp.razorpay_order_id,
             razorpay_payment_id: resp.razorpay_payment_id,
             razorpay_signature: resp.razorpay_signature,
+            billing_period: input.billingPeriod,
           },
         });
         if (ve || !v?.success) resolve({ success: false, error: ve?.message || v?.error || 'Verification failed' });
