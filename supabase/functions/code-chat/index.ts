@@ -225,16 +225,12 @@ Guidelines:
 - Be concise in prose, thorough in code`;
 
 
-    // ---- Resolve provider + key ----
-    // If user picked a provider with their key, use that. Else default to built-in Gemini.
-    const provider: 'openai' | 'anthropic' | 'gemini' =
-      (aiProvider === 'openai' || aiProvider === 'anthropic' || aiProvider === 'gemini') && userProviderKey
-        ? aiProvider
-        : 'gemini';
-    const apiKey = userProviderKey || Deno.env.get("GEMINI_API_KEY");
+    // ---- Resolve provider + key (BYOK only) ----
+    const provider: 'openai' | 'anthropic' | 'gemini' = byokProvider ?? 'gemini';
+    const apiKey = userProviderKey;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "No AI key available. Connect a provider on the Connectors page." }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "No AI key connected. Add your OpenAI, Claude or Gemini key on the Connectors page." }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
