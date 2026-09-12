@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useCollaboration } from '@/hooks/useCollaboration';
+import { usePlan } from '@/hooks/usePlan';
 
 interface Member {
   id: string;
@@ -29,6 +30,7 @@ const Team: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { invitations, memberships, respond } = useCollaboration();
+  const { can, planDef } = usePlan();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -60,6 +62,24 @@ const Team: React.FC = () => {
   const invite = async () => {
     if (!user) { navigate('/auth'); return; }
     if (!email.trim()) return;
+    if (!can('team')) {
+      toast({
+        title: 'Upgrade required',
+        description: `Team collaboration is not included in the ${planDef.name} plan.`,
+        variant: 'destructive',
+      });
+      navigate('/pricing');
+      return;
+    }
+    if (members.length + 1 >= planDef.seats) {
+      toast({
+        title: 'Seat limit reached',
+        description: `The ${planDef.name} plan includes ${planDef.seats} seats.`,
+        variant: 'destructive',
+      });
+      navigate('/pricing');
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from('team_members').insert({
       owner_id: user.id,

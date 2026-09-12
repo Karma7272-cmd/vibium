@@ -23,6 +23,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { WebContainerRunner } from '@/components/generate/WebContainerRunner';
 import { DatabasePanel } from '@/components/generate/DatabasePanel';
 import { useCollaboration } from '@/hooks/useCollaboration';
+import { usePlan } from '@/hooks/usePlan';
 
 interface ProjectFile { path: string; content: string; }
 interface EnvVar { name: string; description?: string; example?: string; required?: boolean; }
@@ -68,6 +69,19 @@ const Projects: React.FC = () => {
   const [mobileTab, setMobileTab] = useState<'chat' | 'code'>('code');
   const [dirtyFiles, setDirtyFiles] = useState<Record<string, string>>({});
   const [savingFiles, setSavingFiles] = useState(false);
+  const { can: canPlan, planDef } = usePlan();
+
+  /** GitHub push / PR is a paid platform feature. */
+  const requireGithubPlan = () => {
+    if (canPlan('github')) return true;
+    toast({
+      title: 'Upgrade required',
+      description: `GitHub push & pull requests are not included in the ${planDef.name} plan.`,
+      variant: 'destructive',
+    });
+    navigate('/pricing');
+    return false;
+  };
 
   const { roleForOwner, canEdit, canDelete } = useCollaboration();
   const activeRole = active ? roleForOwner(active.user_id) : null;
@@ -200,6 +214,7 @@ const Projects: React.FC = () => {
 
   const handlePushToNewRepo = async () => {
     if (!active || !repoName.trim()) return;
+    if (!requireGithubPlan()) return;
     const token = localStorage.getItem('github_access_token');
     if (!token) {
       toast({ title: 'GitHub not connected', description: 'Sign in with GitHub first.', variant: 'destructive' });
@@ -231,6 +246,7 @@ const Projects: React.FC = () => {
 
   const handlePushToExistingRepo = async () => {
     if (!active?.repo_full_name) return;
+    if (!requireGithubPlan()) return;
     const token = localStorage.getItem('github_access_token');
     if (!token) {
       toast({ title: 'GitHub not connected', description: 'Sign in with GitHub first.', variant: 'destructive' });
@@ -261,6 +277,7 @@ const Projects: React.FC = () => {
 
   const handleCreatePR = async () => {
     if (!active?.repo_full_name) return;
+    if (!requireGithubPlan()) return;
     const token = localStorage.getItem('github_access_token');
     if (!token) {
       toast({ title: 'GitHub not connected', description: 'Sign in with GitHub first.', variant: 'destructive' });
