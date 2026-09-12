@@ -23,6 +23,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { WebContainerRunner } from '@/components/generate/WebContainerRunner';
 import { DatabasePanel } from '@/components/generate/DatabasePanel';
 import { useCollaboration } from '@/hooks/useCollaboration';
+import { usePlan } from '@/hooks/usePlan';
 
 interface ProjectFile { path: string; content: string; }
 interface EnvVar { name: string; description?: string; example?: string; required?: boolean; }
