@@ -384,9 +384,7 @@ serve(async (req) => {
 
       let payload: string;
       try {
-        const result = userProvider && userProviderKey
-          ? await callUserProvider(userProvider, userProviderKey, prompt, GENERATOR_SYSTEM_PROMPT)
-          : await callGemini(prompt, GEMINI_API_KEY!);
+        const result = await callUserProvider(userProvider, userProviderKey, prompt, GENERATOR_SYSTEM_PROMPT);
         if (!result.files || !Array.isArray(result.files) || result.files.length === 0) {
           throw new Error("AI did not generate any files. Try a more specific prompt.");
         }
