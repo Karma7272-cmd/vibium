@@ -16,7 +16,6 @@ const CAPACITY = (id: PlanId) => {
   const d = PLAN_DEFS[id];
   return [
     `${d.projects === null ? 'Unlimited' : d.projects} projects`,
-    `${d.storageMb >= 1024 ? `${d.storageMb / 1024} GB` : `${d.storageMb} MB`} project storage`,
     `${d.seats === 1 ? '1 seat' : `${d.seats} team seats`}`,
     'Unlimited AI usage on your own API keys',
   ];
@@ -205,7 +204,7 @@ const Pricing: React.FC = () => {
                   Free {currentPlan === 'free' && <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground align-middle">Current</span>}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {PLAN_DEFS.free.projects} projects · {PLAN_DEFS.free.storageMb} MB storage · unlimited AI on your own keys.
+                  {PLAN_DEFS.free.projects} projects · unlimited AI on your own keys.
                 </p>
               </div>
               <span className="text-2xl font-bold text-foreground">$0</span>
